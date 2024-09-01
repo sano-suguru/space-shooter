@@ -1,6 +1,7 @@
 import { GameObjectFactory } from "../factories/GameObjectFactory";
 import { Updateable } from "../interfaces/Updateable";
 import { UIManager } from "../managers/UIManager";
+import { Aurora } from "../objects/Aurora";
 import { Boss } from "../objects/Boss";
 import { BossBullet } from "../objects/BossBullet";
 import { Bullet } from "../objects/Bullet";
@@ -28,6 +29,7 @@ export class Game extends EventEmitter<GameEventMap> {
     private explosions: Explosion[] = [];
     private planets: Planet[] = [];
     private nebulas: Nebula[] = [];
+    private aurora: Aurora;
     private powerups: PowerUp[] = [];
     private boss: Boss | null = null;
     private bossBullets: BossBullet[] = [];
@@ -63,6 +65,7 @@ export class Game extends EventEmitter<GameEventMap> {
         this.stars = Array.from({ length: GAME_CONSTANTS.BACKGROUND.STAR_COUNT }, () => new Star());
         this.planets = Array.from({ length: GAME_CONSTANTS.BACKGROUND.PLANET_COUNT }, () => new Planet());
         this.nebulas = Array.from({ length: GAME_CONSTANTS.BACKGROUND.NEBULA_COUNT }, () => new Nebula());
+        this.aurora = new Aurora();
     }
 
     private setupEventListeners(): void {
@@ -156,6 +159,7 @@ export class Game extends EventEmitter<GameEventMap> {
             ...this.explosions,
             ...this.stars,
             ...this.planets,
+            this.aurora,
             ...this.bossBullets
         ];
 
@@ -250,14 +254,15 @@ export class Game extends EventEmitter<GameEventMap> {
     private drawBackground(): void {
         // Create a gradient for the background
         const gradient = this.ctx.createLinearGradient(0, 0, 0, GAME_CONSTANTS.CANVAS.HEIGHT);
-        gradient.addColorStop(0, '#000033');
-        gradient.addColorStop(1, '#000066');
+        gradient.addColorStop(0, 'rgba(0, 0, 51, 0.8)');
+        gradient.addColorStop(1, 'rgba(0, 0, 102, 0.8)');
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(0, 0, GAME_CONSTANTS.CANVAS.WIDTH, GAME_CONSTANTS.CANVAS.HEIGHT);
 
         this.nebulas.forEach(nebula => nebula.draw(this.ctx));
         this.planets.forEach(planet => planet.draw(this.ctx));
         this.stars.forEach(star => star.draw(this.ctx));
+        this.aurora.draw(this.ctx);
 
         // 星座の線を描画
         this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
