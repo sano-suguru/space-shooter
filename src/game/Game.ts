@@ -252,10 +252,10 @@ export class Game extends EventEmitter<GameEventMap> {
     }
 
     private drawBackground(): void {
-        // Create a gradient for the background
         const gradient = this.ctx.createLinearGradient(0, 0, 0, GAME_CONSTANTS.CANVAS.HEIGHT);
-        gradient.addColorStop(0, 'rgba(0, 0, 51, 0.8)');
-        gradient.addColorStop(1, 'rgba(0, 0, 102, 0.8)');
+        gradient.addColorStop(0, 'rgba(10, 10, 35, 1)');
+        gradient.addColorStop(0.5, 'rgba(20, 20, 50, 1)');
+        gradient.addColorStop(1, 'rgba(30, 30, 70, 1)');
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(0, 0, GAME_CONSTANTS.CANVAS.WIDTH, GAME_CONSTANTS.CANVAS.HEIGHT);
 
@@ -264,9 +264,8 @@ export class Game extends EventEmitter<GameEventMap> {
         this.stars.forEach(star => star.draw(this.ctx));
         this.auroras.forEach(aurora => aurora.draw(this.ctx));
 
-        // 星座の線を描画
-        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-        this.ctx.lineWidth = 1;
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+        this.ctx.lineWidth = 0.5;
         this.ctx.beginPath();
         this.ctx.moveTo(50, 50);
         this.ctx.lineTo(100, 100);

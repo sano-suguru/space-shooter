@@ -16,6 +16,8 @@ export class Player extends GameObject {
     private invincible = false;
     private lastHitTime = 0;
     private lastFireTime = 0;
+    private thrusterParticles: Array<{ x: number; y: number; speed: number; life: number }> = [];
+
 
     constructor(private game: Game) {
         super(
@@ -33,37 +35,58 @@ export class Player extends GameObject {
     }
 
     public update(deltaTime: number): void {
-        if (this.keys['ArrowLeft']) this.velocity.x -= GAME_CONSTANTS.PLAYER.ACCELERATION;
-        if (this.keys['ArrowRight']) this.velocity.x += GAME_CONSTANTS.PLAYER.ACCELERATION;
-        if (this.keys[' ']) this.shoot();
-        this.move(deltaTime);
+        this.updateMovement();
+        this.updateShooting();
         this.updateInvincibility();
         this.updateEngineAnimation(deltaTime);
+        this.updateThrusterParticles(deltaTime);
     }
 
-    private move(deltaTime: number): void {
-        if (this.keys['ArrowLeft']) this.velocity.x -= GAME_CONSTANTS.PLAYER.ACCELERATION;
-        if (this.keys['ArrowRight']) this.velocity.x += GAME_CONSTANTS.PLAYER.ACCELERATION;
+    private updateMovement(): void {
+        const { CANVAS } = GAME_CONSTANTS;
 
-        this.velocity.x = Math.max(Math.min(this.velocity.x, GAME_CONSTANTS.PLAYER.MAX_SPEED), -GAME_CONSTANTS.PLAYER.MAX_SPEED);
+        this.updateVelocity();
 
-        this.x += this.velocity.x * deltaTime;
-        if (this.x < 0) {
-            this.x = 0;
+        this.x += this.velocity.x;
+        this.clampPosition(0, CANVAS.WIDTH - this.width);
+
+        this.generateThrusterParticles();
+    }
+
+    private updateVelocity(): void {
+        const { ACCELERATION, MAX_SPEED } = GAME_CONSTANTS.PLAYER;
+
+        if (this.keys['ArrowLeft']) {
+            this.velocity.x = Math.max(this.velocity.x - ACCELERATION, -MAX_SPEED);
+        } else if (this.keys['ArrowRight']) {
+            this.velocity.x = Math.min(this.velocity.x + ACCELERATION, MAX_SPEED);
+        } else {
+            this.applyDeceleration();
+        }
+    }
+
+    private applyDeceleration(): void {
+        const { DECELERATION } = GAME_CONSTANTS.PLAYER;
+
+        if (this.velocity.x > 0) {
+            this.velocity.x = Math.max(0, this.velocity.x - DECELERATION);
+        } else if (this.velocity.x < 0) {
+            this.velocity.x = Math.min(0, this.velocity.x + DECELERATION);
+        }
+    }
+
+    private clampPosition(min: number, max: number): void {
+        if (this.x < min) {
+            this.x = min;
             this.velocity.x = 0;
-        } else if (this.x + this.width > GAME_CONSTANTS.CANVAS.WIDTH) {
-            this.x = GAME_CONSTANTS.CANVAS.WIDTH - this.width;
+        } else if (this.x > max) {
+            this.x = max;
             this.velocity.x = 0;
         }
+    }
 
-        // Apply deceleration
-        if (Math.abs(this.velocity.x) > 0) {
-            const deceleration = Math.sign(this.velocity.x) * -GAME_CONSTANTS.PLAYER.DECELERATION;
-            this.velocity.x += deceleration;
-            if (Math.abs(this.velocity.x) < GAME_CONSTANTS.PLAYER.DECELERATION) {
-                this.velocity.x = 0;
-            }
-        }
+    private updateShooting(): void {
+        if (this.keys[' ']) this.shoot();
     }
 
     private shoot(): void {
@@ -80,6 +103,136 @@ export class Player extends GameObject {
         }
     }
 
+    private updateInvincibility(): void {
+        if (this.invincible && Date.now() - this.lastHitTime > GAME_CONSTANTS.PLAYER.INVINCIBILITY_TIME) {
+            this.invincible = false;
+        }
+    }
+
+    private updateEngineAnimation(deltaTime: number): void {
+        this.engineAnimationPhase += 10 * deltaTime;
+        if (this.engineAnimationPhase > Math.PI * 2) {
+            this.engineAnimationPhase = 0;
+        }
+    }
+
+    private generateThrusterParticles(): void {
+        const particleCount = 3;
+        for (let i = 0; i < particleCount; i++) {
+            this.thrusterParticles.push({
+                x: this.x + this.width / 2,
+                y: this.y + this.height,
+                speed: Math.random() * 50 + 50,
+                life: 1
+            });
+        }
+    }
+
+    private updateThrusterParticles(deltaTime: number): void {
+        for (let i = this.thrusterParticles.length - 1; i >= 0; i--) {
+            const particle = this.thrusterParticles[i];
+            particle.y += particle.speed * deltaTime;
+            particle.life -= deltaTime;
+
+            if (particle.life <= 0) {
+                this.thrusterParticles.splice(i, 1);
+            }
+        }
+    }
+
+    public draw(ctx: CanvasRenderingContext2D): void {
+        this.drawThrusterParticles(ctx);
+        this.drawShip(ctx);
+        this.drawShield(ctx);
+    }
+
+    private drawShip(ctx: CanvasRenderingContext2D): void {
+        ctx.save();
+        ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+
+        // メインボディ
+        ctx.fillStyle = this.invincible ? 'rgba(255, 0, 0, 0.5)' : GAME_CONSTANTS.PLAYER.COLORS.PRIMARY;
+        ctx.beginPath();
+        ctx.moveTo(0, -this.height / 2);
+        ctx.lineTo(-this.width / 2, this.height / 2);
+        ctx.lineTo(this.width / 2, this.height / 2);
+        ctx.closePath();
+        ctx.fill();
+
+        // 補助翼
+        ctx.fillStyle = GAME_CONSTANTS.PLAYER.COLORS.SECONDARY;
+        ctx.beginPath();
+        ctx.moveTo(-this.width / 4, 0);
+        ctx.lineTo(-this.width / 2, this.height / 2);
+        ctx.lineTo(0, this.height / 4);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(this.width / 4, 0);
+        ctx.lineTo(this.width / 2, this.height / 2);
+        ctx.lineTo(0, this.height / 4);
+        ctx.closePath();
+        ctx.fill();
+
+        // コックピット
+        ctx.fillStyle = GAME_CONSTANTS.PLAYER.COLORS.ACCENT;
+        ctx.beginPath();
+        ctx.ellipse(0, -this.height / 6, this.width / 6, this.height / 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // エンジンの輝き
+        const engineGlowSize = 10 + Math.sin(this.engineAnimationPhase) * 3;
+        const gradient = ctx.createRadialGradient(
+            0, this.height / 2,
+            0, 0, this.height / 2, engineGlowSize
+        );
+        gradient.addColorStop(0, GAME_CONSTANTS.PLAYER.COLORS.ENGINE);
+        gradient.addColorStop(0.5, 'rgba(255, 100, 0, 0.5)');
+        gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(0, this.height / 2, engineGlowSize, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    private drawThrusterParticles(ctx: CanvasRenderingContext2D): void {
+        ctx.save();
+        for (const particle of this.thrusterParticles) {
+            const alpha = particle.life;
+            const size = 5 * particle.life;
+            ctx.fillStyle = `rgba(255, 100, 0, ${alpha})`;
+            ctx.beginPath();
+            ctx.arc(particle.x, particle.y, size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+
+    private drawShield(ctx: CanvasRenderingContext2D): void {
+        if (this.shieldActive) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.width / 2 + 10, 0, Math.PI * 2);
+            ctx.stroke();
+
+            const gradient = ctx.createRadialGradient(
+                this.x + this.width / 2, this.y + this.height / 2, this.width / 2,
+                this.x + this.width / 2, this.y + this.height / 2, this.width / 2 + 15
+            );
+            gradient.addColorStop(0, 'rgba(0, 255, 255, 0.1)');
+            gradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
+            ctx.fillStyle = gradient;
+            ctx.fill();
+
+            ctx.restore();
+        }
+    }
+
     public takeDamage(amount: number): void {
         if (!this.invincible && !this.shieldActive) {
             this.health = Math.max(0, this.health - amount);
@@ -88,68 +241,6 @@ export class Player extends GameObject {
             if (this.health <= 0) {
                 this.game.gameOver();
             }
-        }
-    }
-
-    private updateInvincibility(): void {
-        if (this.invincible && Date.now() - this.lastHitTime > GAME_CONSTANTS.PLAYER.INVINCIBILITY_TIME) {
-            this.invincible = false;
-        }
-    }
-
-    private updateEngineAnimation(deltaTime: number): void {
-        this.engineAnimationPhase += GAME_CONSTANTS.PLAYER.ACCELERATION * deltaTime;
-        if (this.engineAnimationPhase > Math.PI * 2) {
-            this.engineAnimationPhase = 0;
-        }
-    }
-
-    public draw(ctx: CanvasRenderingContext2D): void {
-        // 機体の描画
-        ctx.fillStyle = this.invincible ? 'rgba(255, 0, 0, 0.5)' : '#00ff00';
-        ctx.beginPath();
-        ctx.moveTo(this.x + this.width / 2, this.y);
-        ctx.lineTo(this.x, this.y + this.height);
-        ctx.lineTo(this.x + this.width, this.y + this.height);
-        ctx.closePath();
-        ctx.fill();
-
-        // ウィングの描画
-        ctx.fillStyle = '#0099ff';
-        ctx.beginPath();
-        ctx.moveTo(this.x, this.y + this.height * 0.7);
-        ctx.lineTo(this.x - this.width * 0.3, this.y + this.height);
-        ctx.lineTo(this.x + this.width * 0.3, this.y + this.height);
-        ctx.closePath();
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.moveTo(this.x + this.width, this.y + this.height * 0.7);
-        ctx.lineTo(this.x + this.width - this.width * 0.3, this.y + this.height);
-        ctx.lineTo(this.x + this.width + this.width * 0.3, this.y + this.height);
-        ctx.closePath();
-        ctx.fill();
-
-        // エンジンの描画
-        const engineGlowSize = 5 + Math.sin(this.engineAnimationPhase) * 2;
-        const gradient = ctx.createRadialGradient(
-            this.x + this.width / 2, this.y + this.height,
-            0, this.x + this.width / 2, this.y + this.height, engineGlowSize
-        );
-        gradient.addColorStop(0, 'rgba(255, 255, 0, 1)');
-        gradient.addColorStop(1, 'rgba(255, 100, 0, 0)');
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(this.x + this.width / 2, this.y + this.height, engineGlowSize, 0, Math.PI * 2);
-        ctx.fill();
-
-        // シールドの描画
-        if (this.shieldActive) {
-            ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.width / 2 + 10, 0, Math.PI * 2);
-            ctx.stroke();
         }
     }
 

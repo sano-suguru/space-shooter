@@ -14,6 +14,12 @@ export type GameConstants = {
         readonly MAX_HEALTH: number;
         readonly INVINCIBILITY_TIME: number;
         readonly FIRE_RATE: number;
+        readonly COLORS: {
+            readonly PRIMARY: string;
+            readonly SECONDARY: string
+            readonly ACCENT: string
+            readonly ENGINE: string
+        }
     };
     readonly BULLET: {
         readonly WIDTH: number;

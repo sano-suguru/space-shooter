@@ -9,12 +9,18 @@ export const GAME_CONSTANTS: GameConstants = {
     PLAYER: {
         WIDTH: 50,
         HEIGHT: 50,
-        MAX_SPEED: 128,
-        ACCELERATION: 3,
-        DECELERATION: 2,
+        MAX_SPEED: 6,
+        ACCELERATION: 0.8,
+        DECELERATION: 0.3,
         MAX_HEALTH: 100,
         INVINCIBILITY_TIME: 1000,
-        FIRE_RATE: 200
+        FIRE_RATE: 200,
+        COLORS: {
+            PRIMARY: '#1a237e', // 濃紺
+            SECONDARY: '#3f51b5', // 紺碧
+            ACCENT: '#00bcd4', // シアン
+            ENGINE: '#ff9800', // オレンジ
+        }
     },
     BULLET: {
         WIDTH: 5,
