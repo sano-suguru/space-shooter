@@ -30,12 +30,12 @@ Space Shooterは、TypeScriptとHTML5 Canvasを使用して開発された、宇
 
 1. リポジトリをクローンします：
    ```
-   git clone https://github.com/yourusername/space-uma-extermination-battle.git
+   git clone https://github.com/yourusername/space-shooter.git
    ```
 
 2. プロジェクトディレクトリに移動します：
    ```
-   cd space-uma-extermination-battle
+   cd space-shooter
    ```
 
 3. 依存関係をインストールします：
