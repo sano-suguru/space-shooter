@@ -16,6 +16,7 @@
 <body>
   <div id="game-container">
     <canvas id="gameCanvas"></canvas>
+    <div class="aurora-overlay"></div>
     <div id="ui-overlay">
       <div id="score">スコア: <span id="scoreValue">0</span></div>
       <div id="level">レベル: <span id="levelValue">1</span></div>
@@ -220,7 +221,7 @@ dist-ssr
     "build": "tsc && vite build",
     "preview": "vite preview",
     "extract": "./extract-file-contents.sh",
-    "deploy": "gh-pages -d dist"
+    "deploy": "pnpm run build && gh-pages -d dist"
   },
   "devDependencies": {
     "gh-pages": "^6.1.1",
@@ -373,25 +374,48 @@ export type Vector2D = {
 ## ./src/styles.css
 
 ```css
+:root {
+  --color-primary: #000033;
+  --color-secondary: #000066;
+  --color-text: #fff;
+  --color-accent: #00ffaa;
+  --color-health-bar: #00ff00;
+  --color-button-gradient-start: #4a4a4a;
+  --color-button-gradient-end: #6a6a6a;
+  --border-radius-small: 5px;
+  --border-radius-medium: 10px;
+  --border-radius-large: 15px;
+  --border-radius-xl: 20px;
+  --border-radius-xxl: 25px;
+  --shadow-color: rgba(255, 255, 255, 0.3);
+  --overlay-color: rgba(0, 0, 0, 0.5);
+  --transition-duration: 0.3s;
+}
+
 body {
   margin: 0;
   padding: 0;
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  background-color: #000;
-  font-family: Arial, sans-serif;
-  color: #fff;
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  font-family: 'Arial', sans-serif;
+  color: var(--color-text);
+  overflow: hidden;
 }
 
 #game-container {
   position: relative;
+  box-shadow: 0 0 50px rgba(0, 255, 255, 0.3);
+  border-radius: var(--border-radius-medium);
 }
 
 #gameCanvas {
-  border: 2px solid #4a4a4a;
-  background-color: #000;
+  border: 2px solid rgba(74, 74, 74, 0.5);
+  border-radius: var(--border-radius-medium);
+  background-color: transparent;
+  animation: aurora-glow 8s infinite;
 }
 
 #ui-overlay {
@@ -399,13 +423,18 @@ body {
   top: 10px;
   left: 10px;
   font-size: 16px;
-  color: #fff;
-  text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.5);
+  color: var(--color-text);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
 }
 
 #score,
-#level {
-  margin-bottom: 5px;
+#level,
+#health {
+  margin-bottom: 10px;
+  background: var(--overlay-color);
+  padding: 5px 10px;
+  border-radius: var(--border-radius-large);
+  backdrop-filter: blur(5px);
 }
 
 #health {
@@ -416,17 +445,17 @@ body {
 #healthBar {
   width: 100px;
   height: 10px;
-  background-color: #333;
+  background-color: rgba(51, 51, 51, 0.5);
   margin-left: 10px;
-  border-radius: 5px;
+  border-radius: var(--border-radius-small);
   overflow: hidden;
 }
 
 #healthBarFill {
   width: 100%;
   height: 100%;
-  background-color: #0f0;
-  transition: width 0.3s;
+  background: linear-gradient(90deg, var(--color-health-bar), var(--color-accent));
+  transition: width var(--transition-duration) ease-in-out;
 }
 
 #gameOver {
@@ -435,30 +464,96 @@ body {
   left: 50%;
   transform: translate(-50%, -50%);
   background-color: rgba(0, 0, 0, 0.8);
-  padding: 20px;
-  border-radius: 10px;
+  padding: 30px;
+  border-radius: var(--border-radius-xl);
   text-align: center;
-  border: 2px solid #4a4a4a;
+  border: 2px solid rgba(74, 74, 74, 0.5);
+  box-shadow: 0 0 20px var(--shadow-color);
+  backdrop-filter: blur(10px);
+}
+
+#gameOver h2 {
+  font-size: 36px;
+  margin-bottom: 20px;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
 #restartButton {
-  margin-top: 10px;
-  padding: 10px 20px;
-  font-size: 16px;
+  margin-top: 20px;
+  padding: 12px 24px;
+  font-size: 18px;
   cursor: pointer;
-  background-color: #4a4a4a;
-  color: #fff;
+  background: linear-gradient(135deg, var(--color-button-gradient-start), var(--color-button-gradient-end));
+  color: var(--color-text);
   border: none;
-  border-radius: 5px;
-  transition: background-color 0.3s;
+  border-radius: var(--border-radius-xxl);
+  transition: all var(--transition-duration) ease;
+  box-shadow: 0 0 10px var(--shadow-color);
 }
 
 #restartButton:hover {
-  background-color: #6a6a6a;
+  background: linear-gradient(135deg, var(--color-button-gradient-end), #8a8a8a);
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
 }
 
 .hidden {
   display: none;
+}
+
+.aurora-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at top, rgba(0, 255, 100, 0.1), transparent 70%),
+    radial-gradient(ellipse at bottom, rgba(0, 200, 255, 0.1), transparent 70%);
+  mix-blend-mode: screen;
+  opacity: 0.3;
+  animation: aurora-pulse 15s infinite alternate;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.1);
+    opacity: 0.7;
+  }
+}
+
+@keyframes aurora-glow {
+
+  0%,
+  100% {
+    filter: brightness(1) saturate(1);
+  }
+
+  50% {
+    filter: brightness(1.1) saturate(1.1);
+  }
+}
+
+@keyframes aurora-pulse {
+  0% {
+    opacity: 0.2;
+  }
+
+  100% {
+    opacity: 0.4;
+  }
+}
+
+.pulse {
+  animation: pulse 2s infinite;
 }
 ```
 
@@ -1023,6 +1118,10 @@ export class PowerUp extends GameObject {
     private color: string;
     private rotation: number = 0;
     private rotationSpeed: number;
+    private glowIntensity: number = 0;
+    private glowDirection: number = 1;
+    private trail: Array<{ x: number; y: number; alpha: number }> = [];
+    private trailUpdateCounter: number = 0;
 
     constructor(x: number, y: number) {
         super(x, y, GAME_CONSTANTS.POWERUP.WIDTH, GAME_CONSTANTS.POWERUP.HEIGHT);
@@ -1039,26 +1138,57 @@ export class PowerUp extends GameObject {
     public update(deltaTime: number): void {
         this.y += GAME_CONSTANTS.POWERUP.SPEED * deltaTime;
         this.rotation += this.rotationSpeed * deltaTime;
+
+        // Update glow effect
+        this.glowIntensity += 0.05 * this.glowDirection;
+        if (this.glowIntensity >= 1 || this.glowIntensity <= 0) {
+            this.glowDirection *= -1;
+        }
+
+        // Update trail
+        this.trailUpdateCounter += deltaTime;
+        if (this.trailUpdateCounter >= 0.05) { // Add a new trail point every 50ms
+            this.trail.unshift({ x: this.x, y: this.y, alpha: 1 });
+            this.trailUpdateCounter = 0;
+        }
+
+        if (this.trail.length > 30) {  // Significantly increased trail length
+            this.trail.pop();
+        }
+        this.trail.forEach(point => point.alpha -= 0.02);  // Even slower fade-out
     }
 
     public draw(ctx: CanvasRenderingContext2D): void {
+        // Draw trail
+        this.drawTrail(ctx);
+
         ctx.save();
         ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
         ctx.rotate(this.rotation);
 
-        // 外側の円
+        // Draw glow effect
+        const glowSize = this.width / 2 + 5 + this.glowIntensity * 3;
+        const gradient = ctx.createRadialGradient(0, 0, this.width / 2, 0, 0, glowSize);
+        gradient.addColorStop(0, this.color);
+        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(0, 0, glowSize, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Draw outer circle
         ctx.beginPath();
         ctx.arc(0, 0, this.width / 2, 0, Math.PI * 2);
         ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
         ctx.fill();
 
-        // 内側の色付き円
+        // Draw inner colored circle
         ctx.beginPath();
         ctx.arc(0, 0, this.width / 3, 0, Math.PI * 2);
         ctx.fillStyle = this.color;
         ctx.fill();
 
-        // パワーアップタイプを示すシンボル
+        // Draw power-up type symbol
         ctx.fillStyle = 'white';
         ctx.font = '20px Arial';
         ctx.textAlign = 'center';
@@ -1077,6 +1207,19 @@ export class PowerUp extends GameObject {
         }
         ctx.fillText(symbol, 0, 0);
 
+        ctx.restore();
+    }
+
+    private drawTrail(ctx: CanvasRenderingContext2D): void {
+        ctx.save();
+        for (let i = this.trail.length - 1; i >= 0; i--) {
+            const point = this.trail[i];
+            const size = (this.width / 2) * (1 - i / this.trail.length) * 0.8;  // Slightly reduced max size
+            ctx.fillStyle = `rgba(${parseInt(this.color.slice(1, 3), 16)}, ${parseInt(this.color.slice(3, 5), 16)}, ${parseInt(this.color.slice(5, 7), 16)}, ${point.alpha * 0.8})`;  // Further increased base alpha
+            ctx.beginPath();
+            ctx.arc(point.x + this.width / 2, point.y + this.height / 2, size, 0, Math.PI * 2);
+            ctx.fill();
+        }
         ctx.restore();
     }
 
@@ -1396,6 +1539,71 @@ export class Player extends GameObject {
 ```
 
 
+## ./src/objects/Aurora.ts
+
+```ts
+import { GAME_CONSTANTS } from "../utils/Constants";
+
+export class Aurora {
+    private curves: { offset: number; amplitude: number; speed: number }[];
+    private colors: string[];
+
+    constructor() {
+        this.curves = Array(5).fill(null).map(() => ({
+            offset: Math.random() * Math.PI * 2,
+            amplitude: Math.random() * 40 + 20,
+            speed: (Math.random() + 0.5) * 0.0005
+        }));
+        this.colors = [
+            'rgba(0, 255, 100, 0.1)',
+            'rgba(0, 200, 255, 0.1)',
+            'rgba(100, 0, 255, 0.1)',
+            'rgba(255, 100, 200, 0.1)',
+            'rgba(255, 200, 0, 0.1)'
+        ];
+    }
+
+    public update(deltaTime: number): void {
+        this.curves.forEach(curve => {
+            curve.offset += curve.speed * deltaTime;
+        });
+    }
+
+    public draw(ctx: CanvasRenderingContext2D): void {
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+
+        this.curves.forEach((curve, index) => {
+            const gradient = ctx.createLinearGradient(0, 0, GAME_CONSTANTS.CANVAS.WIDTH, 0);
+            gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+            gradient.addColorStop(0.5, this.colors[index]);
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+            ctx.fillStyle = gradient;
+
+            const y = Math.sin(curve.offset) * curve.amplitude + GAME_CONSTANTS.CANVAS.HEIGHT / 3;
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+
+            for (let x = 0; x <= GAME_CONSTANTS.CANVAS.WIDTH; x += 5) {
+                const relativeX = x / GAME_CONSTANTS.CANVAS.WIDTH;
+                const yOffset = Math.sin(curve.offset + relativeX * Math.PI * 4) * curve.amplitude;
+                ctx.lineTo(x, y + yOffset);
+            }
+
+            ctx.lineTo(GAME_CONSTANTS.CANVAS.WIDTH, GAME_CONSTANTS.CANVAS.HEIGHT);
+            ctx.lineTo(0, GAME_CONSTANTS.CANVAS.HEIGHT);
+            ctx.closePath();
+            ctx.fill();
+        });
+
+        ctx.restore();
+    }
+}
+
+```
+
+
 ## ./src/objects/Boss.ts
 
 ```ts
@@ -1635,6 +1843,7 @@ export class EventEmitter<T extends Record<string, any> = GameEventMap> {
         this.events[eventName]!.forEach(callback => callback(...args));
     }
 }
+
 ```
 
 
@@ -1720,6 +1929,7 @@ export const GAME_CONSTANTS: GameConstants = {
 import { GameObjectFactory } from "../factories/GameObjectFactory";
 import { Updateable } from "../interfaces/Updateable";
 import { UIManager } from "../managers/UIManager";
+import { Aurora } from "../objects/Aurora";
 import { Boss } from "../objects/Boss";
 import { BossBullet } from "../objects/BossBullet";
 import { Bullet } from "../objects/Bullet";
@@ -1747,6 +1957,7 @@ export class Game extends EventEmitter<GameEventMap> {
     private explosions: Explosion[] = [];
     private planets: Planet[] = [];
     private nebulas: Nebula[] = [];
+    private auroras: Aurora[] = [];
     private powerups: PowerUp[] = [];
     private boss: Boss | null = null;
     private bossBullets: BossBullet[] = [];
@@ -1782,6 +1993,7 @@ export class Game extends EventEmitter<GameEventMap> {
         this.stars = Array.from({ length: GAME_CONSTANTS.BACKGROUND.STAR_COUNT }, () => new Star());
         this.planets = Array.from({ length: GAME_CONSTANTS.BACKGROUND.PLANET_COUNT }, () => new Planet());
         this.nebulas = Array.from({ length: GAME_CONSTANTS.BACKGROUND.NEBULA_COUNT }, () => new Nebula());
+        this.auroras = Array.from({ length: 2 }, () => new Aurora());
     }
 
     private setupEventListeners(): void {
@@ -1875,6 +2087,7 @@ export class Game extends EventEmitter<GameEventMap> {
             ...this.explosions,
             ...this.stars,
             ...this.planets,
+            ...this.auroras,
             ...this.bossBullets
         ];
 
@@ -1969,14 +2182,15 @@ export class Game extends EventEmitter<GameEventMap> {
     private drawBackground(): void {
         // Create a gradient for the background
         const gradient = this.ctx.createLinearGradient(0, 0, 0, GAME_CONSTANTS.CANVAS.HEIGHT);
-        gradient.addColorStop(0, '#000033');
-        gradient.addColorStop(1, '#000066');
+        gradient.addColorStop(0, 'rgba(0, 0, 51, 0.8)');
+        gradient.addColorStop(1, 'rgba(0, 0, 102, 0.8)');
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(0, 0, GAME_CONSTANTS.CANVAS.WIDTH, GAME_CONSTANTS.CANVAS.HEIGHT);
 
         this.nebulas.forEach(nebula => nebula.draw(this.ctx));
         this.planets.forEach(planet => planet.draw(this.ctx));
         this.stars.forEach(star => star.draw(this.ctx));
+        this.auroras.forEach(aurora => aurora.draw(this.ctx));
 
         // 星座の線を描画
         this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
