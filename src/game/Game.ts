@@ -263,15 +263,6 @@ export class Game extends EventEmitter<GameEventMap> {
         this.planets.forEach(planet => planet.draw(this.ctx));
         this.stars.forEach(star => star.draw(this.ctx));
         this.auroras.forEach(aurora => aurora.draw(this.ctx));
-
-        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-        this.ctx.lineWidth = 0.5;
-        this.ctx.beginPath();
-        this.ctx.moveTo(50, 50);
-        this.ctx.lineTo(100, 100);
-        this.ctx.lineTo(150, 75);
-        this.ctx.lineTo(200, 150);
-        this.ctx.stroke();
     }
 
     private draw(): void {
