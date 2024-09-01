@@ -29,7 +29,7 @@ export class Game extends EventEmitter<GameEventMap> {
     private explosions: Explosion[] = [];
     private planets: Planet[] = [];
     private nebulas: Nebula[] = [];
-    private aurora: Aurora;
+    private auroras: Aurora[] = [];
     private powerups: PowerUp[] = [];
     private boss: Boss | null = null;
     private bossBullets: BossBullet[] = [];
@@ -65,7 +65,7 @@ export class Game extends EventEmitter<GameEventMap> {
         this.stars = Array.from({ length: GAME_CONSTANTS.BACKGROUND.STAR_COUNT }, () => new Star());
         this.planets = Array.from({ length: GAME_CONSTANTS.BACKGROUND.PLANET_COUNT }, () => new Planet());
         this.nebulas = Array.from({ length: GAME_CONSTANTS.BACKGROUND.NEBULA_COUNT }, () => new Nebula());
-        this.aurora = new Aurora();
+        this.auroras = Array.from({ length: 2 }, () => new Aurora());
     }
 
     private setupEventListeners(): void {
@@ -159,7 +159,7 @@ export class Game extends EventEmitter<GameEventMap> {
             ...this.explosions,
             ...this.stars,
             ...this.planets,
-            this.aurora,
+            ...this.auroras,
             ...this.bossBullets
         ];
 
@@ -262,7 +262,7 @@ export class Game extends EventEmitter<GameEventMap> {
         this.nebulas.forEach(nebula => nebula.draw(this.ctx));
         this.planets.forEach(planet => planet.draw(this.ctx));
         this.stars.forEach(star => star.draw(this.ctx));
-        this.aurora.draw(this.ctx);
+        this.auroras.forEach(aurora => aurora.draw(this.ctx));
 
         // 星座の線を描画
         this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';

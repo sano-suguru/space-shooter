@@ -2,13 +2,21 @@ import { GAME_CONSTANTS } from "../utils/Constants";
 
 export class Aurora {
     private curves: { offset: number; amplitude: number; speed: number }[];
+    private colors: string[];
 
     constructor() {
-        this.curves = Array(3).fill(null).map(() => ({
+        this.curves = Array(5).fill(null).map(() => ({
             offset: Math.random() * Math.PI * 2,
-            amplitude: Math.random() * 50 + 25,
-            speed: (Math.random() + 0.5) * 0.001
+            amplitude: Math.random() * 40 + 20,
+            speed: (Math.random() + 0.5) * 0.0005
         }));
+        this.colors = [
+            'rgba(0, 255, 100, 0.1)',
+            'rgba(0, 200, 255, 0.1)',
+            'rgba(100, 0, 255, 0.1)',
+            'rgba(255, 100, 200, 0.1)',
+            'rgba(255, 200, 0, 0.1)'
+        ];
     }
 
     public update(deltaTime: number): void {
@@ -18,28 +26,33 @@ export class Aurora {
     }
 
     public draw(ctx: CanvasRenderingContext2D): void {
-        const auroraGradient = ctx.createLinearGradient(0, 0, GAME_CONSTANTS.CANVAS.WIDTH, 0);
-        auroraGradient.addColorStop(0, 'rgba(0, 255, 0, 0)');
-        auroraGradient.addColorStop(0.5, 'rgba(0, 255, 0, 0.1)');
-        auroraGradient.addColorStop(1, 'rgba(0, 255, 0, 0)');
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
 
-        ctx.fillStyle = auroraGradient;
+        this.curves.forEach((curve, index) => {
+            const gradient = ctx.createLinearGradient(0, 0, GAME_CONSTANTS.CANVAS.WIDTH, 0);
+            gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+            gradient.addColorStop(0.5, this.colors[index]);
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
-        this.curves.forEach(curve => {
-            const y = Math.sin(curve.offset) * curve.amplitude + GAME_CONSTANTS.CANVAS.HEIGHT / 2;
+            ctx.fillStyle = gradient;
+
+            const y = Math.sin(curve.offset) * curve.amplitude + GAME_CONSTANTS.CANVAS.HEIGHT / 3;
             ctx.beginPath();
             ctx.moveTo(0, y);
-            ctx.quadraticCurveTo(
-                GAME_CONSTANTS.CANVAS.WIDTH / 2, y + Math.sin(curve.offset + Math.PI) * curve.amplitude,
-                GAME_CONSTANTS.CANVAS.WIDTH, y
-            );
-            ctx.lineTo(GAME_CONSTANTS.CANVAS.WIDTH, y + 20);
-            ctx.quadraticCurveTo(
-                GAME_CONSTANTS.CANVAS.WIDTH / 2, y + 20 + Math.sin(curve.offset + Math.PI) * curve.amplitude,
-                0, y + 20
-            );
+
+            for (let x = 0; x <= GAME_CONSTANTS.CANVAS.WIDTH; x += 5) {
+                const relativeX = x / GAME_CONSTANTS.CANVAS.WIDTH;
+                const yOffset = Math.sin(curve.offset + relativeX * Math.PI * 4) * curve.amplitude;
+                ctx.lineTo(x, y + yOffset);
+            }
+
+            ctx.lineTo(GAME_CONSTANTS.CANVAS.WIDTH, GAME_CONSTANTS.CANVAS.HEIGHT);
+            ctx.lineTo(0, GAME_CONSTANTS.CANVAS.HEIGHT);
             ctx.closePath();
             ctx.fill();
         });
+
+        ctx.restore();
     }
 }
