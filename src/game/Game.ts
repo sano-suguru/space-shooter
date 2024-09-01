@@ -14,10 +14,11 @@ import { PowerUp } from "../objects/PowerUp";
 import { Star } from "../objects/Star";
 import { EnemyType } from "../types";
 import { GAME_CONSTANTS } from "../utils/Constants";
+import { EventEmitter, GameEventMap } from "../utils/EventEmitter";
 import { GameState, GameStateManager } from "./GameStateManager";
 import { ScoreManager } from "./ScoreManager";
 
-export class Game {
+export class Game extends EventEmitter<GameEventMap> {
     private canvas: HTMLCanvasElement;
     private ctx: CanvasRenderingContext2D;
     private player: Player;
@@ -43,6 +44,7 @@ export class Game {
 
 
     constructor() {
+        super()
         this.canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
         this.ctx = this.canvas.getContext('2d') as CanvasRenderingContext2D;
         this.canvas.width = GAME_CONSTANTS.CANVAS.WIDTH;
@@ -54,6 +56,8 @@ export class Game {
         this.scoreManager.attach(this.uiManager);
         this.stateManager.setState(GameState.PLAYING);
     }
+
+
 
     private initializeGameObjects(): void {
         this.stars = Array.from({ length: GAME_CONSTANTS.BACKGROUND.STAR_COUNT }, () => new Star());
@@ -68,6 +72,11 @@ export class Game {
         if (restartButton) {
             restartButton.addEventListener('click', this.restartGame);
         }
+        this.on('enemyDestroyed', this.handleEnemyDestroyed);
+        this.on('playerDamaged', this.handlePlayerDamaged);
+        this.on('bossDamaged', this.handleBossDamaged);
+        this.on('bossDefeated', this.handleBossDefeated);
+        this.on('powerUpCollected', this.handlePowerUpCollected);
     }
 
     private handleKeyDown = (e: KeyboardEvent): void => {
@@ -76,6 +85,41 @@ export class Game {
 
     private handleKeyUp = (e: KeyboardEvent): void => {
         this.player.setKeyState(e.key, false);
+    }
+
+    private handleEnemyDestroyed = (enemy: Enemy): void => {
+        const enemyPosition = enemy.getPosition();
+        const explosionPosition = {
+            x: enemyPosition.x + enemy.getWidth() / 2,
+            y: enemyPosition.y + enemy.getHeight() / 2
+        };
+        this.explosions.push(new Explosion(explosionPosition));
+        this.scoreManager.addScore(enemy.getScore());
+    }
+
+    private handlePlayerDamaged = (damage: number): void => {
+        this.player.takeDamage(damage);
+        if (this.player.getHealth() <= 0) {
+            this.gameOver();
+        }
+    }
+
+    private handleBossDamaged = (): void => {
+        if (this.boss && this.boss.takeDamage()) {
+            this.emit('bossDefeated');
+        }
+    }
+
+    private handleBossDefeated = (): void => {
+        if (this.boss) {
+            this.explosions.push(new Explosion(this.boss.getPosition()));
+            this.boss = null;
+            this.handleBossDefeat();
+        }
+    }
+
+    private handlePowerUpCollected = (powerUp: PowerUp): void => {
+        this.player.activatePowerup(powerUp.getType());
     }
 
     public start(): void {
@@ -147,13 +191,7 @@ export class Game {
                 if (this.checkCollision(this.bullets[i], this.enemies[j])) {
                     this.bullets.splice(i, 1);
                     if (this.enemies[j].takeDamage()) {
-                        const enemyPosition = this.enemies[j].getPosition();
-                        const explosionPosition = {
-                            x: enemyPosition.x + this.enemies[j].getWidth() / 2,
-                            y: enemyPosition.y + this.enemies[j].getHeight() / 2
-                        };
-                        this.explosions.push(new Explosion(explosionPosition));
-                        this.scoreManager.addScore(this.enemies[j].getScore());
+                        this.emit('enemyDestroyed', this.enemies[j])
                         this.enemies.splice(j, 1);
                     }
                     break;
@@ -165,8 +203,8 @@ export class Game {
     private checkPlayerEnemyCollisions(): void {
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             if (this.checkCollision(this.player, this.enemies[i])) {
-                this.player.takeDamage(20);
-                this.explosions.push(new Explosion(this.enemies[i].getPosition()));
+                this.emit('playerDamaged', 20);
+                this.emit('enemyDestroyed', this.enemies[i]);
                 this.enemies.splice(i, 1);
             }
         }
@@ -175,7 +213,7 @@ export class Game {
     private checkPlayerPowerupCollisions(): void {
         for (let i = this.powerups.length - 1; i >= 0; i--) {
             if (this.checkCollision(this.player, this.powerups[i])) {
-                this.player.activatePowerup(this.powerups[i].getType());
+                this.emit('powerUpCollected', this.powerups[i]);
                 this.powerups.splice(i, 1);
             }
         }
@@ -183,23 +221,19 @@ export class Game {
 
     private checkBossBattleCollisions(): void {
         if (this.boss && this.checkCollision(this.player, this.boss)) {
-            this.player.takeDamage(20);
+            this.emit('playerDamaged', 20);
         }
 
         for (let i = this.bullets.length - 1; i >= 0; i--) {
             if (this.boss && this.checkCollision(this.bullets[i], this.boss)) {
                 this.bullets.splice(i, 1);
-                if (this.boss.takeDamage()) {
-                    this.explosions.push(new Explosion(this.boss.getPosition()));
-                    this.boss = null;
-                    this.handleBossDefeat();
-                }
+                this.emit('bossDamaged');
             }
         }
 
         for (let i = this.bossBullets.length - 1; i >= 0; i--) {
             if (this.checkCollision(this.player, this.bossBullets[i])) {
-                this.player.takeDamage(20);
+                this.emit('playerDamaged', 20);
                 this.bossBullets.splice(i, 1);
             }
         }
@@ -306,10 +340,11 @@ export class Game {
 
     private handleBossDefeat(): void {
         this.scoreManager.addScore(500);
-        this.level++;
-        this.uiManager.updateLevelDisplay(this.level);
 
         this.showMessage(`レベル ${this.level} クリア！次のレベルが始まります。`);
+
+        this.level++;
+        this.uiManager.updateLevelDisplay(this.level);
 
         setTimeout(() => {
             this.startNextLevel();

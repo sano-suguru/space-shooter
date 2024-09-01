@@ -39,6 +39,104 @@
 ```
 
 
+## ./vite.config.js
+
+```js
+import { defineConfig } from 'vite'
+
+export default defineConfig({
+    base: '/space-shooter/'
+})
+
+```
+
+
+## ./README.md
+
+```md
+# Space Shooter
+
+Space Shooterは、TypeScriptとHTML5 Canvasを使用して開発された、宇宙空間を舞台にしたシューティングゲームです。プレイヤーは宇宙船を操縦し、様々な未確認飛行生物（UMA）と戦います。
+
+![ゲームプレイのGIF](./gameplay.gif)
+
+## 特徴
+
+- 3種類のユニークな敵UMA（小、中、大）
+- チャレンジングなボス戦
+- パワーアップシステム（高速射撃、3連射、シールド）
+- ダイナミックな背景（星、惑星、星雲）
+- レベルシステムと難易度の段階的な上昇
+- スコアトラッキングとゲームオーバー画面
+
+## 使用技術
+
+- TypeScript
+- HTML5 Canvas
+- Vite（ビルドツールとして）
+
+## はじめ方
+
+### 必要条件
+
+- Node.js (v14以上)
+- pnpm
+
+### インストール
+
+1. リポジトリをクローンします：
+   ```
+   git clone https://github.com/yourusername/space-shooter.git
+   ```
+
+2. プロジェクトディレクトリに移動します：
+   ```
+   cd space-shooter
+   ```
+
+3. 依存関係をインストールします：
+   ```
+   pnpm install
+   ```
+
+## 使用方法
+
+1. 開発サーバーを起動します：
+   ```
+   pnpm dev
+   ```
+
+2. ブラウザで `http://localhost:5173` を開きます。
+
+### 操作方法
+
+- 左矢印キー: 左に移動
+- 右矢印キー: 右に移動
+- スペースキー: 射撃
+
+## プロジェクト構造
+
+- `src/`: ソースコード
+  - `game/`: ゲームのコアロジック
+  - `objects/`: ゲームオブジェクト（プレイヤー、敵、弾など）
+  - `managers/`: ゲーム状態の管理
+  - `utils/`: ユーティリティ関数と定数
+- `public/`: 静的アセット
+
+## 貢献
+
+1. このリポジトリをフォークします
+2. 新しいブランチを作成します（`git checkout -b feature/AmazingFeature`）
+3. 変更をコミットします（`git commit -m 'Add some AmazingFeature'`）
+4. ブランチにプッシュします（`git push origin feature/AmazingFeature`）
+5. プルリクエストを作成します
+
+## ライセンス
+
+MITライセンスの下で配布されています。詳細は`LICENSE`ファイルを参照してください。
+```
+
+
 ## ./extract-file-contents.sh
 
 ```sh
@@ -121,9 +219,11 @@ dist-ssr
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "extract": "./extract-file-contents.sh"
+    "extract": "./extract-file-contents.sh",
+    "deploy": "gh-pages -d dist"
   },
   "devDependencies": {
+    "gh-pages": "^6.1.1",
     "typescript": "^5.5.3",
     "vite": "^5.4.1"
   },
@@ -159,6 +259,33 @@ dist-ssr
   "include": ["src"]
 }
 
+```
+
+
+## ./LICENCE
+
+```/LICENCE
+MIT License
+
+Copyright (c) 2024 [Your Name or Your Organization]
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 ```
 
 
@@ -1469,6 +1596,48 @@ export function randomRange(min: number, max: number): number {
 ```
 
 
+## ./src/utils/EventEmitter.ts
+
+```ts
+import { Enemy } from "../objects/Enemy";
+import { PowerUp } from "../objects/PowerUp";
+
+export type GameEventMap = {
+    'enemyDestroyed': (enemy: Enemy) => void;
+    'playerDamaged': (damage: number) => void;
+    'bossDamaged': () => void;
+    'bossDefeated': () => void;
+    'powerUpCollected': (powerUp: PowerUp) => void;
+    'scoreUpdated': (newScore: number) => void;
+    'levelCompleted': (level: number) => void;
+    // 他のイベントをここに追加
+};
+
+export type GameEventName = keyof GameEventMap;
+
+export class EventEmitter<T extends Record<string, any> = GameEventMap> {
+    private events: { [K in keyof T]?: T[K][] } = {};
+
+    on<K extends keyof T>(eventName: K, callback: T[K]): void {
+        if (!this.events[eventName]) {
+            this.events[eventName] = [];
+        }
+        this.events[eventName]!.push(callback);
+    }
+
+    off<K extends keyof T>(eventName: K, callback: T[K]): void {
+        if (!this.events[eventName]) return;
+        this.events[eventName] = this.events[eventName]!.filter(cb => cb !== callback);
+    }
+
+    emit<K extends keyof T>(eventName: K, ...args: Parameters<T[K]>): void {
+        if (!this.events[eventName]) return;
+        this.events[eventName]!.forEach(callback => callback(...args));
+    }
+}
+```
+
+
 ## ./src/utils/Constants.ts
 
 ```ts
@@ -1564,10 +1733,11 @@ import { PowerUp } from "../objects/PowerUp";
 import { Star } from "../objects/Star";
 import { EnemyType } from "../types";
 import { GAME_CONSTANTS } from "../utils/Constants";
+import { EventEmitter, GameEventMap } from "../utils/EventEmitter";
 import { GameState, GameStateManager } from "./GameStateManager";
 import { ScoreManager } from "./ScoreManager";
 
-export class Game {
+export class Game extends EventEmitter<GameEventMap> {
     private canvas: HTMLCanvasElement;
     private ctx: CanvasRenderingContext2D;
     private player: Player;
@@ -1593,6 +1763,7 @@ export class Game {
 
 
     constructor() {
+        super()
         this.canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
         this.ctx = this.canvas.getContext('2d') as CanvasRenderingContext2D;
         this.canvas.width = GAME_CONSTANTS.CANVAS.WIDTH;
@@ -1604,6 +1775,8 @@ export class Game {
         this.scoreManager.attach(this.uiManager);
         this.stateManager.setState(GameState.PLAYING);
     }
+
+
 
     private initializeGameObjects(): void {
         this.stars = Array.from({ length: GAME_CONSTANTS.BACKGROUND.STAR_COUNT }, () => new Star());
@@ -1618,6 +1791,11 @@ export class Game {
         if (restartButton) {
             restartButton.addEventListener('click', this.restartGame);
         }
+        this.on('enemyDestroyed', this.handleEnemyDestroyed);
+        this.on('playerDamaged', this.handlePlayerDamaged);
+        this.on('bossDamaged', this.handleBossDamaged);
+        this.on('bossDefeated', this.handleBossDefeated);
+        this.on('powerUpCollected', this.handlePowerUpCollected);
     }
 
     private handleKeyDown = (e: KeyboardEvent): void => {
@@ -1626,6 +1804,41 @@ export class Game {
 
     private handleKeyUp = (e: KeyboardEvent): void => {
         this.player.setKeyState(e.key, false);
+    }
+
+    private handleEnemyDestroyed = (enemy: Enemy): void => {
+        const enemyPosition = enemy.getPosition();
+        const explosionPosition = {
+            x: enemyPosition.x + enemy.getWidth() / 2,
+            y: enemyPosition.y + enemy.getHeight() / 2
+        };
+        this.explosions.push(new Explosion(explosionPosition));
+        this.scoreManager.addScore(enemy.getScore());
+    }
+
+    private handlePlayerDamaged = (damage: number): void => {
+        this.player.takeDamage(damage);
+        if (this.player.getHealth() <= 0) {
+            this.gameOver();
+        }
+    }
+
+    private handleBossDamaged = (): void => {
+        if (this.boss && this.boss.takeDamage()) {
+            this.emit('bossDefeated');
+        }
+    }
+
+    private handleBossDefeated = (): void => {
+        if (this.boss) {
+            this.explosions.push(new Explosion(this.boss.getPosition()));
+            this.boss = null;
+            this.handleBossDefeat();
+        }
+    }
+
+    private handlePowerUpCollected = (powerUp: PowerUp): void => {
+        this.player.activatePowerup(powerUp.getType());
     }
 
     public start(): void {
@@ -1697,13 +1910,7 @@ export class Game {
                 if (this.checkCollision(this.bullets[i], this.enemies[j])) {
                     this.bullets.splice(i, 1);
                     if (this.enemies[j].takeDamage()) {
-                        const enemyPosition = this.enemies[j].getPosition();
-                        const explosionPosition = {
-                            x: enemyPosition.x + this.enemies[j].getWidth() / 2,
-                            y: enemyPosition.y + this.enemies[j].getHeight() / 2
-                        };
-                        this.explosions.push(new Explosion(explosionPosition));
-                        this.scoreManager.addScore(this.enemies[j].getScore());
+                        this.emit('enemyDestroyed', this.enemies[j])
                         this.enemies.splice(j, 1);
                     }
                     break;
@@ -1715,8 +1922,8 @@ export class Game {
     private checkPlayerEnemyCollisions(): void {
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             if (this.checkCollision(this.player, this.enemies[i])) {
-                this.player.takeDamage(20);
-                this.explosions.push(new Explosion(this.enemies[i].getPosition()));
+                this.emit('playerDamaged', 20);
+                this.emit('enemyDestroyed', this.enemies[i]);
                 this.enemies.splice(i, 1);
             }
         }
@@ -1725,7 +1932,7 @@ export class Game {
     private checkPlayerPowerupCollisions(): void {
         for (let i = this.powerups.length - 1; i >= 0; i--) {
             if (this.checkCollision(this.player, this.powerups[i])) {
-                this.player.activatePowerup(this.powerups[i].getType());
+                this.emit('powerUpCollected', this.powerups[i]);
                 this.powerups.splice(i, 1);
             }
         }
@@ -1733,23 +1940,19 @@ export class Game {
 
     private checkBossBattleCollisions(): void {
         if (this.boss && this.checkCollision(this.player, this.boss)) {
-            this.player.takeDamage(20);
+            this.emit('playerDamaged', 20);
         }
 
         for (let i = this.bullets.length - 1; i >= 0; i--) {
             if (this.boss && this.checkCollision(this.bullets[i], this.boss)) {
                 this.bullets.splice(i, 1);
-                if (this.boss.takeDamage()) {
-                    this.explosions.push(new Explosion(this.boss.getPosition()));
-                    this.boss = null;
-                    this.handleBossDefeat();
-                }
+                this.emit('bossDamaged');
             }
         }
 
         for (let i = this.bossBullets.length - 1; i >= 0; i--) {
             if (this.checkCollision(this.player, this.bossBullets[i])) {
-                this.player.takeDamage(20);
+                this.emit('playerDamaged', 20);
                 this.bossBullets.splice(i, 1);
             }
         }
@@ -1856,10 +2059,11 @@ export class Game {
 
     private handleBossDefeat(): void {
         this.scoreManager.addScore(500);
-        this.level++;
-        this.uiManager.updateLevelDisplay(this.level);
 
         this.showMessage(`レベル ${this.level} クリア！次のレベルが始まります。`);
+
+        this.level++;
+        this.uiManager.updateLevelDisplay(this.level);
 
         setTimeout(() => {
             this.startNextLevel();
