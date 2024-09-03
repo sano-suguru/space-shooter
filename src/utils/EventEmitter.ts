@@ -9,7 +9,16 @@ export type GameEventMap = {
     'powerUpCollected': (powerUp: PowerUp) => void;
     'scoreUpdated': (newScore: number) => void;
     'levelCompleted': (level: number) => void;
-    // 他のイベントをここに追加
+    'healthChanged': (newHealth: number) => void;
+    'powerUpActivated': (type: string) => void;
+    'powerUpDeactivated': (type: string) => void;
+    'gameStarted': () => void;
+    'gamePaused': () => void;
+    'gameResumed': () => void;
+    'gameOver': () => void;
+    'bossSpawned': () => void;
+    'levelStarted': (level: number) => void;
+    'levelUpdated': (level: number) => void;
 };
 
 export type GameEventName = keyof GameEventMap;

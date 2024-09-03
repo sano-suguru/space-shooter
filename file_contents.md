@@ -567,6 +567,7 @@ body {
 ## ./src/managers/UIManager.ts
 
 ```ts
+import { Game } from "../game/Game";
 import { ScoreManager } from "../game/ScoreManager";
 import { Observer } from "../interfaces/Observer";
 import { Subject } from "../interfaces/Subject";
@@ -578,11 +579,20 @@ export class UIManager implements Observer {
     private healthElement: HTMLElement | null;
     private healthBarElement: HTMLElement | null;
 
-    constructor() {
+    constructor(private game: Game) {
         this.scoreElement = document.getElementById('scoreValue');
         this.levelElement = document.getElementById('levelValue');
         this.healthElement = document.getElementById('healthValue');
         this.healthBarElement = document.getElementById('healthBarFill');
+
+        this.setupEventListeners();
+    }
+
+    private setupEventListeners(): void {
+        this.game.on('scoreUpdated', (score: number) => this.updateScoreDisplay(score));
+        this.game.on('healthChanged', (health: number) => this.updateHealthDisplay(health));
+        this.game.on('levelUpdated', (level: number) => this.updateLevelDisplay(level));
+        this.game.on('gameOver', () => this.showGameOver());
     }
 
     update(subject: Subject): void {
@@ -612,7 +622,15 @@ export class UIManager implements Observer {
             this.healthBarElement.style.width = `${healthPercentage}%`;
         }
     }
+
+    showGameOver(): void {
+        const gameOverElement = document.getElementById('gameOver');
+        if (gameOverElement) {
+            gameOverElement.classList.remove('hidden');
+        }
+    }
 }
+
 ```
 
 
@@ -1581,6 +1599,7 @@ export class Player extends GameObject {
     public takeDamage(amount: number): void {
         if (!this.invincible && !this.shieldActive) {
             this.health = Math.max(0, this.health - amount);
+            this.game.emit('healthChanged', this.health);
             this.invincible = true;
             this.lastHitTime = Date.now();
             if (this.health <= 0) {
@@ -1593,6 +1612,7 @@ export class Player extends GameObject {
         const powerup = GAME_CONSTANTS.POWERUP.TYPES[type];
         powerup.effect(this);
         this.activePowerups.push({ type, startTime: Date.now() });
+        this.game.emit('powerUpActivated', type);
 
         setTimeout(() => this.deactivatePowerup(type), GAME_CONSTANTS.POWERUP.DURATION);
     }
@@ -1610,6 +1630,7 @@ export class Player extends GameObject {
                 this.shieldActive = false;
                 break;
         }
+        this.game.emit('powerUpDeactivated', type);
     }
 
     public getHealth(): number {
@@ -1915,7 +1936,16 @@ export type GameEventMap = {
     'powerUpCollected': (powerUp: PowerUp) => void;
     'scoreUpdated': (newScore: number) => void;
     'levelCompleted': (level: number) => void;
-    // 他のイベントをここに追加
+    'healthChanged': (newHealth: number) => void;
+    'powerUpActivated': (type: string) => void;
+    'powerUpDeactivated': (type: string) => void;
+    'gameStarted': () => void;
+    'gamePaused': () => void;
+    'gameResumed': () => void;
+    'gameOver': () => void;
+    'bossSpawned': () => void;
+    'levelStarted': (level: number) => void;
+    'levelUpdated': (level: number) => void;
 };
 
 export type GameEventName = keyof GameEventMap;
@@ -2071,7 +2101,7 @@ export class Game extends EventEmitter<GameEventMap> {
     private deltaTime = 0;
     private stateManager: GameStateManager = new GameStateManager();
     private scoreManager: ScoreManager = new ScoreManager();
-    private uiManager: UIManager = new UIManager();
+    private uiManager: UIManager = new UIManager(this);
     private difficultyFactor: number = 0;
     private currentBossHealth: number = GAME_CONSTANTS.BOSS.INITIAL_HEALTH;
 
@@ -2157,6 +2187,7 @@ export class Game extends EventEmitter<GameEventMap> {
     }
 
     public start(): void {
+        this.emit('gameStarted');
         this.gameLoop(0);
         setInterval(this.spawnEnemy, GAME_CONSTANTS.ENEMY.SPAWN_INTERVAL);
     }
@@ -2178,8 +2209,9 @@ export class Game extends EventEmitter<GameEventMap> {
         this.updateGameObjects();
         this.checkCollisions();
         this.removeOffscreenObjects();
-        this.uiManager.updateHealthDisplay(this.player.getHealth());
-        this.uiManager.updateLevelDisplay(this.level);
+        this.emit('healthChanged', this.player.getHealth());
+        this.emit('levelUpdated', this.level);
+        this.emit('scoreUpdated', this.scoreManager.getScore());
     }
 
     private updateGameObjects(): void {
@@ -2208,6 +2240,7 @@ export class Game extends EventEmitter<GameEventMap> {
 
     private spawnBoss(): void {
         this.boss = new Boss(this);
+        this.emit('bossSpawned');
         this.showMessage("ボスが出現しました！");
     }
 
@@ -2330,6 +2363,7 @@ export class Game extends EventEmitter<GameEventMap> {
 
     public gameOver(): void {
         this.stateManager.setState(GameState.GAME_OVER);
+        this.emit('gameOver');
         const gameOverElement = document.getElementById('gameOver');
         if (gameOverElement) {
             gameOverElement.classList.remove('hidden');
@@ -2370,7 +2404,7 @@ export class Game extends EventEmitter<GameEventMap> {
         this.showMessage(`レベル ${this.level} クリア！次のレベルが始まります。`);
 
         this.level++;
-        this.uiManager.updateLevelDisplay(this.level);
+        this.emit('levelUpdated', this.level);
 
         setTimeout(() => {
             this.startNextLevel();
@@ -2389,6 +2423,7 @@ export class Game extends EventEmitter<GameEventMap> {
 
         this.bossSpawnScore = this.scoreManager.getScore() + 1000;
 
+        this.emit('levelStarted', this.level);
         this.showMessage(`レベル ${this.level} 開始！`);
     }
 
@@ -2419,10 +2454,12 @@ export class Game extends EventEmitter<GameEventMap> {
 
     public pauseGame(): void {
         this.stateManager.setState(GameState.PAUSED);
+        this.emit('gamePaused');
     }
 
     public resumeGame(): void {
         this.stateManager.setState(GameState.PLAYING);
+        this.emit('gameResumed');
     }
 
     public getDifficultyFactor(): number {

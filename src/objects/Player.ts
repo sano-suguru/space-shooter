@@ -236,6 +236,7 @@ export class Player extends GameObject {
     public takeDamage(amount: number): void {
         if (!this.invincible && !this.shieldActive) {
             this.health = Math.max(0, this.health - amount);
+            this.game.emit('healthChanged', this.health);
             this.invincible = true;
             this.lastHitTime = Date.now();
             if (this.health <= 0) {
@@ -248,6 +249,7 @@ export class Player extends GameObject {
         const powerup = GAME_CONSTANTS.POWERUP.TYPES[type];
         powerup.effect(this);
         this.activePowerups.push({ type, startTime: Date.now() });
+        this.game.emit('powerUpActivated', type);
 
         setTimeout(() => this.deactivatePowerup(type), GAME_CONSTANTS.POWERUP.DURATION);
     }
@@ -265,6 +267,7 @@ export class Player extends GameObject {
                 this.shieldActive = false;
                 break;
         }
+        this.game.emit('powerUpDeactivated', type);
     }
 
     public getHealth(): number {

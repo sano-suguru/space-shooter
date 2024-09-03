@@ -40,7 +40,7 @@ export class Game extends EventEmitter<GameEventMap> {
     private deltaTime = 0;
     private stateManager: GameStateManager = new GameStateManager();
     private scoreManager: ScoreManager = new ScoreManager();
-    private uiManager: UIManager = new UIManager();
+    private uiManager: UIManager = new UIManager(this);
     private difficultyFactor: number = 0;
     private currentBossHealth: number = GAME_CONSTANTS.BOSS.INITIAL_HEALTH;
 
@@ -126,6 +126,7 @@ export class Game extends EventEmitter<GameEventMap> {
     }
 
     public start(): void {
+        this.emit('gameStarted');
         this.gameLoop(0);
         setInterval(this.spawnEnemy, GAME_CONSTANTS.ENEMY.SPAWN_INTERVAL);
     }
@@ -147,8 +148,9 @@ export class Game extends EventEmitter<GameEventMap> {
         this.updateGameObjects();
         this.checkCollisions();
         this.removeOffscreenObjects();
-        this.uiManager.updateHealthDisplay(this.player.getHealth());
-        this.uiManager.updateLevelDisplay(this.level);
+        this.emit('healthChanged', this.player.getHealth());
+        this.emit('levelUpdated', this.level);
+        this.emit('scoreUpdated', this.scoreManager.getScore());
     }
 
     private updateGameObjects(): void {
@@ -177,6 +179,7 @@ export class Game extends EventEmitter<GameEventMap> {
 
     private spawnBoss(): void {
         this.boss = new Boss(this);
+        this.emit('bossSpawned');
         this.showMessage("ボスが出現しました！");
     }
 
@@ -299,6 +302,7 @@ export class Game extends EventEmitter<GameEventMap> {
 
     public gameOver(): void {
         this.stateManager.setState(GameState.GAME_OVER);
+        this.emit('gameOver');
         const gameOverElement = document.getElementById('gameOver');
         if (gameOverElement) {
             gameOverElement.classList.remove('hidden');
@@ -339,7 +343,7 @@ export class Game extends EventEmitter<GameEventMap> {
         this.showMessage(`レベル ${this.level} クリア！次のレベルが始まります。`);
 
         this.level++;
-        this.uiManager.updateLevelDisplay(this.level);
+        this.emit('levelUpdated', this.level);
 
         setTimeout(() => {
             this.startNextLevel();
@@ -358,6 +362,7 @@ export class Game extends EventEmitter<GameEventMap> {
 
         this.bossSpawnScore = this.scoreManager.getScore() + 1000;
 
+        this.emit('levelStarted', this.level);
         this.showMessage(`レベル ${this.level} 開始！`);
     }
 
@@ -388,10 +393,12 @@ export class Game extends EventEmitter<GameEventMap> {
 
     public pauseGame(): void {
         this.stateManager.setState(GameState.PAUSED);
+        this.emit('gamePaused');
     }
 
     public resumeGame(): void {
         this.stateManager.setState(GameState.PLAYING);
+        this.emit('gameResumed');
     }
 
     public getDifficultyFactor(): number {
