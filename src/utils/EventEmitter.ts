@@ -21,25 +21,29 @@ export type GameEventMap = {
     'levelUpdated': (level: number) => void;
 };
 
-export type GameEventName = keyof GameEventMap;
+export class EventEmitter<EventMap extends Record<string, any>> {
+    private listeners: Partial<{ [K in keyof EventMap]: ((data: EventMap[K]) => void)[] }> = {};
 
-export class EventEmitter<T extends Record<string, any> = GameEventMap> {
-    private events: { [K in keyof T]?: T[K][] } = {};
-
-    on<K extends keyof T>(eventName: K, callback: T[K]): void {
-        if (!this.events[eventName]) {
-            this.events[eventName] = [];
+    on<K extends keyof EventMap>(event: K, listener: EventMap[K]): void {
+        if (!this.listeners[event]) {
+            this.listeners[event] = [];
         }
-        this.events[eventName]!.push(callback);
+        this.listeners[event]!.push(listener as any);
     }
 
-    off<K extends keyof T>(eventName: K, callback: T[K]): void {
-        if (!this.events[eventName]) return;
-        this.events[eventName] = this.events[eventName]!.filter(cb => cb !== callback);
+    off<K extends keyof EventMap>(event: K, listener: EventMap[K]): void {
+        if (!this.listeners[event]) return;
+        this.listeners[event] = this.listeners[event]!.filter(l => l !== listener);
     }
 
-    emit<K extends keyof T>(eventName: K, ...args: Parameters<T[K]>): void {
-        if (!this.events[eventName]) return;
-        this.events[eventName]!.forEach(callback => callback(...args));
+    emit<K extends keyof EventMap>(event: K, ...data: Parameters<EventMap[K]>): void {
+        if (!this.listeners[event]) return;
+        this.listeners[event]!.forEach(listener => {
+            try {
+                (listener as any)(...data);
+            } catch (error) {
+                console.error(`Error in listener for event ${String(event)}:`, error);
+            }
+        });
     }
 }
