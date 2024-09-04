@@ -1,8 +1,8 @@
-import { Game } from "../game/Game";
 import { ScoreManager } from "../game/ScoreManager";
 import { Observer } from "../interfaces/Observer";
 import { Subject } from "../interfaces/Subject";
 import { GAME_CONSTANTS } from "../utils/Constants";
+import { EventEmitter, EventMap } from "../utils/EventEmitter";
 
 export class UIManager implements Observer {
     private scoreElement: HTMLElement | null;
@@ -10,7 +10,9 @@ export class UIManager implements Observer {
     private healthElement: HTMLElement | null;
     private healthBarElement: HTMLElement | null;
 
-    constructor(private game: Game) {
+    constructor(
+        private eventEmitter: EventEmitter<EventMap>
+    ) {
         this.scoreElement = document.getElementById('scoreValue');
         this.levelElement = document.getElementById('levelValue');
         this.healthElement = document.getElementById('healthValue');
@@ -20,10 +22,10 @@ export class UIManager implements Observer {
     }
 
     private setupEventListeners(): void {
-        this.game.on('scoreUpdated', (score: number) => this.updateScoreDisplay(score));
-        this.game.on('healthChanged', (health: number) => this.updateHealthDisplay(health));
-        this.game.on('levelUpdated', (level: number) => this.updateLevelDisplay(level));
-        this.game.on('gameOver', () => this.showGameOver());
+        this.eventEmitter.on('scoreUpdated', (score: number) => this.updateScoreDisplay(score));
+        this.eventEmitter.on('healthChanged', (health: number) => this.updateHealthDisplay(health));
+        this.eventEmitter.on('levelUpdated', (level: number) => this.updateLevelDisplay(level));
+        this.eventEmitter.on('gameOver', () => this.showGameOver());
     }
 
     update(subject: Subject): void {

@@ -1,6 +1,6 @@
-import { Game } from "../game/Game";
 import { PowerUpType, Vector2D } from "../types";
 import { GAME_CONSTANTS } from "../utils/Constants";
+import { EventEmitter, EventMap } from "../utils/EventEmitter";
 import { Bullet } from "./Bullet";
 import { GameObject } from "./GameObject";
 
@@ -19,7 +19,9 @@ export class Player extends GameObject {
     private thrusterParticles: Array<{ x: number; y: number; speed: number; life: number }> = [];
 
 
-    constructor(private game: Game) {
+    constructor(
+        private eventEmitter: EventEmitter<EventMap>,
+    ) {
         super(
             GAME_CONSTANTS.CANVAS.WIDTH / 2 - GAME_CONSTANTS.PLAYER.WIDTH / 2,
             GAME_CONSTANTS.CANVAS.HEIGHT - GAME_CONSTANTS.PLAYER.HEIGHT - 10,
@@ -93,11 +95,11 @@ export class Player extends GameObject {
         const currentTime = Date.now();
         if (currentTime - this.lastFireTime >= this.fireRate) {
             if (this.bulletType === 'single') {
-                this.game.addBullet(new Bullet(this.x + this.width / 2 - GAME_CONSTANTS.BULLET.WIDTH / 2, this.y));
+                this.eventEmitter.emit('playerShot', new Bullet(this.x + this.width / 2 - GAME_CONSTANTS.BULLET.WIDTH / 2, this.y))
             } else if (this.bulletType === 'triple') {
-                this.game.addBullet(new Bullet(this.x + this.width / 2 - GAME_CONSTANTS.BULLET.WIDTH / 2, this.y));
-                this.game.addBullet(new Bullet(this.x + this.width / 2 - GAME_CONSTANTS.BULLET.WIDTH / 2 - 20, this.y + 10));
-                this.game.addBullet(new Bullet(this.x + this.width / 2 - GAME_CONSTANTS.BULLET.WIDTH / 2 + 20, this.y + 10));
+                this.eventEmitter.emit('playerShot', new Bullet(this.x + this.width / 2 - GAME_CONSTANTS.BULLET.WIDTH / 2, this.y));
+                this.eventEmitter.emit('playerShot', new Bullet(this.x + this.width / 2 - GAME_CONSTANTS.BULLET.WIDTH / 2 - 20, this.y + 10));
+                this.eventEmitter.emit('playerShot', new Bullet(this.x + this.width / 2 - GAME_CONSTANTS.BULLET.WIDTH / 2 + 20, this.y + 10));
             }
             this.lastFireTime = currentTime;
         }
@@ -236,11 +238,11 @@ export class Player extends GameObject {
     public takeDamage(amount: number): void {
         if (!this.invincible && !this.shieldActive) {
             this.health = Math.max(0, this.health - amount);
-            this.game.emit('healthChanged', this.health);
+            this.eventEmitter.emit('healthChanged', this.health);
             this.invincible = true;
             this.lastHitTime = Date.now();
             if (this.health <= 0) {
-                this.game.gameOver();
+                this.eventEmitter.emit('gameOver');
             }
         }
     }
@@ -249,7 +251,7 @@ export class Player extends GameObject {
         const powerup = GAME_CONSTANTS.POWERUP.TYPES[type];
         powerup.effect(this);
         this.activePowerups.push({ type, startTime: Date.now() });
-        this.game.emit('powerUpActivated', type);
+        this.eventEmitter.emit('powerUpActivated', type);
 
         setTimeout(() => this.deactivatePowerup(type), GAME_CONSTANTS.POWERUP.DURATION);
     }
@@ -267,7 +269,7 @@ export class Player extends GameObject {
                 this.shieldActive = false;
                 break;
         }
-        this.game.emit('powerUpDeactivated', type);
+        this.eventEmitter.emit('powerUpDeactivated', type);
     }
 
     public getHealth(): number {

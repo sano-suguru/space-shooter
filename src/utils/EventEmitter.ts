@@ -1,8 +1,10 @@
+import { Bullet } from "../objects/Bullet";
 import { Enemy } from "../objects/Enemy";
 import { PowerUp } from "../objects/PowerUp";
 
-export type GameEventMap = {
+export type EventMap = {
     'enemyDestroyed': (enemy: Enemy) => void;
+    'playerShot': (bulltet: Bullet) => void;
     'playerDamaged': (damage: number) => void;
     'bossDamaged': () => void;
     'bossDefeated': () => void;
