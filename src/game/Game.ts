@@ -1,6 +1,5 @@
 import { GameObjectFactory } from "../factories/GameObjectFactory";
 import { Updateable } from "../interfaces/Updateable";
-import { UIManager } from "../managers/UIManager";
 import { Aurora } from "../objects/Aurora";
 import { Boss } from "../objects/Boss";
 import { BossBullet } from "../objects/BossBullet";
@@ -38,14 +37,13 @@ export class Game {
     private lastTime = 0;
     private deltaTime = 0;
     private stateManager: GameStateManager = new GameStateManager();
-    private scoreManager: ScoreManager = new ScoreManager();
     private difficultyFactor: number = 0;
     private currentBossHealth: number = GAME_CONSTANTS.BOSS.INITIAL_HEALTH;
 
 
     constructor(
         private eventEmitter: EventEmitter<EventMap>,
-        private uiManager: UIManager,
+        private scoreManager: ScoreManager,
         private player: Player
     ) {
         this.canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
@@ -54,7 +52,6 @@ export class Game {
         this.canvas.height = GAME_CONSTANTS.CANVAS.HEIGHT;
         this.initializeGameObjects();
         this.setupEventListeners();
-        this.scoreManager.attach(this.uiManager);
         this.stateManager.setState(GameState.PLAYING);
     }
 
@@ -334,8 +331,7 @@ export class Game {
         this.bossBullets = [];
         this.level = 1;
         this.bossSpawnScore = 1000;
-        this.scoreManager = new ScoreManager();
-        this.scoreManager.attach(this.uiManager);
+        this.scoreManager = new ScoreManager(this.eventEmitter);
         this.stateManager.setState(GameState.PLAYING);
     }
 

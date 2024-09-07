@@ -1,29 +1,11 @@
-import { Observer } from "../interfaces/Observer";
-import { Subject } from "../interfaces/Subject";
+import { EventEmitter, EventMap } from "../utils/EventEmitter";
 
-export class ScoreManager implements Subject {
-    private observers: Observer[] = [];
+export class ScoreManager {
     private score: number = 0;
 
-    attach(observer: Observer): void {
-        const isExist = this.observers.includes(observer);
-        if (!isExist) {
-            this.observers.push(observer);
-        }
-    }
-
-    detach(observer: Observer): void {
-        const observerIndex = this.observers.indexOf(observer);
-        if (observerIndex !== -1) {
-            this.observers.splice(observerIndex, 1);
-        }
-    }
-
-    notify(): void {
-        for (const observer of this.observers) {
-            observer.update(this);
-        }
-    }
+    constructor(
+        private eventEmitter: EventEmitter<EventMap>
+    ) { }
 
     getScore(): number {
         return this.score;
@@ -31,6 +13,6 @@ export class ScoreManager implements Subject {
 
     addScore(points: number): void {
         this.score += points;
-        this.notify();
+        this.eventEmitter.emit('scoreUpdated', this.score)
     }
 }
