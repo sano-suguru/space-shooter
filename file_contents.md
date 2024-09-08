@@ -1949,6 +1949,20 @@ export const GAME_CONSTANTS: GameConstants = {
 ```
 
 
+## ./src/utils/HtmlUtils.ts
+
+```ts
+export function getElementOrThrow<T extends HTMLElement>(id: string): T {
+    const element = document.getElementById(id);
+    if (!element) {
+        throw new Error(`Element with id "${id}" not found`);
+    }
+    return element as T;
+}
+
+```
+
+
 ## ./src/game/Game.ts
 
 ```ts
@@ -2480,6 +2494,7 @@ import { ScoreManager } from './game/ScoreManager';
 import { UIManager } from './managers/UIManager';
 import { Player } from './objects/Player';
 import { EventEmitter } from './utils/EventEmitter';
+import { getElementOrThrow } from './utils/HtmlUtils';
 
 function initGame(): void {
     const canvas = getElementOrThrow<HTMLCanvasElement>('gameCanvas');
@@ -2503,18 +2518,13 @@ function initGame(): void {
         player,
         gameObjectFactory,
         stateManager
-    ); game.start();
+    );
+
+    game.start();
 }
 
 document.addEventListener('DOMContentLoaded', initGame);
 
-function getElementOrThrow<T extends HTMLElement>(id: string): T {
-    const element = document.getElementById(id);
-    if (!element) {
-        throw new Error(`Element with id "${id}" not found`);
-    }
-    return element as T;
-}
 ```
 
 

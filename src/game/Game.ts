@@ -14,7 +14,7 @@ import { Star } from "../objects/Star";
 import { EnemyType } from "../types";
 import { GAME_CONSTANTS } from "../utils/Constants";
 import { EventEmitter, EventMap } from "../utils/EventEmitter";
-import { GameState, GameStateManager } from "./GameStateManager";
+import { GameStateManager } from "./GameStateManager";
 import { ScoreManager } from "./ScoreManager";
 
 export class Game {
@@ -52,7 +52,7 @@ export class Game {
         this.canvas.height = GAME_CONSTANTS.CANVAS.HEIGHT;
         this.initializeGameObjects();
         this.setupEventListeners();
-        this.stateManager.setState(GameState.PLAYING);
+        this.stateManager.setState('PLAYING', this);
     }
 
     private initializeGameObjects(): void {
@@ -143,13 +143,16 @@ export class Game {
     }
 
     private update(): void {
-        this.player.update(this.deltaTime);
-        this.updateGameObjects();
-        this.checkCollisions();
-        this.removeOffscreenObjects();
-        this.eventEmitter.emit('healthChanged', this.player.getHealth());
-        this.eventEmitter.emit('levelUpdated', this.level);
-        this.eventEmitter.emit('scoreUpdated', this.scoreManager.getScore());
+        this.stateManager.update(this);
+        if (this.stateManager.isPlaying()) {
+            this.player.update(this.deltaTime);
+            this.updateGameObjects();
+            this.checkCollisions();
+            this.removeOffscreenObjects();
+            this.eventEmitter.emit('healthChanged', this.player.getHealth());
+            this.eventEmitter.emit('levelUpdated', this.level);
+            this.eventEmitter.emit('scoreUpdated', this.scoreManager.getScore());
+        }
     }
 
     private updateGameObjects(): void {
@@ -296,7 +299,7 @@ export class Game {
     }
 
     public gameOver(): void {
-        this.stateManager.setState(GameState.GAME_OVER);
+        this.stateManager.setState('GAME_OVER', this);
         this.eventEmitter.emit('gameOver');
         const gameOverElement = document.getElementById('gameOver');
         if (gameOverElement) {
@@ -328,7 +331,7 @@ export class Game {
         this.level = 1;
         this.bossSpawnScore = 1000;
         this.scoreManager = new ScoreManager(this.eventEmitter);
-        this.stateManager.setState(GameState.PLAYING);
+        this.stateManager.setState('PLAYING', this);
     }
 
     private handleBossDefeat(): void {
@@ -382,12 +385,12 @@ export class Game {
     }
 
     public pauseGame(): void {
-        this.stateManager.setState(GameState.PAUSED);
+        this.stateManager.setState('PAUSED', this);
         this.eventEmitter.emit('gamePaused');
     }
 
     public resumeGame(): void {
-        this.stateManager.setState(GameState.PLAYING);
+        this.stateManager.setState('PLAYING', this);
         this.eventEmitter.emit('gameResumed');
     }
 
