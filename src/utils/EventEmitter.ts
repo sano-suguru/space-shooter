@@ -33,11 +33,6 @@ export class EventEmitter<EventMap extends Record<string, any>> {
         this.listeners[event]!.push(listener as any);
     }
 
-    off<K extends keyof EventMap>(event: K, listener: EventMap[K]): void {
-        if (!this.listeners[event]) return;
-        this.listeners[event] = this.listeners[event]!.filter(l => l !== listener);
-    }
-
     emit<K extends keyof EventMap>(event: K, ...data: Parameters<EventMap[K]>): void {
         if (!this.listeners[event]) return;
         this.listeners[event]!.forEach(listener => {
