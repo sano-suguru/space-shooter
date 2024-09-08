@@ -1,4 +1,4 @@
-import { GAME_CONSTANTS } from "../utils/Constants";
+import { GAME_CONSTANTS } from "../constants/GameConstants";
 
 export class Star {
     private x: number;

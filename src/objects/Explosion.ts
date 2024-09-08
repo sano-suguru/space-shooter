@@ -1,5 +1,5 @@
 import { Vector2D } from "../types";
-import { GAME_CONSTANTS } from "../utils/Constants";
+import { GAME_CONSTANTS } from "../constants/GameConstants";
 
 export class Explosion {
     private x: number;

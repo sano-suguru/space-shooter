@@ -1,4 +1,4 @@
-import { GAME_CONSTANTS } from "../utils/Constants";
+import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { GameObject } from "./GameObject";
 
 export class BossBullet extends GameObject {

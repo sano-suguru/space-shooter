@@ -1,5 +1,5 @@
 import { PowerUpType, Vector2D } from "../types";
-import { GAME_CONSTANTS } from "../utils/Constants";
+import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { EventEmitter, EventMap } from "../utils/EventEmitter";
 import { Bullet } from "./Bullet";
 import { GameObject } from "./GameObject";

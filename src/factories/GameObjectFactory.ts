@@ -6,7 +6,7 @@ import { Planet } from "../objects/Planet";
 import { PowerUp } from "../objects/PowerUp";
 import { Star } from "../objects/Star";
 import { EnemyType } from "../types";
-import { GAME_CONSTANTS } from "../utils/Constants";
+import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { randomRange } from "../utils/MathUtils";
 
 export class GameObjectFactory {

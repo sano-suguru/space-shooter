@@ -1,6 +1,6 @@
 import { Game } from "../game/Game";
 import { EnemyType, MovementPattern, Vector2D } from "../types";
-import { GAME_CONSTANTS } from "../utils/Constants";
+import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { GameObject } from "./GameObject";
 
 export class Enemy extends GameObject {
