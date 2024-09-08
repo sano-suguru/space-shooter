@@ -1,5 +1,4 @@
 import { GameObjectFactory } from "../factories/GameObjectFactory";
-import { Updateable } from "../interfaces/Updateable";
 import { Aurora } from "../objects/Aurora";
 import { Boss } from "../objects/Boss";
 import { BossBullet } from "../objects/BossBullet";
@@ -153,22 +152,18 @@ export class Game {
     }
 
     private updateGameObjects(): void {
-        const updateables: Updateable[] = [
-            ...this.bullets,
-            ...this.enemies,
-            ...this.powerups,
-            ...this.explosions,
-            ...this.stars,
-            ...this.planets,
-            ...this.auroras,
-            ...this.bossBullets
-        ];
+        this.bullets.forEach(bullet => bullet.update(this.deltaTime));
+        this.enemies.forEach(enemy => enemy.update(this.deltaTime));
+        this.powerups.forEach(powerup => powerup.update(this.deltaTime));
+        this.explosions.forEach(explosion => explosion.update(this.deltaTime));
+        this.stars.forEach(star => star.update(this.deltaTime));
+        this.planets.forEach(planet => planet.update(this.deltaTime));
+        this.auroras.forEach(aurora => aurora.update(this.deltaTime));
+        this.bossBullets.forEach(bossBullet => bossBullet.update(this.deltaTime));
 
         if (this.boss) {
-            updateables.push(this.boss);
+            this.boss.update(this.deltaTime);
         }
-
-        updateables.forEach(obj => obj.update(this.deltaTime));
 
         this.currentScore = this.scoreManager.getScore();
         if (this.currentScore >= this.bossSpawnScore && !this.boss) {

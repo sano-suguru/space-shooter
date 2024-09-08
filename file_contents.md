@@ -567,26 +567,18 @@ body {
 ## ./src/managers/UIManager.ts
 
 ```ts
-import { ScoreManager } from "../game/ScoreManager";
-import { Observer } from "../interfaces/Observer";
-import { Subject } from "../interfaces/Subject";
 import { GAME_CONSTANTS } from "../utils/Constants";
 import { EventEmitter, EventMap } from "../utils/EventEmitter";
 
-export class UIManager implements Observer {
-    private scoreElement: HTMLElement | null;
-    private levelElement: HTMLElement | null;
-    private healthElement: HTMLElement | null;
-    private healthBarElement: HTMLElement | null;
-
+export class UIManager {
     constructor(
-        private eventEmitter: EventEmitter<EventMap>
+        private eventEmitter: EventEmitter<EventMap>,
+        private scoreElement: HTMLElement,
+        private levelElement: HTMLElement,
+        private healthElement: HTMLElement,
+        private healthBarElement: HTMLElement,
+        private gameOverElement: HTMLElement
     ) {
-        this.scoreElement = document.getElementById('scoreValue');
-        this.levelElement = document.getElementById('levelValue');
-        this.healthElement = document.getElementById('healthValue');
-        this.healthBarElement = document.getElementById('healthBarFill');
-
         this.setupEventListeners();
     }
 
@@ -597,39 +589,23 @@ export class UIManager implements Observer {
         this.eventEmitter.on('gameOver', () => this.showGameOver());
     }
 
-    update(subject: Subject): void {
-        if (subject instanceof ScoreManager) {
-            this.updateScoreDisplay(subject.getScore());
-        }
-    }
 
     updateScoreDisplay(score: number): void {
-        if (this.scoreElement) {
-            this.scoreElement.textContent = score.toString();
-        }
+        this.scoreElement.textContent = score.toString();
     }
 
     updateLevelDisplay(level: number): void {
-        if (this.levelElement) {
-            this.levelElement.textContent = level.toString();
-        }
+        this.levelElement.textContent = level.toString();
     }
 
     updateHealthDisplay(health: number): void {
-        if (this.healthElement) {
-            this.healthElement.textContent = health.toString();
-        }
-        if (this.healthBarElement) {
-            const healthPercentage = (health / GAME_CONSTANTS.PLAYER.MAX_HEALTH) * 100;
-            this.healthBarElement.style.width = `${healthPercentage}%`;
-        }
+        this.healthElement.textContent = health.toString();
+        const healthPercentage = (health / GAME_CONSTANTS.PLAYER.MAX_HEALTH) * 100;
+        this.healthBarElement.style.width = `${healthPercentage}%`;
     }
 
     showGameOver(): void {
-        const gameOverElement = document.getElementById('gameOver');
-        if (gameOverElement) {
-            gameOverElement.classList.remove('hidden');
-        }
+        this.gameOverElement.classList.remove('hidden');
     }
 }
 
@@ -2071,7 +2047,6 @@ export const GAME_CONSTANTS: GameConstants = {
 ```ts
 import { GameObjectFactory } from "../factories/GameObjectFactory";
 import { Updateable } from "../interfaces/Updateable";
-import { UIManager } from "../managers/UIManager";
 import { Aurora } from "../objects/Aurora";
 import { Boss } from "../objects/Boss";
 import { BossBullet } from "../objects/BossBullet";
@@ -2109,14 +2084,13 @@ export class Game {
     private lastTime = 0;
     private deltaTime = 0;
     private stateManager: GameStateManager = new GameStateManager();
-    private scoreManager: ScoreManager = new ScoreManager();
     private difficultyFactor: number = 0;
     private currentBossHealth: number = GAME_CONSTANTS.BOSS.INITIAL_HEALTH;
 
 
     constructor(
         private eventEmitter: EventEmitter<EventMap>,
-        private uiManager: UIManager,
+        private scoreManager: ScoreManager,
         private player: Player
     ) {
         this.canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
@@ -2125,7 +2099,6 @@ export class Game {
         this.canvas.height = GAME_CONSTANTS.CANVAS.HEIGHT;
         this.initializeGameObjects();
         this.setupEventListeners();
-        this.scoreManager.attach(this.uiManager);
         this.stateManager.setState(GameState.PLAYING);
     }
 
@@ -2405,8 +2378,7 @@ export class Game {
         this.bossBullets = [];
         this.level = 1;
         this.bossSpawnScore = 1000;
-        this.scoreManager = new ScoreManager();
-        this.scoreManager.attach(this.uiManager);
+        this.scoreManager = new ScoreManager(this.eventEmitter);
         this.stateManager.setState(GameState.PLAYING);
     }
 
@@ -2485,32 +2457,14 @@ export class Game {
 ## ./src/game/ScoreManager.ts
 
 ```ts
-import { Observer } from "../interfaces/Observer";
-import { Subject } from "../interfaces/Subject";
+import { EventEmitter, EventMap } from "../utils/EventEmitter";
 
-export class ScoreManager implements Subject {
-    private observers: Observer[] = [];
+export class ScoreManager {
     private score: number = 0;
 
-    attach(observer: Observer): void {
-        const isExist = this.observers.includes(observer);
-        if (!isExist) {
-            this.observers.push(observer);
-        }
-    }
-
-    detach(observer: Observer): void {
-        const observerIndex = this.observers.indexOf(observer);
-        if (observerIndex !== -1) {
-            this.observers.splice(observerIndex, 1);
-        }
-    }
-
-    notify(): void {
-        for (const observer of this.observers) {
-            observer.update(this);
-        }
-    }
+    constructor(
+        private eventEmitter: EventEmitter<EventMap>
+    ) { }
 
     getScore(): number {
         return this.score;
@@ -2518,7 +2472,7 @@ export class ScoreManager implements Subject {
 
     addScore(points: number): void {
         this.score += points;
-        this.notify();
+        this.eventEmitter.emit('scoreUpdated', this.score)
     }
 }
 
@@ -2597,6 +2551,7 @@ export class GameObjectFactory {
 
 ```ts
 import { Game } from './game/Game';
+import { ScoreManager } from './game/ScoreManager';
 import { UIManager } from './managers/UIManager';
 import { Player } from './objects/Player';
 import { EventEmitter } from './utils/EventEmitter';
@@ -2605,14 +2560,27 @@ let game: Game;
 
 function initGame(): void {
     const eventEmitter = new EventEmitter();
-    const uiManager = new UIManager(eventEmitter);
+    const scoreElement = getElementOrThrow<HTMLElement>('scoreValue');
+    const levelElement = getElementOrThrow<HTMLElement>('levelValue');
+    const healthElement = getElementOrThrow<HTMLElement>('healthValue');
+    const healthBarElement = getElementOrThrow<HTMLElement>('healthBarFill');
+    const gameOverElement = getElementOrThrow<HTMLElement>('gameOver')
+    new UIManager(eventEmitter, scoreElement, levelElement, healthElement, healthBarElement, gameOverElement);
+    const scoreManager = new ScoreManager(eventEmitter);
     const player = new Player(eventEmitter);
-    game = new Game(eventEmitter, uiManager, player);
+    game = new Game(eventEmitter, scoreManager, player);
     game.start();
 }
 
 document.addEventListener('DOMContentLoaded', initGame);
 
+function getElementOrThrow<T extends HTMLElement>(id: string): T {
+    const element = document.getElementById(id);
+    if (!element) {
+        throw new Error(`Element with id "${id}" not found`);
+    }
+    return element as T;
+}
 ```
 
 
@@ -2631,32 +2599,6 @@ export interface Updateable {
 ```ts
 export interface Drawable {
     draw(ctx: CanvasRenderingContext2D): void;
-}
-
-```
-
-
-## ./src/interfaces/Subject.ts
-
-```ts
-import { Observer } from "./Observer";
-
-export interface Subject {
-    attach(observer: Observer): void;
-    detach(observer: Observer): void;
-    notify(): void;
-}
-
-```
-
-
-## ./src/interfaces/Observer.ts
-
-```ts
-import { Subject } from "./Subject";
-
-export interface Observer {
-    update(subject: Subject): void;
 }
 
 ```
