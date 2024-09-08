@@ -1,6 +1,7 @@
-import { Bullet } from "../objects/Bullet";
-import { Enemy } from "../objects/Enemy";
-import { PowerUp } from "../objects/PowerUp";
+import { GameStateKey } from '../game/GameStateManager';
+import { Bullet } from '../objects/Bullet';
+import { Enemy } from '../objects/Enemy';
+import { PowerUp } from '../objects/PowerUp';
 
 export type EventMap = {
     'enemyDestroyed': (enemy: Enemy) => void;
@@ -21,6 +22,7 @@ export type EventMap = {
     'bossSpawned': () => void;
     'levelStarted': (level: number) => void;
     'levelUpdated': (level: number) => void;
+    'stateChanged': (newState: GameStateKey) => void;
 };
 
 export class EventEmitter<EventMap extends Record<string, any>> {

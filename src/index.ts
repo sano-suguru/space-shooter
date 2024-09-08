@@ -13,7 +13,7 @@ function initGame(): void {
     const player = new Player(eventEmitter);
     const gameObjectFactory = new GameObjectFactory();
     const scoreManager = new ScoreManager(eventEmitter);
-    const stateManager = new GameStateManager();
+    const stateManager = new GameStateManager(eventEmitter);
 
     const levelElement = getElementOrThrow<HTMLElement>('levelValue');
     const healthElement = getElementOrThrow<HTMLElement>('healthValue');
