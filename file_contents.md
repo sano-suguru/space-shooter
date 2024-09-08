@@ -1817,9 +1817,10 @@ export function randomRange(min: number, max: number): number {
 ## ./src/utils/EventEmitter.ts
 
 ```ts
-import { Bullet } from "../objects/Bullet";
-import { Enemy } from "../objects/Enemy";
-import { PowerUp } from "../objects/PowerUp";
+import { GameStateKey } from '../game/GameStateManager';
+import { Bullet } from '../objects/Bullet';
+import { Enemy } from '../objects/Enemy';
+import { PowerUp } from '../objects/PowerUp';
 
 export type EventMap = {
     'enemyDestroyed': (enemy: Enemy) => void;
@@ -1840,6 +1841,7 @@ export type EventMap = {
     'bossSpawned': () => void;
     'levelStarted': (level: number) => void;
     'levelUpdated': (level: number) => void;
+    'stateChanged': (newState: GameStateKey) => void;
 };
 
 export class EventEmitter<EventMap extends Record<string, any>> {
@@ -1973,7 +1975,6 @@ import { BossBullet } from "../objects/BossBullet";
 import { Bullet } from "../objects/Bullet";
 import { Enemy } from "../objects/Enemy";
 import { Explosion } from "../objects/Explosion";
-import { GameObject } from "../objects/GameObject";
 import { Nebula } from "../objects/Nebula";
 import { Planet } from "../objects/Planet";
 import { Player } from "../objects/Player";
@@ -1982,7 +1983,7 @@ import { Star } from "../objects/Star";
 import { EnemyType } from "../types";
 import { GAME_CONSTANTS } from "../utils/Constants";
 import { EventEmitter, EventMap } from "../utils/EventEmitter";
-import { GameState, GameStateManager } from "./GameStateManager";
+import { GameStateManager } from "./GameStateManager";
 import { ScoreManager } from "./ScoreManager";
 
 export class Game {
@@ -2004,7 +2005,7 @@ export class Game {
     private deltaTime = 0;
     private difficultyFactor: number = 0;
     private currentBossHealth: number = GAME_CONSTANTS.BOSS.INITIAL_HEALTH;
-
+    private gameLoopId: number | null = null;
 
     constructor(
         private canvas: HTMLCanvasElement,
@@ -2012,15 +2013,14 @@ export class Game {
         private scoreManager: ScoreManager,
         private player: Player,
         private gameObjectFactory: GameObjectFactory,
-        private stateManager: GameStateManager,
-
+        private stateManager: GameStateManager
     ) {
         this.ctx = this.canvas.getContext('2d') as CanvasRenderingContext2D;
         this.canvas.width = GAME_CONSTANTS.CANVAS.WIDTH;
         this.canvas.height = GAME_CONSTANTS.CANVAS.HEIGHT;
         this.initializeGameObjects();
         this.setupEventListeners();
-        this.stateManager.setState(GameState.PLAYING);
+        this.stateManager.setState('STARTING', this);
     }
 
     private initializeGameObjects(): void {
@@ -2038,11 +2038,14 @@ export class Game {
             restartButton.addEventListener('click', this.restartGame);
         }
         this.eventEmitter.on('enemyDestroyed', this.handleEnemyDestroyed);
-        this.eventEmitter.on('playerShot', this.handlePlayerShot)
+        this.eventEmitter.on('playerShot', this.handlePlayerShot);
         this.eventEmitter.on('playerDamaged', this.handlePlayerDamaged);
         this.eventEmitter.on('bossDamaged', this.handleBossDamaged);
         this.eventEmitter.on('bossDefeated', this.handleBossDefeated);
         this.eventEmitter.on('powerUpCollected', this.handlePowerUpCollected);
+        document.addEventListener('keydown', (e: KeyboardEvent) => {
+            this.handleInput(e.key);
+        });
     }
 
     private handleKeyDown = (e: KeyboardEvent): void => {
@@ -2102,25 +2105,18 @@ export class Game {
         this.deltaTime = (currentTime - this.lastTime) / 1000;
         this.lastTime = currentTime;
 
-        if (this.stateManager.isPlaying()) {
-            this.update();
-            this.draw();
-        }
+        this.update();
+        this.draw();
 
-        requestAnimationFrame(this.gameLoop);
+        this.gameLoopId = requestAnimationFrame(this.gameLoop);
     }
 
     private update(): void {
-        this.player.update(this.deltaTime);
-        this.updateGameObjects();
-        this.checkCollisions();
-        this.removeOffscreenObjects();
-        this.eventEmitter.emit('healthChanged', this.player.getHealth());
-        this.eventEmitter.emit('levelUpdated', this.level);
-        this.eventEmitter.emit('scoreUpdated', this.scoreManager.getScore());
+        this.stateManager.update(this);
     }
 
-    private updateGameObjects(): void {
+    public updateGameObjects(): void {
+        this.player.update(this.deltaTime);
         this.bullets.forEach(bullet => bullet.update(this.deltaTime));
         this.enemies.forEach(enemy => enemy.update(this.deltaTime));
         this.powerups.forEach(powerup => powerup.update(this.deltaTime));
@@ -2146,7 +2142,7 @@ export class Game {
         this.showMessage("ボスが出現しました！");
     }
 
-    private checkCollisions(): void {
+    public checkCollisions(): void {
         this.checkBulletEnemyCollisions();
         this.checkPlayerEnemyCollisions();
         this.checkPlayerPowerupCollisions();
@@ -2209,7 +2205,7 @@ export class Game {
         }
     }
 
-    private removeOffscreenObjects(): void {
+    public removeOffscreenObjects(): void {
         this.bullets = this.bullets.filter(bullet => bullet.isOnScreen());
         this.enemies = this.enemies.filter(enemy => enemy.isOnScreen());
         this.powerups = this.powerups.filter(powerup => powerup.isOnScreen());
@@ -2248,7 +2244,7 @@ export class Game {
         if (this.stateManager.isPlaying() && !this.boss) {
             const enemyTypes = Object.keys(GAME_CONSTANTS.ENEMY.TYPES) as EnemyType[];
             const randomType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
-            this.enemies.push(this.gameObjectFactory.createEnemy(randomType, this));  // thisを追加
+            this.enemies.push(this.gameObjectFactory.createEnemy(randomType, this));
 
             if (Math.random() < GAME_CONSTANTS.POWERUP.SPAWN_CHANCE) {
                 this.powerups.push(this.gameObjectFactory.createPowerUp());
@@ -2256,7 +2252,7 @@ export class Game {
         }
     }
 
-    private checkCollision(obj1: GameObject, obj2: GameObject): boolean {
+    private checkCollision(obj1: { getX: () => number; getY: () => number; getWidth: () => number; getHeight: () => number }, obj2: { getX: () => number; getY: () => number; getWidth: () => number; getHeight: () => number }): boolean {
         return obj1.getX() < obj2.getX() + obj2.getWidth() &&
             obj1.getX() + obj1.getWidth() > obj2.getX() &&
             obj1.getY() < obj2.getY() + obj2.getHeight() &&
@@ -2264,28 +2260,15 @@ export class Game {
     }
 
     public gameOver(): void {
-        this.stateManager.setState(GameState.GAME_OVER);
-        this.eventEmitter.emit('gameOver');
-        const gameOverElement = document.getElementById('gameOver');
-        if (gameOverElement) {
-            gameOverElement.classList.remove('hidden');
-        }
-        const finalScoreElement = document.getElementById('finalScore');
-        if (finalScoreElement) {
-            finalScoreElement.textContent = this.scoreManager.getScore().toString();
-        }
+        this.stateManager.setState('GAME_OVER', this);
     }
 
     private restartGame = (): void => {
-        const gameOverElement = document.getElementById('gameOver');
-        if (gameOverElement) {
-            gameOverElement.classList.add('hidden');
-        }
         this.resetGame();
-        this.start();
+        this.stateManager.setState('PLAYING', this);
     }
 
-    private resetGame(): void {
+    public resetGame(): void {
         this.player = new Player(this.eventEmitter);
         this.bullets = [];
         this.enemies = [];
@@ -2296,7 +2279,8 @@ export class Game {
         this.level = 1;
         this.bossSpawnScore = 1000;
         this.scoreManager = new ScoreManager(this.eventEmitter);
-        this.stateManager.setState(GameState.PLAYING);
+        this.difficultyFactor = 0;
+        this.currentBossHealth = GAME_CONSTANTS.BOSS.INITIAL_HEALTH;
     }
 
     private handleBossDefeat(): void {
@@ -2328,7 +2312,7 @@ export class Game {
         this.showMessage(`レベル ${this.level} 開始！`);
     }
 
-    private showMessage(text: string): void {
+    public showMessage(text: string): void {
         const messageElement = document.createElement('div');
         messageElement.textContent = text;
         messageElement.style.position = 'absolute';
@@ -2345,18 +2329,61 @@ export class Game {
         }, 3000);
     }
 
+    public hideMessage(): void {
+        // メッセージ要素を探して削除
+        const messageElement = document.querySelector('div[style*="position: absolute"]');
+        if (messageElement) {
+            document.body.removeChild(messageElement);
+        }
+    }
+
     public addBossBullet(bullet: BossBullet): void {
         this.bossBullets.push(bullet);
     }
 
-    public pauseGame(): void {
-        this.stateManager.setState(GameState.PAUSED);
-        this.eventEmitter.emit('gamePaused');
+    public resumeGameLoop(): void {
+        if (!this.gameLoopId) {
+            this.gameLoop(0);
+        }
     }
 
-    public resumeGame(): void {
-        this.stateManager.setState(GameState.PLAYING);
-        this.eventEmitter.emit('gameResumed');
+    public pauseGameLoop(): void {
+        if (this.gameLoopId) {
+            cancelAnimationFrame(this.gameLoopId);
+            this.gameLoopId = null;
+        }
+    }
+
+    public showGameOverScreen(): void {
+        const gameOverElement = document.getElementById('gameOver');
+        if (gameOverElement) {
+            gameOverElement.classList.remove('hidden');
+        }
+        const finalScoreElement = document.getElementById('finalScore');
+        if (finalScoreElement) {
+            finalScoreElement.textContent = this.scoreManager.getScore().toString();
+        }
+    }
+
+    public hideGameOverScreen(): void {
+        const gameOverElement = document.getElementById('gameOver');
+        if (gameOverElement) {
+            gameOverElement.classList.add('hidden');
+        }
+    }
+
+    public getStateManager(): GameStateManager {
+        return this.stateManager;
+    }
+
+    public handleInput(input: string): void {
+        this.stateManager.handleInput(this, input);
+    }
+
+    public updateUI(): void {
+        this.eventEmitter.emit('healthChanged', this.player.getHealth());
+        this.eventEmitter.emit('levelUpdated', this.level);
+        this.eventEmitter.emit('scoreUpdated', this.scoreManager.getScore());
     }
 
     public getDifficultyFactor(): number {
@@ -2399,28 +2426,151 @@ export class ScoreManager {
 ## ./src/game/GameStateManager.ts
 
 ```ts
-export class GameStateManager {
-    private currentState: GameState = GameState.STARTING;
+import { Game } from "./Game";
+import { EventEmitter, EventMap } from "../utils/EventEmitter";
 
-    setState(newState: GameState): void {
-        this.currentState = newState;
+export type GameStateKey = 'STARTING' | 'PLAYING' | 'PAUSED' | 'GAME_OVER';
+
+export interface GameState {
+    enter(game: Game): void;
+    update(game: Game): void;
+    exit(game: Game): void;
+    handleInput(game: Game, input: string): void;
+}
+
+class StartingState implements GameState {
+    enter(game: Game): void {
+        console.log("Entering Starting state");
+        game.resetGame();
+        game.showMessage("Press SPACE to start the game");
     }
 
-    getState(): GameState {
-        return this.currentState;
+    update(_game: Game): void {
+        // Starting state doesn't need update logic
+    }
+
+    exit(game: Game): void {
+        console.log("Exiting Starting state");
+        game.hideMessage();
+    }
+
+    handleInput(game: Game, input: string): void {
+        if (input === ' ') {
+            game.getStateManager().setState('PLAYING', game);
+        }
+    }
+}
+
+class PlayingState implements GameState {
+    enter(game: Game): void {
+        console.log("Entering Playing state");
+        game.resumeGameLoop();
+    }
+
+    update(game: Game): void {
+        game.updateGameObjects();
+        game.checkCollisions();
+        game.removeOffscreenObjects();
+        game.updateUI();
+    }
+
+    exit(_game: Game): void {
+        console.log("Exiting Playing state");
+    }
+
+    handleInput(game: Game, input: string): void {
+        if (input === 'Escape') {
+            game.getStateManager().setState('PAUSED', game);
+        }
+    }
+}
+
+class PausedState implements GameState {
+    enter(game: Game): void {
+        console.log("Entering Paused state");
+        game.pauseGameLoop();
+        game.showMessage("Game Paused. Press SPACE to resume");
+    }
+
+    update(_game: Game): void {
+        // Paused state doesn't need update logic
+    }
+
+    exit(game: Game): void {
+        console.log("Exiting Paused state");
+        game.hideMessage();
+    }
+
+    handleInput(game: Game, input: string): void {
+        if (input === ' ') {
+            game.getStateManager().setState('PLAYING', game);
+        }
+    }
+}
+
+class GameOverState implements GameState {
+    enter(game: Game): void {
+        console.log("Entering Game Over state");
+        game.pauseGameLoop();
+        game.showGameOverScreen();
+    }
+
+    update(_game: Game): void {
+        // Game Over state doesn't need update logic
+    }
+
+    exit(game: Game): void {
+        console.log("Exiting Game Over state");
+        game.hideGameOverScreen();
+    }
+
+    handleInput(game: Game, input: string): void {
+        if (input === 'r') {
+            game.getStateManager().setState('STARTING', game);
+        }
+    }
+}
+
+export class GameStateManager {
+    private currentState: GameState;
+    private states: Record<GameStateKey, GameState>;
+
+    constructor(private eventEmitter: EventEmitter<EventMap>) {
+        this.states = {
+            STARTING: new StartingState(),
+            PLAYING: new PlayingState(),
+            PAUSED: new PausedState(),
+            GAME_OVER: new GameOverState()
+        };
+        this.currentState = this.states.STARTING;
+    }
+
+    setState(newState: GameStateKey, game: Game): void {
+        this.currentState.exit(game);
+        this.currentState = this.states[newState];
+        this.currentState.enter(game);
+        this.eventEmitter.emit('stateChanged', newState);
+    }
+
+    update(game: Game): void {
+        this.currentState.update(game);
+    }
+
+    handleInput(game: Game, input: string): void {
+        this.currentState.handleInput(game, input);
     }
 
     isPlaying(): boolean {
-        return this.currentState === GameState.PLAYING;
+        return this.currentState === this.states.PLAYING;
+    }
+
+    getCurrentState(): GameStateKey {
+        return Object.keys(this.states).find(
+            key => this.states[key as GameStateKey] === this.currentState
+        ) as GameStateKey;
     }
 }
 
-export enum GameState {
-    STARTING,
-    PLAYING,
-    PAUSED,
-    GAME_OVER
-}
 ```
 
 
@@ -2502,7 +2652,7 @@ function initGame(): void {
     const player = new Player(eventEmitter);
     const gameObjectFactory = new GameObjectFactory();
     const scoreManager = new ScoreManager(eventEmitter);
-    const stateManager = new GameStateManager();
+    const stateManager = new GameStateManager(eventEmitter);
 
     const levelElement = getElementOrThrow<HTMLElement>('levelValue');
     const healthElement = getElementOrThrow<HTMLElement>('healthValue');
