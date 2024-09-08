@@ -1,20 +1,23 @@
-import { GameObjectFactory } from "../factories/GameObjectFactory";
-import { Aurora } from "../objects/Aurora";
-import { Boss } from "../objects/Boss";
-import { BossBullet } from "../objects/BossBullet";
-import { Bullet } from "../objects/Bullet";
-import { Enemy } from "../objects/Enemy";
-import { Explosion } from "../objects/Explosion";
-import { Nebula } from "../objects/Nebula";
-import { Planet } from "../objects/Planet";
-import { Player } from "../objects/Player";
-import { PowerUp } from "../objects/PowerUp";
-import { Star } from "../objects/Star";
-import { EnemyType } from "../types";
-import { GAME_CONSTANTS } from "../constants/GameConstants";
-import { EventEmitter, EventMap } from "../utils/EventEmitter";
-import { GameStateManager } from "./GameStateManager";
-import { ScoreManager } from "./ScoreManager";
+import { GAME_CONSTANTS } from '../constants/GameConstants';
+import { Aurora } from '../entities/Aurora';
+import { Boss } from '../entities/Boss';
+import { BossBullet } from '../entities/BossBullet';
+import { Bullet } from '../entities/Bullet';
+import { Enemy } from '../entities/Enemy';
+import { Explosion } from '../entities/Explosion';
+import { GameObject } from '../entities/GameObject';
+import { Nebula } from '../entities/Nebula';
+import { Planet } from '../entities/Planet';
+import { Player } from '../entities/Player';
+import { PowerUp } from '../entities/PowerUp';
+import { Star } from '../entities/Star';
+import { EventEmitter } from '../events/EventEmitter';
+import { EventMap } from '../events/EventType';
+import { GameObjectFactory } from '../factories/GameObjectFactory';
+import { GameStateManager } from '../managers/GameStateManager';
+import { ScoreManager } from '../managers/ScoreManager';
+import { EnemyType } from '../types';
+import { checkCollision } from '../utils/CollisionUtils';
 
 export class Game {
     private ctx: CanvasRenderingContext2D;
@@ -282,11 +285,8 @@ export class Game {
         }
     }
 
-    private checkCollision(obj1: { getX: () => number; getY: () => number; getWidth: () => number; getHeight: () => number }, obj2: { getX: () => number; getY: () => number; getWidth: () => number; getHeight: () => number }): boolean {
-        return obj1.getX() < obj2.getX() + obj2.getWidth() &&
-            obj1.getX() + obj1.getWidth() > obj2.getX() &&
-            obj1.getY() < obj2.getY() + obj2.getHeight() &&
-            obj1.getY() + obj1.getHeight() > obj2.getY();
+    private checkCollision(obj1: GameObject, obj2: GameObject): boolean {
+        return checkCollision(obj1, obj2);
     }
 
     public gameOver(): void {

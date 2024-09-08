@@ -1,4 +1,5 @@
-import { EventEmitter, EventMap } from "../utils/EventEmitter";
+import { EventEmitter } from "../events/EventEmitter";
+import { EventMap } from "../events/EventType";
 
 export class ScoreManager {
     private score: number = 0;

@@ -1,4 +1,4 @@
-import { Player } from "../objects/Player";
+import { Player } from "../entities/Player";
 import { GameConstants } from "../types";
 
 export const GAME_CONSTANTS: GameConstants = {

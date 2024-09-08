@@ -1,4 +1,4 @@
-import { Player } from "../objects/Player";
+import { Player } from "../entities/Player";
 
 export type GameConstants = {
     readonly CANVAS: {

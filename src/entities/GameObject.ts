@@ -1,5 +1,5 @@
-import { Drawable } from "../interfaces/Drawable";
-import { Updateable } from "../interfaces/Updateable";
+import { Drawable } from "../types/Drawable";
+import { Updateable } from "../types/Updateable";
 
 export abstract class GameObject implements Drawable, Updateable {
     constructor(

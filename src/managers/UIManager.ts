@@ -1,5 +1,6 @@
 import { GAME_CONSTANTS } from "../constants/GameConstants";
-import { EventEmitter, EventMap } from "../utils/EventEmitter";
+import { EventEmitter } from "../events/EventEmitter";
+import { EventMap } from "../events/EventType";
 
 export class UIManager {
     constructor(

@@ -1,5 +1,6 @@
-import { Game } from "./Game";
-import { EventEmitter, EventMap } from "../utils/EventEmitter";
+import { Game } from "../core/Game";
+import { EventEmitter } from "../events/EventEmitter";
+import { EventMap } from "../events/EventType";
 
 export type GameStateKey = 'STARTING' | 'PLAYING' | 'PAUSED' | 'GAME_OVER';
 

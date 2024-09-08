@@ -1,13 +1,13 @@
-import { Game } from "../game/Game";
-import { Aurora } from "../objects/Aurora";
-import { Enemy } from "../objects/Enemy";
-import { Nebula } from "../objects/Nebula";
-import { Planet } from "../objects/Planet";
-import { PowerUp } from "../objects/PowerUp";
-import { Star } from "../objects/Star";
+import { Game } from "../core/Game";
+import { Aurora } from "../entities/Aurora";
+import { Enemy } from "../entities/Enemy";
+import { Nebula } from "../entities/Nebula";
+import { Planet } from "../entities/Planet";
+import { PowerUp } from "../entities/PowerUp";
+import { Star } from "../entities/Star";
 import { EnemyType } from "../types";
 import { GAME_CONSTANTS } from "../constants/GameConstants";
-import { randomRange } from "../utils/MathUtils";
+import { randomRange } from "../utils/RandomUtils";
 
 export class GameObjectFactory {
     createStar(): Star {

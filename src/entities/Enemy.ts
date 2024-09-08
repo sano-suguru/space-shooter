@@ -1,4 +1,4 @@
-import { Game } from "../game/Game";
+import { Game } from "../core/Game";
 import { EnemyType, MovementPattern, Vector2D } from "../types";
 import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { GameObject } from "./GameObject";

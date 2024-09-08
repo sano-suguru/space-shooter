@@ -1,11 +1,11 @@
 import { GameObjectFactory } from './factories/GameObjectFactory';
-import { Game } from './game/Game';
-import { GameStateManager } from './game/GameStateManager';
-import { ScoreManager } from './game/ScoreManager';
+import { Game } from './core/Game';
+import { GameStateManager } from './managers/GameStateManager';
+import { ScoreManager } from './managers/ScoreManager';
 import { UIManager } from './managers/UIManager';
-import { Player } from './objects/Player';
-import { EventEmitter } from './utils/EventEmitter';
-import { getElementOrThrow } from './utils/HtmlUtils';
+import { Player } from './entities/Player';
+import { EventEmitter } from './events/EventEmitter';
+import { getElementOrThrow } from './utils/DOMUtils';
 
 function initGame(): void {
     const canvas = getElementOrThrow<HTMLCanvasElement>('gameCanvas');

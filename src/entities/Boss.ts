@@ -1,4 +1,4 @@
-import { Game } from "../game/Game";
+import { Game } from "../core/Game";
 import { Vector2D } from "../types";
 import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { BossBullet } from "./BossBullet";

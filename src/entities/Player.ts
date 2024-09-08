@@ -1,8 +1,9 @@
 import { PowerUpType, Vector2D } from "../types";
 import { GAME_CONSTANTS } from "../constants/GameConstants";
-import { EventEmitter, EventMap } from "../utils/EventEmitter";
+import { EventEmitter } from "../events/EventEmitter";
 import { Bullet } from "./Bullet";
 import { GameObject } from "./GameObject";
+import { EventMap } from "../events/EventType";
 
 export class Player extends GameObject {
     private velocity: Vector2D = { x: 0, y: 0 };
