@@ -1,31 +1,37 @@
+import { GameObjectFactory } from './factories/GameObjectFactory';
 import { Game } from './game/Game';
+import { GameStateManager } from './game/GameStateManager';
 import { ScoreManager } from './game/ScoreManager';
 import { UIManager } from './managers/UIManager';
 import { Player } from './objects/Player';
 import { EventEmitter } from './utils/EventEmitter';
-
-let game: Game;
+import { getElementOrThrow } from './utils/HtmlUtils';
 
 function initGame(): void {
+    const canvas = getElementOrThrow<HTMLCanvasElement>('gameCanvas');
     const eventEmitter = new EventEmitter();
-    const scoreElement = getElementOrThrow<HTMLElement>('scoreValue');
+    const player = new Player(eventEmitter);
+    const gameObjectFactory = new GameObjectFactory();
+    const scoreManager = new ScoreManager(eventEmitter);
+    const stateManager = new GameStateManager();
+
     const levelElement = getElementOrThrow<HTMLElement>('levelValue');
     const healthElement = getElementOrThrow<HTMLElement>('healthValue');
     const healthBarElement = getElementOrThrow<HTMLElement>('healthBarFill');
     const gameOverElement = getElementOrThrow<HTMLElement>('gameOver')
+    const scoreElement = getElementOrThrow<HTMLElement>('scoreValue');
     new UIManager(eventEmitter, scoreElement, levelElement, healthElement, healthBarElement, gameOverElement);
-    const scoreManager = new ScoreManager(eventEmitter);
-    const player = new Player(eventEmitter);
-    game = new Game(eventEmitter, scoreManager, player);
+
+    const game = new Game(
+        canvas,
+        eventEmitter,
+        scoreManager,
+        player,
+        gameObjectFactory,
+        stateManager
+    );
+
     game.start();
 }
 
 document.addEventListener('DOMContentLoaded', initGame);
-
-function getElementOrThrow<T extends HTMLElement>(id: string): T {
-    const element = document.getElementById(id);
-    if (!element) {
-        throw new Error(`Element with id "${id}" not found`);
-    }
-    return element as T;
-}

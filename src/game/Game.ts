@@ -18,7 +18,6 @@ import { GameState, GameStateManager } from "./GameStateManager";
 import { ScoreManager } from "./ScoreManager";
 
 export class Game {
-    private canvas: HTMLCanvasElement;
     private ctx: CanvasRenderingContext2D;
     private bullets: Bullet[] = [];
     private enemies: Enemy[] = [];
@@ -35,17 +34,19 @@ export class Game {
     private currentScore: number = 0;
     private lastTime = 0;
     private deltaTime = 0;
-    private stateManager: GameStateManager = new GameStateManager();
     private difficultyFactor: number = 0;
     private currentBossHealth: number = GAME_CONSTANTS.BOSS.INITIAL_HEALTH;
 
 
     constructor(
+        private canvas: HTMLCanvasElement,
         private eventEmitter: EventEmitter<EventMap>,
         private scoreManager: ScoreManager,
-        private player: Player
+        private player: Player,
+        private gameObjectFactory: GameObjectFactory,
+        private stateManager: GameStateManager,
+
     ) {
-        this.canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
         this.ctx = this.canvas.getContext('2d') as CanvasRenderingContext2D;
         this.canvas.width = GAME_CONSTANTS.CANVAS.WIDTH;
         this.canvas.height = GAME_CONSTANTS.CANVAS.HEIGHT;
@@ -55,10 +56,10 @@ export class Game {
     }
 
     private initializeGameObjects(): void {
-        this.stars = Array.from({ length: GAME_CONSTANTS.BACKGROUND.STAR_COUNT }, () => new Star());
-        this.planets = Array.from({ length: GAME_CONSTANTS.BACKGROUND.PLANET_COUNT }, () => new Planet());
-        this.nebulas = Array.from({ length: GAME_CONSTANTS.BACKGROUND.NEBULA_COUNT }, () => new Nebula());
-        this.auroras = Array.from({ length: 2 }, () => new Aurora());
+        this.stars = Array.from({ length: GAME_CONSTANTS.BACKGROUND.STAR_COUNT }, () => this.gameObjectFactory.createStar());
+        this.planets = Array.from({ length: GAME_CONSTANTS.BACKGROUND.PLANET_COUNT }, () => this.gameObjectFactory.createPlanet());
+        this.nebulas = Array.from({ length: GAME_CONSTANTS.BACKGROUND.NEBULA_COUNT }, () => this.gameObjectFactory.createNebula());
+        this.auroras = Array.from({ length: 2 }, () => this.gameObjectFactory.createAurora());
     }
 
     private setupEventListeners(): void {
@@ -279,10 +280,10 @@ export class Game {
         if (this.stateManager.isPlaying() && !this.boss) {
             const enemyTypes = Object.keys(GAME_CONSTANTS.ENEMY.TYPES) as EnemyType[];
             const randomType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
-            this.enemies.push(GameObjectFactory.createEnemy(randomType, this));  // thisを追加
+            this.enemies.push(this.gameObjectFactory.createEnemy(randomType, this));  // thisを追加
 
             if (Math.random() < GAME_CONSTANTS.POWERUP.SPAWN_CHANCE) {
-                this.powerups.push(GameObjectFactory.createPowerUp());
+                this.powerups.push(this.gameObjectFactory.createPowerUp());
             }
         }
     }

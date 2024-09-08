@@ -612,94 +612,6 @@ export class UIManager {
 ```
 
 
-## ./src/managers/CollisionManager.ts
-
-```ts
-// import { Game } from "../game/Game";
-// import { GameObject } from "../objects/GameObject";
-
-// export class CollisionManager {
-//     constructor(private game: Game) { }
-
-//     checkCollisions(): void {
-//         this.checkBulletEnemyCollisions();
-//         this.checkPlayerEnemyCollisions();
-//         this.checkPlayerPowerupCollisions();
-//         if (this.game.boss) {
-//             this.checkBossBattleCollisions();
-//         }
-//     }
-
-//     private checkBulletEnemyCollisions(): void {
-//         for (let i = this.game.bullets.length - 1; i >= 0; i--) {
-//             for (let j = this.game.enemies.length - 1; j >= 0; j--) {
-//                 if (this.checkCollision(this.game.bullets[i], this.game.enemies[j])) {
-//                     this.game.bullets.splice(i, 1);
-//                     if (this.game.enemies[j].takeDamage()) {
-//                         this.game.addExplosion(this.game.enemies[j].getPosition());
-//                         this.game.scoreManager.addScore(this.game.enemies[j].getScore());
-//                         this.game.enemies.splice(j, 1);
-//                     }
-//                     break;
-//                 }
-//             }
-//         }
-//     }
-
-//     private checkPlayerEnemyCollisions(): void {
-//         for (let i = this.game.enemies.length - 1; i >= 0; i--) {
-//             if (this.checkCollision(this.game.player, this.game.enemies[i])) {
-//                 this.game.player.takeDamage(20);
-//                 this.game.addExplosion(this.game.enemies[i].getPosition());
-//                 this.game.enemies.splice(i, 1);
-//             }
-//         }
-//     }
-
-//     private checkPlayerPowerupCollisions(): void {
-//         for (let i = this.game.powerups.length - 1; i >= 0; i--) {
-//             if (this.checkCollision(this.game.player, this.game.powerups[i])) {
-//                 this.game.player.activatePowerup(this.game.powerups[i].getType());
-//                 this.game.powerups.splice(i, 1);
-//             }
-//         }
-//     }
-
-//     private checkBossBattleCollisions(): void {
-//         if (this.game.boss && this.checkCollision(this.game.player, this.game.boss)) {
-//             this.game.player.takeDamage(20);
-//         }
-
-//         for (let i = this.game.bullets.length - 1; i >= 0; i--) {
-//             if (this.game.boss && this.checkCollision(this.game.bullets[i], this.game.boss)) {
-//                 this.game.bullets.splice(i, 1);
-//                 if (this.game.boss.takeDamage()) {
-//                     this.game.addExplosion(this.game.boss.getPosition());
-//                     this.game.boss = null;
-//                     this.game.handleBossDefeat();
-//                 }
-//             }
-//         }
-
-//         for (let i = this.game.bossBullets.length - 1; i >= 0; i--) {
-//             if (this.checkCollision(this.game.player, this.game.bossBullets[i])) {
-//                 this.game.player.takeDamage(20);
-//                 this.game.bossBullets.splice(i, 1);
-//             }
-//         }
-//     }
-
-//     private checkCollision(obj1: GameObject, obj2: GameObject): boolean {
-//         return obj1.getX() < obj2.getX() + obj2.getWidth() &&
-//             obj1.getX() + obj1.getWidth() > obj2.getX() &&
-//             obj1.getY() < obj2.getY() + obj2.getHeight() &&
-//             obj1.getY() + obj1.getHeight() > obj2.getY();
-//     }
-// }
-
-```
-
-
 ## ./src/objects/Nebula.ts
 
 ```ts
@@ -1940,11 +1852,6 @@ export class EventEmitter<EventMap extends Record<string, any>> {
         this.listeners[event]!.push(listener as any);
     }
 
-    off<K extends keyof EventMap>(event: K, listener: EventMap[K]): void {
-        if (!this.listeners[event]) return;
-        this.listeners[event] = this.listeners[event]!.filter(l => l !== listener);
-    }
-
     emit<K extends keyof EventMap>(event: K, ...data: Parameters<EventMap[K]>): void {
         if (!this.listeners[event]) return;
         this.listeners[event]!.forEach(listener => {
@@ -2046,7 +1953,6 @@ export const GAME_CONSTANTS: GameConstants = {
 
 ```ts
 import { GameObjectFactory } from "../factories/GameObjectFactory";
-import { Updateable } from "../interfaces/Updateable";
 import { Aurora } from "../objects/Aurora";
 import { Boss } from "../objects/Boss";
 import { BossBullet } from "../objects/BossBullet";
@@ -2066,7 +1972,6 @@ import { GameState, GameStateManager } from "./GameStateManager";
 import { ScoreManager } from "./ScoreManager";
 
 export class Game {
-    private canvas: HTMLCanvasElement;
     private ctx: CanvasRenderingContext2D;
     private bullets: Bullet[] = [];
     private enemies: Enemy[] = [];
@@ -2083,17 +1988,19 @@ export class Game {
     private currentScore: number = 0;
     private lastTime = 0;
     private deltaTime = 0;
-    private stateManager: GameStateManager = new GameStateManager();
     private difficultyFactor: number = 0;
     private currentBossHealth: number = GAME_CONSTANTS.BOSS.INITIAL_HEALTH;
 
 
     constructor(
+        private canvas: HTMLCanvasElement,
         private eventEmitter: EventEmitter<EventMap>,
         private scoreManager: ScoreManager,
-        private player: Player
+        private player: Player,
+        private gameObjectFactory: GameObjectFactory,
+        private stateManager: GameStateManager,
+
     ) {
-        this.canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
         this.ctx = this.canvas.getContext('2d') as CanvasRenderingContext2D;
         this.canvas.width = GAME_CONSTANTS.CANVAS.WIDTH;
         this.canvas.height = GAME_CONSTANTS.CANVAS.HEIGHT;
@@ -2103,10 +2010,10 @@ export class Game {
     }
 
     private initializeGameObjects(): void {
-        this.stars = Array.from({ length: GAME_CONSTANTS.BACKGROUND.STAR_COUNT }, () => new Star());
-        this.planets = Array.from({ length: GAME_CONSTANTS.BACKGROUND.PLANET_COUNT }, () => new Planet());
-        this.nebulas = Array.from({ length: GAME_CONSTANTS.BACKGROUND.NEBULA_COUNT }, () => new Nebula());
-        this.auroras = Array.from({ length: 2 }, () => new Aurora());
+        this.stars = Array.from({ length: GAME_CONSTANTS.BACKGROUND.STAR_COUNT }, () => this.gameObjectFactory.createStar());
+        this.planets = Array.from({ length: GAME_CONSTANTS.BACKGROUND.PLANET_COUNT }, () => this.gameObjectFactory.createPlanet());
+        this.nebulas = Array.from({ length: GAME_CONSTANTS.BACKGROUND.NEBULA_COUNT }, () => this.gameObjectFactory.createNebula());
+        this.auroras = Array.from({ length: 2 }, () => this.gameObjectFactory.createAurora());
     }
 
     private setupEventListeners(): void {
@@ -2200,22 +2107,18 @@ export class Game {
     }
 
     private updateGameObjects(): void {
-        const updateables: Updateable[] = [
-            ...this.bullets,
-            ...this.enemies,
-            ...this.powerups,
-            ...this.explosions,
-            ...this.stars,
-            ...this.planets,
-            ...this.auroras,
-            ...this.bossBullets
-        ];
+        this.bullets.forEach(bullet => bullet.update(this.deltaTime));
+        this.enemies.forEach(enemy => enemy.update(this.deltaTime));
+        this.powerups.forEach(powerup => powerup.update(this.deltaTime));
+        this.explosions.forEach(explosion => explosion.update(this.deltaTime));
+        this.stars.forEach(star => star.update(this.deltaTime));
+        this.planets.forEach(planet => planet.update(this.deltaTime));
+        this.auroras.forEach(aurora => aurora.update(this.deltaTime));
+        this.bossBullets.forEach(bossBullet => bossBullet.update(this.deltaTime));
 
         if (this.boss) {
-            updateables.push(this.boss);
+            this.boss.update(this.deltaTime);
         }
-
-        updateables.forEach(obj => obj.update(this.deltaTime));
 
         this.currentScore = this.scoreManager.getScore();
         if (this.currentScore >= this.bossSpawnScore && !this.boss) {
@@ -2331,10 +2234,10 @@ export class Game {
         if (this.stateManager.isPlaying() && !this.boss) {
             const enemyTypes = Object.keys(GAME_CONSTANTS.ENEMY.TYPES) as EnemyType[];
             const randomType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
-            this.enemies.push(GameObjectFactory.createEnemy(randomType, this));  // thisを追加
+            this.enemies.push(this.gameObjectFactory.createEnemy(randomType, this));  // thisを追加
 
             if (Math.random() < GAME_CONSTANTS.POWERUP.SPAWN_CHANCE) {
-                this.powerups.push(GameObjectFactory.createPowerUp());
+                this.powerups.push(this.gameObjectFactory.createPowerUp());
             }
         }
     }
@@ -2526,20 +2429,40 @@ export enum GameState {
 
 ```ts
 import { Game } from "../game/Game";
+import { Aurora } from "../objects/Aurora";
 import { Enemy } from "../objects/Enemy";
+import { Nebula } from "../objects/Nebula";
+import { Planet } from "../objects/Planet";
 import { PowerUp } from "../objects/PowerUp";
+import { Star } from "../objects/Star";
 import { EnemyType } from "../types";
 import { GAME_CONSTANTS } from "../utils/Constants";
 import { randomRange } from "../utils/MathUtils";
 
 export class GameObjectFactory {
-    static createEnemy(type: EnemyType, game: Game): Enemy {
+    createStar(): Star {
+        return new Star();
+    }
+
+    createPlanet(): Planet {
+        return new Planet();
+    }
+
+    createNebula(): Nebula {
+        return new Nebula();
+    }
+
+    createAurora(): Aurora {
+        return new Aurora();
+    }
+
+    createEnemy(type: EnemyType, game: Game): Enemy {
         const enemyData = GAME_CONSTANTS.ENEMY.TYPES[type];
         const x = randomRange(0, GAME_CONSTANTS.CANVAS.WIDTH - enemyData.width);
         return new Enemy(type, x, -enemyData.height, game);
     }
 
-    static createPowerUp(): PowerUp {
+    createPowerUp(): PowerUp {
         const x = randomRange(0, GAME_CONSTANTS.CANVAS.WIDTH - GAME_CONSTANTS.POWERUP.WIDTH);
         return new PowerUp(x, -GAME_CONSTANTS.POWERUP.HEIGHT);
     }
@@ -2550,26 +2473,37 @@ export class GameObjectFactory {
 ## ./src/index.ts
 
 ```ts
+import { GameObjectFactory } from './factories/GameObjectFactory';
 import { Game } from './game/Game';
+import { GameStateManager } from './game/GameStateManager';
 import { ScoreManager } from './game/ScoreManager';
 import { UIManager } from './managers/UIManager';
 import { Player } from './objects/Player';
 import { EventEmitter } from './utils/EventEmitter';
 
-let game: Game;
-
 function initGame(): void {
+    const canvas = getElementOrThrow<HTMLCanvasElement>('gameCanvas');
     const eventEmitter = new EventEmitter();
-    const scoreElement = getElementOrThrow<HTMLElement>('scoreValue');
+    const player = new Player(eventEmitter);
+    const gameObjectFactory = new GameObjectFactory();
+    const scoreManager = new ScoreManager(eventEmitter);
+    const stateManager = new GameStateManager();
+
     const levelElement = getElementOrThrow<HTMLElement>('levelValue');
     const healthElement = getElementOrThrow<HTMLElement>('healthValue');
     const healthBarElement = getElementOrThrow<HTMLElement>('healthBarFill');
     const gameOverElement = getElementOrThrow<HTMLElement>('gameOver')
+    const scoreElement = getElementOrThrow<HTMLElement>('scoreValue');
     new UIManager(eventEmitter, scoreElement, levelElement, healthElement, healthBarElement, gameOverElement);
-    const scoreManager = new ScoreManager(eventEmitter);
-    const player = new Player(eventEmitter);
-    game = new Game(eventEmitter, scoreManager, player);
-    game.start();
+
+    const game = new Game(
+        canvas,
+        eventEmitter,
+        scoreManager,
+        player,
+        gameObjectFactory,
+        stateManager
+    ); game.start();
 }
 
 document.addEventListener('DOMContentLoaded', initGame);
