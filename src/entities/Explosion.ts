@@ -1,40 +1,80 @@
 import { Vector2D } from "../types";
 import { GAME_CONSTANTS } from "../constants/GameConstants";
 
-export class Explosion {
-    private x: number;
-    private y: number;
-    private particles: Array<{
-        x: number;
-        y: number;
-        radius: number;
-        speed: number;
-        angle: number;
-        color: string;
-    }>;
-    private duration: number;
-    private currentFrame: number;
-    private maxRadius: number;
+interface Particle {
+    x: number;
+    y: number;
+    radius: number;
+    speed: number;
+    angle: number;
+    color: string;
+    initialRadius: number;
+    initialSpeed: number;
+}
 
-    constructor({ x, y }: Vector2D, size: number = 1) {
-        this.maxRadius = 30 * size;
+export class Explosion {
+    private x: number = 0;
+    private y: number = 0;
+    private particles: Particle[] = [];
+    private duration: number = GAME_CONSTANTS.EXPLOSION.DURATION;
+    private currentFrame: number = 0;
+    private maxRadius: number = 30;
+    private active: boolean = false;
+    private size: number = 1;
+
+    constructor() {
+        // デフォルトコンストラクタ（オブジェクトプール用）
+    }
+
+    /**
+     * 爆発エフェクトを初期化（オブジェクトプール用）
+     */
+    public initialize({ x, y }: Vector2D, size: number = 1): void {
         this.x = x;
         this.y = y;
-        this.particles = [];
-        this.duration = GAME_CONSTANTS.EXPLOSION.DURATION
+        this.size = size;
+        this.maxRadius = 30 * size;
+        this.duration = GAME_CONSTANTS.EXPLOSION.DURATION;
         this.currentFrame = 0;
+        this.active = true;
+        this.generateParticles();
+    }
 
-        const particleCount = Math.floor(50 * size);
+    /**
+     * 爆発エフェクトをリセット（オブジェクトプール用）
+     */
+    public reset(): void {
+        this.x = 0;
+        this.y = 0;
+        this.particles = [];
+        this.currentFrame = 0;
+        this.maxRadius = 30;
+        this.active = false;
+        this.size = 1;
+    }
+
+    /**
+     * パーティクルを生成
+     */
+    private generateParticles(): void {
+        this.particles = [];
+        const particleCount = Math.floor(50 * this.size);
+
         for (let i = 0; i < particleCount; i++) {
             const angle = Math.random() * Math.PI * 2;
             const radius = Math.random() * this.maxRadius;
+            const initialRadius = Math.random() * 4 + 1;
+            const initialSpeed = Math.random() * 100 + 25;
+
             this.particles.push({
                 x: this.x + Math.cos(angle) * radius * Math.random(),
                 y: this.y + Math.sin(angle) * radius * Math.random(),
-                radius: Math.random() * 4 + 1,
-                speed: Math.random() * 100 + 25,
+                radius: initialRadius,
+                speed: initialSpeed,
                 angle: angle,
-                color: this.getExplosionColor()
+                color: this.getExplosionColor(),
+                initialRadius: initialRadius,
+                initialSpeed: initialSpeed
             });
         }
     }
@@ -77,6 +117,6 @@ export class Explosion {
     }
 
     public isFinished(): boolean {
-        return this.currentFrame >= this.duration;
+        return !this.active || this.currentFrame >= this.duration;
     }
 }

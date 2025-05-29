@@ -18,6 +18,8 @@ import { GameStateManager } from '../managers/GameStateManager';
 import { ScoreManager } from '../managers/ScoreManager';
 import { EnemyType } from '../types';
 import { checkCollision } from '../utils/CollisionUtils';
+import { ObjectPool, PoolManager } from '../utils/ObjectPool';
+import { CollisionOptimizer } from '../utils/SpatialHash';
 
 export class Game {
     private ctx: CanvasRenderingContext2D;
@@ -39,6 +41,8 @@ export class Game {
     private difficultyFactor: number = 0;
     private currentBossHealth: number = GAME_CONSTANTS.BOSS.INITIAL_HEALTH;
     private gameLoopId: number | null = null;
+    private poolManager!: PoolManager;
+    private collisionOptimizer!: CollisionOptimizer;
 
     constructor(
         private canvas: HTMLCanvasElement,
@@ -52,7 +56,12 @@ export class Game {
         this.canvas.width = GAME_CONSTANTS.CANVAS.WIDTH;
         this.canvas.height = GAME_CONSTANTS.CANVAS.HEIGHT;
         this.initializeGameObjects();
+        this.initializeOptimizationSystems();
         this.setupEventListeners();
+        
+        // PlayerにGameインスタンスを設定（循環依存回避）
+        this.player.setGame(this);
+        
         this.stateManager.setState('STARTING', this);
     }
 
@@ -61,6 +70,32 @@ export class Game {
         this.planets = Array.from({ length: GAME_CONSTANTS.BACKGROUND.PLANET_COUNT }, () => this.gameObjectFactory.createPlanet());
         this.nebulas = Array.from({ length: GAME_CONSTANTS.BACKGROUND.NEBULA_COUNT }, () => this.gameObjectFactory.createNebula());
         this.auroras = Array.from({ length: 2 }, () => this.gameObjectFactory.createAurora());
+    }
+
+    /**
+     * オブジェクトプールと衝突最適化システムを初期化
+     */
+    private initializeOptimizationSystems(): void {
+        this.poolManager = new PoolManager();
+        this.collisionOptimizer = new CollisionOptimizer(64);
+
+        // Bulletプール
+        const bulletPool = new ObjectPool<Bullet>(
+            () => new Bullet(),
+            (bullet) => bullet.reset(),
+            20, // 初期サイズ
+            50  // 最大サイズ
+        );
+        this.poolManager.register('bullet', bulletPool);
+
+        // Explosionプール
+        const explosionPool = new ObjectPool<Explosion>(
+            () => new Explosion(),
+            (explosion) => explosion.reset(),
+            10, // 初期サイズ
+            30  // 最大サイズ
+        );
+        this.poolManager.register('explosion', explosionPool);
     }
 
     private setupEventListeners(): void {
@@ -95,7 +130,12 @@ export class Game {
             x: enemyPosition.x + enemy.getWidth() / 2,
             y: enemyPosition.y + enemy.getHeight() / 2
         };
-        this.explosions.push(new Explosion(explosionPosition));
+        const explosionPool = this.poolManager.getPool<Explosion>('explosion');
+        if (explosionPool) {
+            const explosion = explosionPool.get();
+            explosion.initialize(explosionPosition);
+            this.explosions.push(explosion);
+        }
         this.scoreManager.addScore(enemy.getScore());
     }
 
@@ -118,7 +158,12 @@ export class Game {
 
     private handleBossDefeated = (): void => {
         if (this.boss) {
-            this.explosions.push(new Explosion(this.boss.getPosition()));
+            const explosionPool = this.poolManager.getPool<Explosion>('explosion');
+            if (explosionPool) {
+                const explosion = explosionPool.get();
+                explosion.initialize(this.boss.getPosition(), 2); // ボス爆発は大きく
+                this.explosions.push(explosion);
+            }
             this.boss = null;
             this.handleBossDefeat();
         }
@@ -176,6 +221,17 @@ export class Game {
     }
 
     public checkCollisions(): void {
+        // 空間分割を更新
+        const allObjects = [
+            ...this.bullets,
+            ...this.enemies,
+            ...this.powerups,
+            this.player,
+            ...(this.boss ? [this.boss] : []),
+            ...this.bossBullets
+        ];
+        this.collisionOptimizer.updateSpatialHash(allObjects);
+
         this.checkBulletEnemyCollisions();
         this.checkPlayerEnemyCollisions();
         this.checkPlayerPowerupCollisions();
@@ -239,10 +295,33 @@ export class Game {
     }
 
     public removeOffscreenObjects(): void {
-        this.bullets = this.bullets.filter(bullet => bullet.isOnScreen());
+        // 弾丸をプールに戻す
+        const bulletPool = this.poolManager.getPool<Bullet>('bullet');
+        this.bullets = this.bullets.filter(bullet => {
+            if (!bullet.isOnScreen() || !bullet.isActive()) {
+                if (bulletPool) {
+                    bulletPool.release(bullet);
+                }
+                return false;
+            }
+            return true;
+        });
+
+        // 爆発エフェクトをプールに戻す
+        const explosionPool = this.poolManager.getPool<Explosion>('explosion');
+        this.explosions = this.explosions.filter(explosion => {
+            if (explosion.isFinished()) {
+                if (explosionPool) {
+                    explosionPool.release(explosion);
+                }
+                return false;
+            }
+            return true;
+        });
+
+        // その他のオブジェクト（プール未対応）
         this.enemies = this.enemies.filter(enemy => enemy.isOnScreen());
         this.powerups = this.powerups.filter(powerup => powerup.isOnScreen());
-        this.explosions = this.explosions.filter(explosion => !explosion.isFinished());
         this.bossBullets = this.bossBullets.filter(bullet => bullet.isOnScreen());
     }
 
@@ -299,7 +378,7 @@ export class Game {
     }
 
     public resetGame(): void {
-        this.player = new Player(this.eventEmitter);
+        this.player = new Player(this.eventEmitter, this);
         this.bullets = [];
         this.enemies = [];
         this.powerups = [];
@@ -422,5 +501,25 @@ export class Game {
 
     public getCurrentBossHealth(): number {
         return this.currentBossHealth;
+    }
+
+    /**
+     * プールから弾丸を取得して初期化
+     */
+    public createBullet(x: number, y: number, speed?: number, color?: string): Bullet | null {
+        const bulletPool = this.poolManager.getPool<Bullet>('bullet');
+        if (bulletPool) {
+            const bullet = bulletPool.get();
+            bullet.initialize(x, y, speed, color);
+            return bullet;
+        }
+        return null;
+    }
+
+    /**
+     * プールの統計情報を取得（デバッグ用）
+     */
+    public getPoolStats(): { [key: string]: number } {
+        return this.poolManager.getStats();
     }
 }

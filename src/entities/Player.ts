@@ -5,6 +5,11 @@ import { Bullet } from "./Bullet";
 import { GameObject } from "./GameObject";
 import { EventMap } from "../events/EventType";
 
+// Game クラスの前方宣言（循環依存回避）
+interface GameInterface {
+    createBullet(x: number, y: number, speed?: number, color?: string): Bullet | null;
+}
+
 export class Player extends GameObject {
     private velocity: Vector2D = { x: 0, y: 0 };
     private health: number;
@@ -22,6 +27,7 @@ export class Player extends GameObject {
 
     constructor(
         private eventEmitter: EventEmitter<EventMap>,
+        private game?: GameInterface
     ) {
         super(
             GAME_CONSTANTS.CANVAS.WIDTH / 2 - GAME_CONSTANTS.PLAYER.WIDTH / 2,
@@ -95,14 +101,47 @@ export class Player extends GameObject {
     private shoot(): void {
         const currentTime = Date.now();
         if (currentTime - this.lastFireTime >= this.fireRate) {
+            const centerX = this.x + this.width / 2 - GAME_CONSTANTS.BULLET.WIDTH / 2;
+            
             if (this.bulletType === 'single') {
-                this.eventEmitter.emit('playerShot', new Bullet(this.x + this.width / 2 - GAME_CONSTANTS.BULLET.WIDTH / 2, this.y))
+                const bullet = this.createBullet(centerX, this.y);
+                if (bullet) {
+                    this.eventEmitter.emit('playerShot', bullet);
+                }
             } else if (this.bulletType === 'triple') {
-                this.eventEmitter.emit('playerShot', new Bullet(this.x + this.width / 2 - GAME_CONSTANTS.BULLET.WIDTH / 2, this.y));
-                this.eventEmitter.emit('playerShot', new Bullet(this.x + this.width / 2 - GAME_CONSTANTS.BULLET.WIDTH / 2 - 20, this.y + 10));
-                this.eventEmitter.emit('playerShot', new Bullet(this.x + this.width / 2 - GAME_CONSTANTS.BULLET.WIDTH / 2 + 20, this.y + 10));
+                // 中央の弾丸
+                const centerBullet = this.createBullet(centerX, this.y);
+                if (centerBullet) {
+                    this.eventEmitter.emit('playerShot', centerBullet);
+                }
+                
+                // 左の弾丸
+                const leftBullet = this.createBullet(centerX - 20, this.y + 10);
+                if (leftBullet) {
+                    this.eventEmitter.emit('playerShot', leftBullet);
+                }
+                
+                // 右の弾丸
+                const rightBullet = this.createBullet(centerX + 20, this.y + 10);
+                if (rightBullet) {
+                    this.eventEmitter.emit('playerShot', rightBullet);
+                }
             }
             this.lastFireTime = currentTime;
+        }
+    }
+
+    /**
+     * 弾丸を作成（プール使用 or フォールバック）
+     */
+    private createBullet(x: number, y: number, speed?: number, color?: string): Bullet | null {
+        if (this.game) {
+            return this.game.createBullet(x, y, speed, color);
+        } else {
+            // フォールバック：Gameインスタンスがない場合は直接作成
+            const bullet = new Bullet();
+            bullet.initialize(x, y, speed, color);
+            return bullet;
         }
     }
 
@@ -291,5 +330,12 @@ export class Player extends GameObject {
 
     public getPosition(): Vector2D {
         return { x: this.x, y: this.y };
+    }
+
+    /**
+     * 後からGameインスタンスを設定（循環依存回避のため）
+     */
+    public setGame(game: GameInterface): void {
+        this.game = game;
     }
 }
