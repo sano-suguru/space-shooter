@@ -72,5 +72,12 @@ export const GAME_CONSTANTS: GameConstants = {
         STAR_COUNT: 100,
         PLANET_COUNT: 2,
         NEBULA_COUNT: 1
+    },
+    WAVE: {
+        SYSTEM_ENABLED: true,
+        CLEAR_BONUS_MULTIPLIER: 2,
+        FORMATION_SPACING: 40,
+        SPAWN_DELAY_BASE: 200,
+        WAVE_CLEAR_DELAY: 2000
     }
 };

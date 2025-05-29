@@ -2,6 +2,7 @@ import { Bullet } from "../entities/Bullet";
 import { Enemy } from "../entities/Enemy";
 import { PowerUp } from "../entities/PowerUp";
 import { GameStateKey } from "../managers/GameStateManager";
+import { WaveConfig } from "../types";
 
 export type EventMap = Readonly<{
     'enemyDestroyed': (enemy: Enemy) => void;
@@ -23,4 +24,6 @@ export type EventMap = Readonly<{
     'levelStarted': (level: number) => void;
     'levelUpdated': (level: number) => void;
     'stateChanged': (newState: GameStateKey) => void;
+    'waveStarted': (waveConfig: WaveConfig) => void;
+    'waveCompleted': (waveNumber: number, bonusScore: number) => void;
 }>;

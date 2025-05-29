@@ -32,6 +32,10 @@ export class GameObjectFactory {
         return new Enemy(type, x, -enemyData.height, game);
     }
 
+    createEnemyAtPosition(type: EnemyType, x: number, y: number, game: Game): Enemy {
+        return new Enemy(type, x, y, game);
+    }
+
     createPowerUp(): PowerUp {
         const x = randomRange(0, GAME_CONSTANTS.CANVAS.WIDTH - GAME_CONSTANTS.POWERUP.WIDTH);
         return new PowerUp(x, -GAME_CONSTANTS.POWERUP.HEIGHT);

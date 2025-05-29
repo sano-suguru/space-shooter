@@ -69,12 +69,37 @@ export type GameConstants = {
         readonly PLANET_COUNT: number;
         readonly NEBULA_COUNT: number;
     };
+    readonly WAVE: {
+        readonly SYSTEM_ENABLED: boolean;
+        readonly CLEAR_BONUS_MULTIPLIER: number;
+        readonly FORMATION_SPACING: number;
+        readonly SPAWN_DELAY_BASE: number;
+        readonly WAVE_CLEAR_DELAY: number;
+    };
 };
 
 export type EnemyType = 'SMALL' | 'MEDIUM' | 'LARGE';
 export type PowerUpType = 'RAPID_FIRE' | 'TRIPLE_SHOT' | 'SHIELD';
 export type MovementPattern = 'straight' | 'zigzag' | 'sine';
+export type FormationType = 'line' | 'vformation' | 'circle' | 'diamond' | 'arrow';
 export type Vector2D = {
     x: number;
     y: number;
 };
+
+export interface WaveEnemyConfig {
+    type: EnemyType;
+    count: number;
+    formation: FormationType;
+    delay: number; // スポーン間の遅延（ミリ秒）
+    offsetX?: number; // フォーメーションのX軸オフセット
+    offsetY?: number; // フォーメーションのY軸オフセット
+}
+
+export interface WaveConfig {
+    id: number;
+    name: string;
+    enemies: WaveEnemyConfig[];
+    bonusScore: number;
+    nextWaveDelay: number; // 次のウェーブまでの間隔（ミリ秒）
+}

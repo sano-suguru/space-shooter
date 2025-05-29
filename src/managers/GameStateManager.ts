@@ -38,6 +38,7 @@ class PlayingState implements GameState {
     enter(game: Game): void {
         console.log("Entering Playing state");
         game.resumeGameLoop();
+        game.startWaveSystem();
     }
 
     update(game: Game): void {

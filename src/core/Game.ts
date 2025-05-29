@@ -16,6 +16,7 @@ import { EventMap } from '../events/EventType';
 import { GameObjectFactory } from '../factories/GameObjectFactory';
 import { GameStateManager } from '../managers/GameStateManager';
 import { ScoreManager } from '../managers/ScoreManager';
+import { WaveManager } from '../managers/WaveManager';
 import { EnemyType } from '../types';
 import { checkCollision } from '../utils/CollisionUtils';
 import { ObjectPool, PoolManager } from '../utils/ObjectPool';
@@ -43,6 +44,7 @@ export class Game {
     private gameLoopId: number | null = null;
     private poolManager!: PoolManager;
     private collisionOptimizer!: CollisionOptimizer;
+    private waveManager!: WaveManager;
 
     constructor(
         private canvas: HTMLCanvasElement,
@@ -58,10 +60,13 @@ export class Game {
         this.initializeGameObjects();
         this.initializeOptimizationSystems();
         this.setupEventListeners();
-        
+
         // PlayerにGameインスタンスを設定（循環依存回避）
         this.player.setGame(this);
-        
+
+        // WaveManagerを初期化
+        this.waveManager = new WaveManager(this.eventEmitter, this.gameObjectFactory, this);
+
         this.stateManager.setState('STARTING', this);
     }
 
@@ -111,6 +116,7 @@ export class Game {
         this.eventEmitter.on('bossDamaged', this.handleBossDamaged);
         this.eventEmitter.on('bossDefeated', this.handleBossDefeated);
         this.eventEmitter.on('powerUpCollected', this.handlePowerUpCollected);
+        this.eventEmitter.on('waveCompleted', this.handleWaveCompleted);
         document.addEventListener('keydown', (e: KeyboardEvent) => {
             this.handleInput(e.key);
         });
@@ -173,6 +179,10 @@ export class Game {
         this.player.activatePowerup(powerUp.getType());
     }
 
+    private handleWaveCompleted = (_waveNumber: number, bonusScore: number): void => {
+        this.scoreManager.addScore(bonusScore);
+    }
+
     public start(): void {
         this.eventEmitter.emit('gameStarted');
         this.gameLoop(0);
@@ -206,6 +216,11 @@ export class Game {
 
         if (this.boss) {
             this.boss.update(this.deltaTime);
+        }
+
+        // ウェーブシステムのアップデート
+        if (GAME_CONSTANTS.WAVE.SYSTEM_ENABLED) {
+            this.waveManager.update();
         }
 
         this.currentScore = this.scoreManager.getScore();
@@ -521,5 +536,21 @@ export class Game {
      */
     public getPoolStats(): { [key: string]: number } {
         return this.poolManager.getStats();
+    }
+
+    /**
+     * 敵をゲームに追加（WaveManager用）
+     */
+    public addEnemy(enemy: Enemy): void {
+        this.enemies.push(enemy);
+    }
+
+    /**
+     * ゲームの開始時にウェーブシステムを開始
+     */
+    public startWaveSystem(): void {
+        if (GAME_CONSTANTS.WAVE.SYSTEM_ENABLED && this.waveManager) {
+            this.waveManager.startNextWave();
+        }
     }
 }
