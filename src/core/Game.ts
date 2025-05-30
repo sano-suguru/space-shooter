@@ -439,18 +439,64 @@ export class Game {
     public showMessage(text: string): void {
         const messageElement = document.createElement('div');
         messageElement.textContent = text;
+        
+        // 基本的な位置設定
         messageElement.style.position = 'absolute';
         messageElement.style.top = '50%';
         messageElement.style.left = '50%';
         messageElement.style.transform = 'translate(-50%, -50%)';
-        messageElement.style.color = 'white';
-        messageElement.style.fontSize = '24px';
         messageElement.style.textAlign = 'center';
+        messageElement.style.zIndex = '1000';
+        
+        // フォントスタイリング
+        messageElement.style.color = '#ffffff';
+        messageElement.style.fontSize = '32px';
+        messageElement.style.fontWeight = 'bold';
+        messageElement.style.fontFamily = 'Arial, sans-serif';
+        
+        // テキストエフェクト（視認性向上）
+        messageElement.style.textShadow = `
+            0 0 10px #00ffff,
+            0 0 20px #00ffff,
+            0 0 30px #00ffff,
+            2px 2px 4px rgba(0, 0, 0, 0.8)
+        `;
+        
+        // 背景スタイリング
+        messageElement.style.backgroundColor = 'rgba(0, 20, 40, 0.9)';
+        messageElement.style.padding = '20px 40px';
+        messageElement.style.borderRadius = '15px';
+        messageElement.style.border = '2px solid #00ffff';
+        messageElement.style.boxShadow = `
+            0 0 20px rgba(0, 255, 255, 0.5),
+            inset 0 0 20px rgba(0, 255, 255, 0.1)
+        `;
+        
+        // アニメーション設定
+        messageElement.style.opacity = '0';
+        messageElement.style.transform = 'translate(-50%, -50%) scale(0.5)';
+        messageElement.style.transition = 'all 0.3s ease-out';
+        
         document.body.appendChild(messageElement);
+        
+        // フェードイン効果
+        requestAnimationFrame(() => {
+            messageElement.style.opacity = '1';
+            messageElement.style.transform = 'translate(-50%, -50%) scale(1)';
+        });
 
+        // フェードアウトして削除
         setTimeout(() => {
-            document.body.removeChild(messageElement);
-        }, 3000);
+            messageElement.style.transition = 'all 0.5s ease-in';
+            messageElement.style.opacity = '0';
+            messageElement.style.transform = 'translate(-50%, -50%) scale(0.8)';
+            
+            setTimeout(() => {
+                if (document.body.contains(messageElement)) {
+                    document.body.removeChild(messageElement);
+                }
+            }, 500);
+        }, 2500);
     }
 
     public hideMessage(): void {
