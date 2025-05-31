@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "extract": "pnpm dlx repomix",
+    "repomix": "pnpm dlx repomix",
     "deploy": "pnpm run build && gh-pages -d dist"
   },
   "devDependencies": {
