@@ -3,7 +3,6 @@ import { Boss } from '../entities/Boss';
 import { BossBullet } from '../entities/BossBullet';
 import { Bullet } from '../entities/Bullet';
 import { Enemy } from '../entities/Enemy';
-import { GameObject } from '../entities/GameObject';
 import { Player } from '../entities/Player';
 import { PowerUp } from '../entities/PowerUp';
 import { EventEmitter } from '../events/EventEmitter';
@@ -14,8 +13,7 @@ import { GameStateManager } from '../managers/GameStateManager';
 import { ScoreManager } from '../managers/ScoreManager';
 import { WaveManager } from '../managers/WaveManager';
 import { EnemyType } from '../types';
-import { checkCollision } from '../utils/CollisionUtils';
-import { CollisionOptimizer } from '../utils/SpatialHash';
+import { CollisionSystem } from '../systems/CollisionSystem';
 import { IGameEngine } from '../interfaces/IGameEngine';
 import { GameEngine } from './GameEngine';
 
@@ -28,7 +26,7 @@ export class Game implements IGameEngine {
     private currentBossHealth: number = GAME_CONSTANTS.BOSS.INITIAL_HEALTH;
     private gameEngine!: GameEngine;
     private gameObjectManager!: GameObjectManager;
-    private collisionOptimizer!: CollisionOptimizer;
+    private collisionSystem!: CollisionSystem;
     private waveManager!: WaveManager;
 
     constructor(
@@ -43,7 +41,7 @@ export class Game implements IGameEngine {
         this.canvas.width = GAME_CONSTANTS.CANVAS.WIDTH;
         this.canvas.height = GAME_CONSTANTS.CANVAS.HEIGHT;
         this.initializeGameObjects();
-        this.initializeOptimizationSystems();
+        this.initializeCollisionSystem();
         this.setupEventListeners();
 
         // PlayerにGameインスタンスを設定（循環依存回避）
@@ -75,10 +73,10 @@ export class Game implements IGameEngine {
     }
 
     /**
-     * 衝突最適化システムを初期化
+     * 衝突システムを初期化
      */
-    private initializeOptimizationSystems(): void {
-        this.collisionOptimizer = new CollisionOptimizer(64);
+    private initializeCollisionSystem(): void {
+        this.collisionSystem = new CollisionSystem(this.eventEmitter, this.gameObjectManager);
     }
 
     private setupEventListeners(): void {
@@ -193,85 +191,11 @@ export class Game implements IGameEngine {
         this.showMessage("ボスが出現しました！");
     }
 
+    /**
+     * 衝突判定をCollisionSystemに委譲
+     */
     public checkCollisions(): void {
-        // GameObjectManagerから衝突可能オブジェクトを取得
-        const allObjects = this.gameObjectManager.getAllCollidableObjects();
-        allObjects.push(this.player);
-
-        this.collisionOptimizer.updateSpatialHash(allObjects);
-
-        this.checkBulletEnemyCollisions();
-        this.checkPlayerEnemyCollisions();
-        this.checkPlayerPowerupCollisions();
-        if (this.gameObjectManager.getBoss()) {
-            this.checkBossBattleCollisions();
-        }
-    }
-
-    private checkBulletEnemyCollisions(): void {
-        const bullets = this.gameObjectManager.getBullets();
-        const enemies = this.gameObjectManager.getEnemies();
-
-        for (let i = bullets.length - 1; i >= 0; i--) {
-            for (let j = enemies.length - 1; j >= 0; j--) {
-                if (this.checkCollision(bullets[i], enemies[j])) {
-                    bullets[i].deactivate();
-                    if (enemies[j].takeDamage()) {
-                        this.eventEmitter.emit('enemyDestroyed', enemies[j]);
-                        this.gameObjectManager.removeEnemy(enemies[j]);
-                    }
-                    break;
-                }
-            }
-        }
-    }
-
-    private checkPlayerEnemyCollisions(): void {
-        const enemies = this.gameObjectManager.getEnemies();
-
-        for (let i = enemies.length - 1; i >= 0; i--) {
-            if (this.checkCollision(this.player, enemies[i])) {
-                this.eventEmitter.emit('playerDamaged', 20);
-                this.eventEmitter.emit('enemyDestroyed', enemies[i]);
-                this.gameObjectManager.removeEnemy(enemies[i]);
-            }
-        }
-    }
-
-    private checkPlayerPowerupCollisions(): void {
-        const powerups = this.gameObjectManager.getPowerups();
-
-        for (let i = powerups.length - 1; i >= 0; i--) {
-            if (this.checkCollision(this.player, powerups[i])) {
-                this.eventEmitter.emit('powerUpCollected', powerups[i]);
-                this.gameObjectManager.removePowerUp(powerups[i]);
-            }
-        }
-    }
-
-    private checkBossBattleCollisions(): void {
-        const boss = this.gameObjectManager.getBoss();
-        const bullets = this.gameObjectManager.getBullets();
-        const bossBullets = this.gameObjectManager.getBossBullets();
-
-        if (boss && this.checkCollision(this.player, boss)) {
-            this.eventEmitter.emit('playerDamaged', 20);
-        }
-
-        for (let i = bullets.length - 1; i >= 0; i--) {
-            if (boss && this.checkCollision(bullets[i], boss)) {
-                bullets[i].deactivate();
-                this.eventEmitter.emit('bossDamaged');
-            }
-        }
-
-        for (let i = bossBullets.length - 1; i >= 0; i--) {
-            if (this.checkCollision(this.player, bossBullets[i])) {
-                this.eventEmitter.emit('playerDamaged', 20);
-                // ボス弾は一度当たったら消える
-                bossBullets.splice(i, 1);
-            }
-        }
+        this.collisionSystem.checkAllCollisions(this.player);
     }
 
     private drawBackground(): void {
@@ -318,10 +242,6 @@ export class Game implements IGameEngine {
                 this.gameObjectManager.addPowerUp(powerup);
             }
         }
-    }
-
-    private checkCollision(obj1: GameObject, obj2: GameObject): boolean {
-        return checkCollision(obj1, obj2);
     }
 
     public gameOver(): void {
