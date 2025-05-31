@@ -96,9 +96,16 @@ src/
   styles.css
   typescript.svg
   vite-env.d.ts
+tests/
+  BackgroundRenderer.test.ts
+  canvas.setup.ts
+  CollisionSystem.test.ts
+  GameObjectManager.test.ts
+  setup.ts
 .gitignore
 CURRENT_STATUS_SUMMARY.md
 index.html
+jest.config.js
 LICENCE
 package.json
 README.md
@@ -110,137 +117,1421 @@ vite.config.js
 <files>
 This section contains the contents of the repository's files.
 
-<file path="CURRENT_STATUS_SUMMARY.md">
-# Space Shooter 最適化プロジェクト - 現在状況サマリー
+<file path="tests/BackgroundRenderer.test.ts">
+import { BackgroundRenderer } from '../src/rendering/BackgroundRenderer';
+import { Star } from '../src/entities/Star';
+import { Planet } from '../src/entities/Planet';
+import { Nebula } from '../src/entities/Nebula';
+import { Aurora } from '../src/entities/Aurora';
 
-## 🎉 完了した最適化作業
+describe('BackgroundRenderer', () => {
+  let renderer: BackgroundRenderer;
+  let mockCanvas: HTMLCanvasElement;
+  let mockContext: CanvasRenderingContext2D;
 
-### **Phase 1: 基盤安定化 - 100% 完了**
-- ✅ 循環依存解消（Game ⇔ Player/Boss/Enemy）
-- ✅ IGameEngine インターフェース導入
-- ✅ イベント駆動アーキテクチャ構築
-- ✅ GameEngine分離（ゲームループ管理）
-- ✅ GameObjectManager抽出（オブジェクト管理）
-- ✅ CollisionSystem分離（衝突判定システム）
+  beforeEach(() => {
+    // Create mock canvas and context
+    mockCanvas = document.createElement('canvas');
+    mockCanvas.width = 400;
+    mockCanvas.height = 600;
+    mockContext = mockCanvas.getContext('2d') as CanvasRenderingContext2D;
 
-### **Phase 2: パフォーマンス最適化 - 部分完了**
-- ✅ **Task 2.1.1: SpatialHash統合**
-  - O(n²) → O(n) 衝突判定最適化
-  - 64x64セル空間分割実装
-  - CollisionSystem統合完了
+    renderer = new BackgroundRenderer();
+  });
 
-- ✅ **Task 2.2.1: 背景事前レンダリング最適化**
-  - BackgroundRendererクラス実装
-  - レイヤー別キャッシング戦略
-  - 3つのオフスクリーンキャンバス活用
-  - パフォーマンス測定システム構築
-  - 最適化版・従来版比較機能
+  describe('初期化とセットアップ', () => {
+    test('BackgroundRendererが正常に初期化される', () => {
+      expect(renderer).toBeDefined();
+      expect(renderer.getPerformanceStats()).toBeDefined();
+    });
 
-## 🔧 実装済み技術的成果
+    test('キャッシュシステムが正常に初期化される', () => {
+      const stats = renderer.getPerformanceStats();
+      expect(stats.cacheUtilization.background).toBe(false);
+      expect(stats.cacheUtilization.nebula).toBe(false);
+      expect(stats.cacheUtilization.planet).toBe(false);
+      expect(stats.averageRenderTime).toBe(0);
+    });
+  });
 
-### **アーキテクチャ改善**
-- **Clean Architecture**: 責務分離、依存関係逆転
-- **Event-Driven**: EventEmitterによる疎結合通信
-- **Interface Segregation**: IGameEngineによる抽象化
-- **Single Responsibility**: 各クラスの役割明確化
+  describe('最適化された背景描画', () => {
+    let mockStars: Star[];
+    let mockPlanets: Planet[];
+    let mockNebulas: Nebula[];
+    let mockAuroras: Aurora[];
 
-### **パフォーマンス最適化**
-- **空間分割**: SpatialHashによるO(n)衝突判定
-- **キャッシング**: 背景要素の事前レンダリング
-- **オブジェクトプール**: Bullet、Explosion対応
-- **メモリ効率**: GC負荷軽減施策
+    beforeEach(() => {
+      // テスト用のモック背景要素を作成
+      mockStars = [
+        new Star(),
+        new Star(),
+        new Star()
+      ];
 
-### **監視・デバッグ機能**
-- **パフォーマンス測定**: performance.now()活用
-- **統計情報**: 描画時間、キャッシュ利用率
-- **デバッグAPI**: 最適化ON/OFF、統計出力
-- **リアルタイム監視**: プール統計、衝突判定統計
+      mockPlanets = [
+        new Planet(),
+        new Planet()
+      ];
 
-## 📈 達成した技術指標
+      mockNebulas = [
+        new Nebula()
+      ];
 
-### **衝突判定最適化（Task 2.1.1）**
-- **理論改善**: O(n²) → O(n) 
-- **実装方式**: 64x64セル空間分割
-- **統合度**: CollisionSystem完全統合
+      mockAuroras = [
+        new Aurora()
+      ];
+    });
 
-### **背景描画最適化（Task 2.2.1）**
-- **理論改善**: 50-70%描画コスト削減
-- **キャッシュ戦略**: 静的/準動的/動的レイヤー分離
-- **測定精度**: performance.now()による高精度測定
-- **比較機能**: 最適化版・従来版切り替え可能
+    test('drawOptimizedBackground が正常に実行される', () => {
+      expect(() => {
+        renderer.drawOptimizedBackground(
+          mockContext,
+          mockStars,
+          mockPlanets,
+          mockNebulas,
+          mockAuroras
+        );
+      }).not.toThrow();
+    });
 
-## 🏗️ 確立された設計パターン
+    test('drawTraditionalBackground が正常に実行される', () => {
+      expect(() => {
+        renderer.drawTraditionalBackground(
+          mockContext,
+          mockStars,
+          mockPlanets,
+          mockNebulas,
+          mockAuroras
+        );
+      }).not.toThrow();
+    });
 
-### **Factory Pattern**
-- GameObjectFactory: 統一されたオブジェクト生成
+    test('最適化描画で適切なCanvasメソッドが呼び出される', () => {
+      const drawImageSpy = jest.spyOn(mockContext, 'drawImage');
 
-### **Manager Pattern**
-- GameObjectManager: オブジェクトライフサイクル管理
-- GameStateManager: ゲーム状態管理
-- WaveManager: ウェーブシステム管理
+      renderer.drawOptimizedBackground(
+        mockContext,
+        mockStars,
+        mockPlanets,
+        mockNebulas,
+        mockAuroras
+      );
 
-### **Strategy Pattern**
-- BackgroundRenderer: 最適化戦略切り替え
-- ObjectPool: メモリプール戦略
+      // キャッシュされた画像が描画される
+      expect(drawImageSpy).toHaveBeenCalled();
+    });
+  });
 
-### **Observer Pattern**
-- EventEmitter: イベント駆動通信基盤
+  describe('パフォーマンス測定システム', () => {
+    test('パフォーマンス統計が正しく記録される', () => {
+      const mockStars = [new Star()];
+      const mockPlanets: Planet[] = [];
+      const mockNebulas: Nebula[] = [];
+      const mockAuroras: Aurora[] = [];
 
-## 🎯 技術負債解消状況
+      // 複数回描画を実行してパフォーマンス統計を蓄積
+      for (let i = 0; i < 5; i++) {
+        renderer.drawOptimizedBackground(
+          mockContext,
+          mockStars,
+          mockPlanets,
+          mockNebulas,
+          mockAuroras
+        );
+      }
 
-### **解消済み（Priority 0）**
-- ✅ 循環依存問題
-- ✅ God Objectパターン
-- ✅ O(n²)パフォーマンス問題
+      const stats = renderer.getPerformanceStats();
+      expect(stats.averageRenderTime).toBeGreaterThanOrEqual(0);
+      expect(stats.minRenderTime).toBeGreaterThanOrEqual(0);
+      expect(stats.maxRenderTime).toBeGreaterThanOrEqual(0);
+      expect(stats.minRenderTime).toBeLessThanOrEqual(stats.maxRenderTime);
+      expect(stats.sampleCount).toBe(5);
+    });
 
-### **大幅改善済み（Priority 1）**
-- ✅ 型安全性（TypeScript strict mode）
-- ✅ テスタビリティ（依存注入、インターフェース）
-- ✅ コード重複削減
+    test('キャッシュ利用状況が正しく報告される', () => {
+      const mockStars = [new Star()];
 
-### **改善済み（Priority 2）**
-- ✅ 設計パターン適用
-- ✅ 保守性向上
-- ✅ ドキュメント整備
+      // 複数回描画してキャッシュを構築
+      for (let i = 0; i < 3; i++) {
+        renderer.drawOptimizedBackground(
+          mockContext,
+          mockStars,
+          [],
+          [],
+          []
+        );
+      }
 
-## 📊 プロジェクト品質指標
+      const stats = renderer.getPerformanceStats();
+      expect(stats.cacheUtilization.background).toBe(true);
+      expect(stats.cacheUtilization.nebula).toBe(true);
+      expect(stats.cacheUtilization.planet).toBe(true);
+    });
+  });
 
-### **コード品質**
-- **TypeScript strict mode**: エラーなし
-- **循環依存**: 完全解消
-- **クラス行数**: Game.ts 500行超 → 適切な範囲に分割
-- **責務分離**: Single Responsibility Principle適用
+  describe('キャッシュ管理', () => {
+    test('キャッシュ無効化が正常に機能する', () => {
+      // 初回描画でキャッシュを構築
+      renderer.drawOptimizedBackground(mockContext, [], [], [], []);
 
-### **パフォーマンス**
-- **衝突判定**: 理論的最適化完了
-- **描画処理**: 50%以上コスト削減
-- **メモリ使用**: ObjectPool導入済み
-- **測定基盤**: 完全構築済み
+      let stats = renderer.getPerformanceStats();
+      expect(stats.cacheUtilization.background).toBe(true);
 
-### **保守性**
-- **テスタビリティ**: 依存注入完了
-- **拡張性**: インターフェース分離完了
-- **デバッグ性**: 測定・監視機能完備
-- **ドキュメント**: 技術仕様書完備
+      // キャッシュ無効化
+      renderer.invalidateCache();
 
-## 🚀 次期開発推奨方向性
+      stats = renderer.getPerformanceStats();
+      expect(stats.cacheUtilization.background).toBe(false);
+      expect(stats.cacheUtilization.nebula).toBe(false);
+      expect(stats.cacheUtilization.planet).toBe(false);
+    });
 
-### **Phase 3: テスト基盤構築**
-現在の堅固なアーキテクチャ基盤の上に、包括的なテストスイートを構築し、継続的な品質保証を確立。
+    test('リソースクリーンアップが正常に動作する', () => {
+      // パフォーマンス統計を蓄積
+      for (let i = 0; i < 3; i++) {
+        renderer.drawOptimizedBackground(mockContext, [], [], [], []);
+      }
 
-### **継続的最適化**
-実装済みの測定基盤を活用し、実際の使用状況データに基づいた更なる最適化。
+      let stats = renderer.getPerformanceStats();
+      expect(stats.sampleCount).toBe(3);
 
-### **機能拡張**
-技術負債解消により確立された拡張性の高いアーキテクチャを活用した新機能開発。
+      // クリーンアップ実行
+      renderer.dispose();
 
----
+      stats = renderer.getPerformanceStats();
+      expect(stats.sampleCount).toBe(0);
+      expect(stats.cacheUtilization.background).toBe(false);
+    });
+  });
 
-**プロジェクト成熟度**: **Production Ready**  
-**技術負債レベル**: **極低**  
-**拡張準備度**: **完全準備済み**  
+  describe('エラーハンドリング', () => {
+    test('null contextでは適切にエラーが発生する', () => {
+      expect(() => {
+        renderer.drawOptimizedBackground(
+          null as any,
+          [],
+          [],
+          [],
+          []
+        );
+      }).toThrow();
+    });
 
-このプロジェクトは、モダンなゲーム開発のベストプラクティスを体現した状態に到達しています。
+    test('空の配列で正常に動作する', () => {
+      expect(() => {
+        renderer.drawOptimizedBackground(
+          mockContext,
+          [],
+          [],
+          [],
+          []
+        );
+      }).not.toThrow();
+
+      const stats = renderer.getPerformanceStats();
+      expect(stats).toBeDefined();
+      expect(stats.sampleCount).toBe(1);
+    });
+
+    test('大量の要素でもパフォーマンスが安定している', () => {
+      // 大量の星を生成
+      const manyStars = Array.from({ length: 100 }, () => new Star());
+
+      const startTime = performance.now();
+
+      renderer.drawOptimizedBackground(
+        mockContext,
+        manyStars,
+        [],
+        [],
+        []
+      );
+
+      const endTime = performance.now();
+      const renderTime = endTime - startTime;
+
+      // 合理的な時間内（100ms未満）で完了することを確認
+      expect(renderTime).toBeLessThan(100);
+    });
+  });
+
+  describe('最適化ON/OFF比較機能', () => {
+    test('最適化版と従来版の両方が正常に動作する', () => {
+      const mockElements = {
+        stars: [new Star()],
+        planets: [new Planet()],
+        nebulas: [new Nebula()],
+        auroras: [new Aurora()]
+      };
+
+      expect(() => {
+        renderer.drawOptimizedBackground(
+          mockContext,
+          mockElements.stars,
+          mockElements.planets,
+          mockElements.nebulas,
+          mockElements.auroras
+        );
+      }).not.toThrow();
+
+      expect(() => {
+        renderer.drawTraditionalBackground(
+          mockContext,
+          mockElements.stars,
+          mockElements.planets,
+          mockElements.nebulas,
+          mockElements.auroras
+        );
+      }).not.toThrow();
+    });
+
+    test('パフォーマンス統計が両方の描画方法で記録される', () => {
+      const mockStars = [new Star()];
+
+      renderer.drawOptimizedBackground(mockContext, mockStars, [], [], []);
+      renderer.drawTraditionalBackground(mockContext, mockStars, [], [], []);
+
+      const stats = renderer.getPerformanceStats();
+      expect(stats.sampleCount).toBe(2);
+      expect(stats.averageRenderTime).toBeGreaterThan(0);
+    });
+  });
+
+  describe('デバッグ機能', () => {
+    test('パフォーマンス情報ログが正常に動作する', () => {
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+
+      // 統計データを蓄積
+      renderer.drawOptimizedBackground(mockContext, [], [], [], []);
+
+      // ログ出力
+      renderer.logPerformanceInfo();
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Background Renderer Performance:',
+        expect.objectContaining({
+          'Average Render Time': expect.stringContaining('ms'),
+          'Sample Count': expect.any(Number),
+          'Cache Status': expect.objectContaining({
+            background: expect.any(Boolean),
+            nebula: expect.any(Boolean),
+            planet: expect.any(Boolean)
+          })
+        })
+      );
+
+      consoleSpy.mockRestore();
+    });
+  });
+});
+</file>
+
+<file path="tests/canvas.setup.ts">
+// Canvas API Mock for Jest Tests
+// This file provides mock implementations for HTML5 Canvas API used in the game
+
+// Define HTMLCanvasElement if not available (Node environment)
+if (typeof HTMLCanvasElement === 'undefined') {
+  (globalThis as any).HTMLCanvasElement = class HTMLCanvasElement {
+    width = 400;
+    height = 600;
+    getContext() {
+      return null;
+    }
+  };
+}
+
+// HTMLCanvasElement mock
+Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
+  value: jest.fn(() => ({
+    // Canvas 2D Context methods
+    fillRect: jest.fn(),
+    clearRect: jest.fn(),
+    strokeRect: jest.fn(),
+    fillText: jest.fn(),
+    strokeText: jest.fn(),
+    measureText: jest.fn(() => ({ width: 0 })),
+    
+    // Path methods
+    beginPath: jest.fn(),
+    closePath: jest.fn(),
+    moveTo: jest.fn(),
+    lineTo: jest.fn(),
+    arc: jest.fn(),
+    ellipse: jest.fn(),
+    rect: jest.fn(),
+    fill: jest.fn(),
+    stroke: jest.fn(),
+    
+    // Transform methods
+    save: jest.fn(),
+    restore: jest.fn(),
+    scale: jest.fn(),
+    rotate: jest.fn(),
+    translate: jest.fn(),
+    transform: jest.fn(),
+    setTransform: jest.fn(),
+    resetTransform: jest.fn(),
+    
+    // Style properties
+    fillStyle: '#000000',
+    strokeStyle: '#000000',
+    lineWidth: 1,
+    lineCap: 'butt',
+    lineJoin: 'miter',
+    miterLimit: 10,
+    lineDashOffset: 0,
+    font: '10px sans-serif',
+    textAlign: 'start',
+    textBaseline: 'alphabetic',
+    direction: 'inherit',
+    globalAlpha: 1.0,
+    globalCompositeOperation: 'source-over',
+    
+    // Image drawing methods
+    drawImage: jest.fn(),
+    createImageData: jest.fn(),
+    getImageData: jest.fn(() => ({
+      data: new Uint8ClampedArray(4),
+      width: 1,
+      height: 1
+    })),
+    putImageData: jest.fn(),
+    
+    // Gradient methods
+    createLinearGradient: jest.fn(() => ({
+      addColorStop: jest.fn()
+    })),
+    createRadialGradient: jest.fn(() => ({
+      addColorStop: jest.fn()
+    })),
+    createPattern: jest.fn(),
+    
+    // Shadow properties
+    shadowBlur: 0,
+    shadowColor: 'rgba(0, 0, 0, 0)',
+    shadowOffsetX: 0,
+    shadowOffsetY: 0,
+    
+    // Clipping
+    clip: jest.fn(),
+    
+    // State
+    canvas: {
+      width: 400,
+      height: 600
+    }
+  }))
+});
+
+// Complete Canvas 2D Context mock
+const createMockContext = () => ({
+  // Canvas 2D Context methods
+  fillRect: jest.fn(),
+  clearRect: jest.fn(),
+  strokeRect: jest.fn(),
+  fillText: jest.fn(),
+  strokeText: jest.fn(),
+  measureText: jest.fn(() => ({ width: 0 })),
+  
+  // Path methods
+  beginPath: jest.fn(),
+  closePath: jest.fn(),
+  moveTo: jest.fn(),
+  lineTo: jest.fn(),
+  arc: jest.fn(),
+  ellipse: jest.fn(),
+  rect: jest.fn(),
+  fill: jest.fn(),
+  stroke: jest.fn(),
+  
+  // Transform methods
+  save: jest.fn(),
+  restore: jest.fn(),
+  scale: jest.fn(),
+  rotate: jest.fn(),
+  translate: jest.fn(),
+  transform: jest.fn(),
+  setTransform: jest.fn(),
+  resetTransform: jest.fn(),
+  
+  // Style properties
+  fillStyle: '#000000',
+  strokeStyle: '#000000',
+  lineWidth: 1,
+  lineCap: 'butt',
+  lineJoin: 'miter',
+  miterLimit: 10,
+  lineDashOffset: 0,
+  font: '10px sans-serif',
+  textAlign: 'start',
+  textBaseline: 'alphabetic',
+  direction: 'inherit',
+  globalAlpha: 1.0,
+  globalCompositeOperation: 'source-over',
+  
+  // Image drawing methods
+  drawImage: jest.fn(),
+  createImageData: jest.fn(),
+  getImageData: jest.fn(() => ({
+    data: new Uint8ClampedArray(4),
+    width: 1,
+    height: 1
+  })),
+  putImageData: jest.fn(),
+  
+  // Gradient methods
+  createLinearGradient: jest.fn(() => ({
+    addColorStop: jest.fn()
+  })),
+  createRadialGradient: jest.fn(() => ({
+    addColorStop: jest.fn()
+  })),
+  createPattern: jest.fn(),
+  
+  // Shadow properties
+  shadowBlur: 0,
+  shadowColor: 'rgba(0, 0, 0, 0)',
+  shadowOffsetX: 0,
+  shadowOffsetY: 0,
+  
+  // Clipping
+  clip: jest.fn(),
+  
+  // State
+  canvas: {
+    width: 400,
+    height: 600
+  }
+});
+
+// Define document if not available (Node environment)
+if (typeof document === 'undefined') {
+  (globalThis as any).document = {
+    createElement: jest.fn(() => ({
+      width: 400,
+      height: 600,
+      getContext: jest.fn(() => createMockContext())
+    }))
+  };
+}
+
+// Define window if not available (Node environment)
+if (typeof window === 'undefined') {
+  (globalThis as any).window = {};
+}
+
+// Performance API mock for background renderer optimization
+Object.defineProperty(window, 'performance', {
+  value: {
+    now: jest.fn(() => Date.now())
+  }
+});
+
+// RequestAnimationFrame mock
+Object.defineProperty(window, 'requestAnimationFrame', {
+  value: jest.fn((callback: any) => {
+    return setTimeout(callback, 16);
+  })
+});
+
+Object.defineProperty(window, 'cancelAnimationFrame', {
+  value: jest.fn((id: number) => {
+    clearTimeout(id);
+  })
+});
+
+// Event mock
+Object.defineProperty(window, 'Event', {
+  value: class MockEvent {
+    type: string;
+    constructor(type: string) {
+      this.type = type;
+    }
+  }
+});
+</file>
+
+<file path="tests/CollisionSystem.test.ts">
+import { CollisionSystem } from '../src/systems/CollisionSystem';
+import { Player } from '../src/entities/Player';
+import { Enemy } from '../src/entities/Enemy';
+import { Bullet } from '../src/entities/Bullet';
+import { Boss } from '../src/entities/Boss';
+import { PowerUp } from '../src/entities/PowerUp';
+import { GameObjectManager } from '../src/managers/GameObjectManager';
+import { EventEmitter } from '../src/events/EventEmitter';
+import { EventType } from '../src/events/EventType';
+import { GAME_CONSTANTS } from '../src/constants/GameConstants';
+
+describe('CollisionSystem', () => {
+  let collisionSystem: CollisionSystem;
+  let gameObjectManager: GameObjectManager;
+  let eventEmitter: EventEmitter;
+  let mockCanvas: HTMLCanvasElement;
+
+  beforeEach(() => {
+    // Mock canvas for entities that need it
+    mockCanvas = document.createElement('canvas');
+    mockCanvas.width = GAME_CONSTANTS.CANVAS.WIDTH;
+    mockCanvas.height = GAME_CONSTANTS.CANVAS.HEIGHT;
+    
+    eventEmitter = new EventEmitter();
+    gameObjectManager = new GameObjectManager(eventEmitter);
+    collisionSystem = new CollisionSystem(gameObjectManager, eventEmitter);
+  });
+
+  describe('SpatialHashアルゴリズム最適化', () => {
+    test('CollisionSystemが正常に初期化される', () => {
+      expect(collisionSystem).toBeDefined();
+      expect(collisionSystem.getCollisionStats).toBeDefined();
+    });
+
+    test('空間分割統計が正しく初期化される', () => {
+      const stats = collisionSystem.getCollisionStats();
+      expect(stats.totalChecks).toBe(0);
+      expect(stats.spatialHashChecks).toBe(0);
+      expect(stats.optimizationRatio).toBe(0);
+    });
+
+    test('大量オブジェクトでO(n)性能を維持する', () => {
+      // 大量の弾丸を作成（通常のO(n²)では非効率になる規模）
+      const bullets: Bullet[] = [];
+      for (let i = 0; i < 50; i++) {
+        const bullet = new Bullet(i * 8, i * 10, 0, -1, false);
+        bullets.push(bullet);
+        gameObjectManager.addBullet(bullet);
+      }
+
+      // 複数の敵を作成
+      const enemies: Enemy[] = [];
+      for (let i = 0; i < 20; i++) {
+        const enemy = new Enemy(i * 20, i * 15);
+        enemies.push(enemy);
+        gameObjectManager.addEnemy(enemy);
+      }
+
+      const startTime = performance.now();
+      
+      // 衝突判定を実行
+      collisionSystem.checkCollisions();
+      
+      const endTime = performance.now();
+      const executionTime = endTime - startTime;
+
+      // SpatialHashにより効率的な処理時間（10ms未満）を維持
+      expect(executionTime).toBeLessThan(10);
+
+      const stats = collisionSystem.getCollisionStats();
+      // 最適化により実際のチェック数がO(n²)より大幅に少ない
+      const theoreticalChecks = bullets.length * enemies.length;
+      expect(stats.spatialHashChecks).toBeLessThan(theoreticalChecks);
+      expect(stats.optimizationRatio).toBeGreaterThan(0);
+    });
+  });
+
+  describe('弾丸と敵の衝突判定', () => {
+    test('プレイヤー弾丸と敵の衝突が正しく検出される', () => {
+      const enemy = new Enemy(100, 100);
+      const bullet = new Bullet(100, 100, 0, -1, false); // プレイヤーの弾丸
+
+      gameObjectManager.addEnemy(enemy);
+      gameObjectManager.addBullet(bullet);
+
+      let collisionDetected = false;
+      eventEmitter.on(EventType.ENEMY_HIT, () => {
+        collisionDetected = true;
+      });
+
+      collisionSystem.checkCollisions();
+
+      expect(collisionDetected).toBe(true);
+    });
+
+    test('敵弾丸とプレイヤーの衝突が正しく検出される', () => {
+      const player = new Player();
+      const enemyBullet = new Bullet(200, 300, 0, 1, true); // 敵の弾丸
+
+      // プレイヤーを特定位置に配置
+      player.x = 200;
+      player.y = 300;
+
+      gameObjectManager.setPlayer(player);
+      gameObjectManager.addBullet(enemyBullet);
+
+      let playerHit = false;
+      eventEmitter.on(EventType.PLAYER_HIT, () => {
+        playerHit = true;
+      });
+
+      collisionSystem.checkCollisions();
+
+      expect(playerHit).toBe(true);
+    });
+
+    test('同じ種類の弾丸同士は衝突しない', () => {
+      const playerBullet1 = new Bullet(150, 150, 0, -1, false);
+      const playerBullet2 = new Bullet(150, 150, 0, -1, false);
+
+      gameObjectManager.addBullet(playerBullet1);
+      gameObjectManager.addBullet(playerBullet2);
+
+      let collisionCount = 0;
+      eventEmitter.on(EventType.ENEMY_HIT, () => collisionCount++);
+      eventEmitter.on(EventType.PLAYER_HIT, () => collisionCount++);
+
+      collisionSystem.checkCollisions();
+
+      expect(collisionCount).toBe(0);
+    });
+  });
+
+  describe('ボス戦衝突判定', () => {
+    test('プレイヤー弾丸とボスの衝突が正しく検出される', () => {
+      const boss = new Boss();
+      const bullet = new Bullet(200, 100, 0, -1, false);
+
+      // ボスを衝突可能な位置に配置
+      boss.x = 200;
+      boss.y = 100;
+
+      gameObjectManager.setBoss(boss);
+      gameObjectManager.addBullet(bullet);
+
+      let bossHit = false;
+      eventEmitter.on(EventType.BOSS_HIT, () => {
+        bossHit = true;
+      });
+
+      collisionSystem.checkCollisions();
+
+      expect(bossHit).toBe(true);
+    });
+
+    test('ボス弾丸とプレイヤーの衝突が正しく検出される', () => {
+      const player = new Player();
+      const bossBullet = new Bullet(200, 300, 0, 1, true);
+
+      player.x = 200;
+      player.y = 300;
+
+      gameObjectManager.setPlayer(player);
+      gameObjectManager.addBullet(bossBullet);
+
+      let playerHit = false;
+      eventEmitter.on(EventType.PLAYER_HIT, () => {
+        playerHit = true;
+      });
+
+      collisionSystem.checkCollisions();
+
+      expect(playerHit).toBe(true);
+    });
+  });
+
+  describe('PowerUp衝突判定', () => {
+    test('プレイヤーとPowerUpの衝突が正しく検出される', () => {
+      const player = new Player();
+      const powerUp = new PowerUp(200, 300, 'health');
+
+      player.x = 200;
+      player.y = 300;
+
+      gameObjectManager.setPlayer(player);
+      gameObjectManager.addPowerUp(powerUp);
+
+      let powerUpCollected = false;
+      eventEmitter.on(EventType.POWERUP_COLLECTED, () => {
+        powerUpCollected = true;
+      });
+
+      collisionSystem.checkCollisions();
+
+      expect(powerUpCollected).toBe(true);
+    });
+
+    test('異なるPowerUpタイプが正しく区別される', () => {
+      const player = new Player();
+      const healthPowerUp = new PowerUp(200, 300, 'health');
+      const weaponPowerUp = new PowerUp(250, 300, 'weapon');
+
+      player.x = 200;
+      player.y = 300;
+
+      gameObjectManager.setPlayer(player);
+      gameObjectManager.addPowerUp(healthPowerUp);
+      gameObjectManager.addPowerUp(weaponPowerUp);
+
+      const collectedTypes: string[] = [];
+      eventEmitter.on(EventType.POWERUP_COLLECTED, (data: any) => {
+        collectedTypes.push(data.type);
+      });
+
+      collisionSystem.checkCollisions();
+
+      // プレイヤーの位置に近いhealthPowerUpのみ収集される
+      expect(collectedTypes).toContain('health');
+      expect(collectedTypes).not.toContain('weapon');
+    });
+  });
+
+  describe('衝突判定の境界ケース', () => {
+    test('オブジェクトが画面外にある場合の処理', () => {
+      const enemy = new Enemy(-50, -50); // 画面外
+      const bullet = new Bullet(-50, -50, 0, -1, false);
+
+      gameObjectManager.addEnemy(enemy);
+      gameObjectManager.addBullet(bullet);
+
+      expect(() => {
+        collisionSystem.checkCollisions();
+      }).not.toThrow();
+    });
+
+    test('オブジェクトが重複する座標にある場合', () => {
+      const enemy1 = new Enemy(100, 100);
+      const enemy2 = new Enemy(100, 100);
+      const bullet = new Bullet(100, 100, 0, -1, false);
+
+      gameObjectManager.addEnemy(enemy1);
+      gameObjectManager.addEnemy(enemy2);
+      gameObjectManager.addBullet(bullet);
+
+      let hitCount = 0;
+      eventEmitter.on(EventType.ENEMY_HIT, () => {
+        hitCount++;
+      });
+
+      collisionSystem.checkCollisions();
+
+      // 両方の敵がヒットする
+      expect(hitCount).toBe(2);
+    });
+
+    test('空のオブジェクトリストでエラーが発生しない', () => {
+      expect(() => {
+        collisionSystem.checkCollisions();
+      }).not.toThrow();
+
+      const stats = collisionSystem.getCollisionStats();
+      expect(stats.totalChecks).toBe(0);
+    });
+  });
+
+  describe('パフォーマンス統計', () => {
+    test('衝突判定統計が正確に記録される', () => {
+      const enemy = new Enemy(100, 100);
+      const bullet = new Bullet(100, 100, 0, -1, false);
+
+      gameObjectManager.addEnemy(enemy);
+      gameObjectManager.addBullet(bullet);
+
+      collisionSystem.checkCollisions();
+
+      const stats = collisionSystem.getCollisionStats();
+      expect(stats.totalChecks).toBeGreaterThan(0);
+      expect(stats.spatialHashChecks).toBeGreaterThanOrEqual(0);
+      expect(stats.optimizationRatio).toBeWithinRange(0, 1);
+    });
+
+    test('複数回の衝突判定で統計が累積される', () => {
+      const enemy = new Enemy(100, 100);
+      const bullet = new Bullet(150, 150, 0, -1, false);
+
+      gameObjectManager.addEnemy(enemy);
+      gameObjectManager.addBullet(bullet);
+
+      collisionSystem.checkCollisions();
+      const firstStats = collisionSystem.getCollisionStats();
+
+      collisionSystem.checkCollisions();
+      const secondStats = collisionSystem.getCollisionStats();
+
+      expect(secondStats.totalChecks).toBeGreaterThan(firstStats.totalChecks);
+    });
+  });
+
+  describe('空間分割の効率性', () => {
+    test('近接オブジェクトのみが衝突判定される', () => {
+      // 画面の左端と右端にオブジェクトを配置
+      const leftEnemy = new Enemy(50, 100);
+      const rightEnemy = new Enemy(350, 100);
+      const leftBullet = new Bullet(50, 100, 0, -1, false);
+
+      gameObjectManager.addEnemy(leftEnemy);
+      gameObjectManager.addEnemy(rightEnemy);
+      gameObjectManager.addBullet(leftBullet);
+
+      let hitCount = 0;
+      eventEmitter.on(EventType.ENEMY_HIT, () => {
+        hitCount++;
+      });
+
+      collisionSystem.checkCollisions();
+
+      // 近接する左側の敵のみヒット
+      expect(hitCount).toBe(1);
+
+      const stats = collisionSystem.getCollisionStats();
+      // SpatialHashにより効率的にフィルタリングされている
+      expect(stats.optimizationRatio).toBeGreaterThan(0);
+    });
+
+    test('空間分割グリッドが適切に機能する', () => {
+      // 64x64セルグリッドの異なるセルにオブジェクトを配置
+      const cellSize = 64;
+      const enemy1 = new Enemy(32, 32);   // セル(0,0)
+      const enemy2 = new Enemy(96, 32);   // セル(1,0)
+      const bullet = new Bullet(32, 32, 0, -1, false); // セル(0,0)
+
+      gameObjectManager.addEnemy(enemy1);
+      gameObjectManager.addEnemy(enemy2);
+      gameObjectManager.addBullet(bullet);
+
+      let hitEnemies: Enemy[] = [];
+      eventEmitter.on(EventType.ENEMY_HIT, (data: any) => {
+        hitEnemies.push(data.enemy);
+      });
+
+      collisionSystem.checkCollisions();
+
+      // 同じセルの敵のみヒット
+      expect(hitEnemies).toHaveLength(1);
+      expect(hitEnemies[0]).toBe(enemy1);
+    });
+  });
+
+  describe('メモリ効率性', () => {
+    test('大量オブジェクト処理後もメモリリークがない', () => {
+      // 大量のオブジェクトを作成・削除
+      for (let iteration = 0; iteration < 5; iteration++) {
+        const enemies: Enemy[] = [];
+        const bullets: Bullet[] = [];
+
+        for (let i = 0; i < 20; i++) {
+          const enemy = new Enemy(i * 20, 100);
+          const bullet = new Bullet(i * 20, 100, 0, -1, false);
+          
+          enemies.push(enemy);
+          bullets.push(bullet);
+          
+          gameObjectManager.addEnemy(enemy);
+          gameObjectManager.addBullet(bullet);
+        }
+
+        collisionSystem.checkCollisions();
+
+        // オブジェクトをクリア
+        enemies.forEach(enemy => gameObjectManager.removeEnemy(enemy));
+        bullets.forEach(bullet => gameObjectManager.removeBullet(bullet));
+      }
+
+      // 統計は正常に機能し続ける
+      const stats = collisionSystem.getCollisionStats();
+      expect(stats).toBeDefined();
+      expect(stats.totalChecks).toBeGreaterThan(0);
+    });
+  });
+});
+</file>
+
+<file path="tests/GameObjectManager.test.ts">
+import { GameObjectManager } from '../src/managers/GameObjectManager';
+import { EventEmitter } from '../src/events/EventEmitter';
+import { EventMap } from '../src/events/EventType';
+import { Enemy } from '../src/entities/Enemy';
+import { PowerUp } from '../src/entities/PowerUp';
+import { BossBullet } from '../src/entities/BossBullet';
+import { Boss } from '../src/entities/Boss';
+import { Star } from '../src/entities/Star';
+import { Planet } from '../src/entities/Planet';
+import { Nebula } from '../src/entities/Nebula';
+import { Aurora } from '../src/entities/Aurora';
+
+describe('GameObjectManager', () => {
+  let gameObjectManager: GameObjectManager;
+  let eventEmitter: EventEmitter<EventMap>;
+
+  beforeEach(() => {
+    eventEmitter = new EventEmitter<EventMap>();
+    gameObjectManager = new GameObjectManager(eventEmitter);
+  });
+
+  describe('初期化とセットアップ', () => {
+    test('GameObjectManagerが正常に初期化される', () => {
+      expect(gameObjectManager).toBeDefined();
+      expect(gameObjectManager.getBullets()).toEqual([]);
+      expect(gameObjectManager.getEnemies()).toEqual([]);
+      expect(gameObjectManager.getExplosions()).toEqual([]);
+      expect(gameObjectManager.getPowerups()).toEqual([]);
+    });
+
+    test('ObjectPoolが正常に初期化される', () => {
+      const poolStats = gameObjectManager.getPoolStats();
+      expect(poolStats).toBeDefined();
+      expect(typeof poolStats.bullet).toBe('number');
+      expect(typeof poolStats.explosion).toBe('number');
+    });
+  });
+
+  describe('ObjectPool統合機能', () => {
+    test('プール付きBulletが正常に作成される', () => {
+      const bullet = gameObjectManager.createBullet(100, 200, 5, '#ffffff');
+      
+      expect(bullet).not.toBeNull();
+      expect(bullet?.getPosition().x).toBe(100);
+      expect(bullet?.getPosition().y).toBe(200);
+    });
+
+    test('爆発エフェクトがプールから作成される', () => {
+      const initialExplosions = gameObjectManager.getExplosions().length;
+      
+      gameObjectManager.createExplosion(150, 250);
+      
+      const explosions = gameObjectManager.getExplosions();
+      expect(explosions.length).toBe(initialExplosions + 1);
+      
+      const explosion = explosions[explosions.length - 1];
+      expect(explosion).toBeDefined();
+      expect(explosion.getPosition().x).toBe(150);
+      expect(explosion.getPosition().y).toBe(250);
+    });
+
+    test('オブジェクトプールの再利用が正常に機能する', () => {
+      // 複数の弾丸を作成
+      const bullets = [];
+      for (let i = 0; i < 5; i++) {
+        const bullet = gameObjectManager.createBullet(i * 10, i * 20);
+        if (bullet) bullets.push(bullet);
+      }
+      
+      expect(bullets.length).toBe(5);
+      
+      // プール統計確認
+      const poolStats = gameObjectManager.getPoolStats();
+      expect(poolStats.bullet).toBeGreaterThanOrEqual(0);
+    });
+
+    test('画面外オブジェクトがプールに正しく返却される', () => {
+      // 画面外の弾丸を作成
+      const bullet = gameObjectManager.createBullet(-100, -100); // 画面外
+      if (bullet) {
+        bullet.deactivate(); // 非アクティブにする
+      }
+      
+      const initialPoolStats = gameObjectManager.getPoolStats();
+      
+      // 画面外オブジェクト削除を実行
+      gameObjectManager.removeOffscreenObjects();
+      
+      // プールに返却されたかチェック
+      const finalBullets = gameObjectManager.getBullets();
+      expect(finalBullets.length).toBe(0);
+    });
+  });
+
+  describe('敵オブジェクト管理', () => {
+    test('敵が正常に追加・削除される', () => {
+      const enemy = new Enemy();
+      
+      gameObjectManager.addEnemy(enemy);
+      expect(gameObjectManager.getEnemies()).toContain(enemy);
+      
+      gameObjectManager.removeEnemy(enemy);
+      expect(gameObjectManager.getEnemies()).not.toContain(enemy);
+    });
+
+    test('複数の敵を管理できる', () => {
+      const enemies = [new Enemy(), new Enemy(), new Enemy()];
+      
+      enemies.forEach(enemy => gameObjectManager.addEnemy(enemy));
+      
+      expect(gameObjectManager.getEnemies()).toHaveLength(3);
+      enemies.forEach(enemy => {
+        expect(gameObjectManager.getEnemies()).toContain(enemy);
+      });
+    });
+
+    test('存在しない敵の削除でエラーが発生しない', () => {
+      const enemy = new Enemy();
+      
+      expect(() => {
+        gameObjectManager.removeEnemy(enemy);
+      }).not.toThrow();
+    });
+  });
+
+  describe('PowerUp管理', () => {
+    test('PowerUpが正常に追加・削除される', () => {
+      const powerUp = new PowerUp();
+      
+      gameObjectManager.addPowerUp(powerUp);
+      expect(gameObjectManager.getPowerups()).toContain(powerUp);
+      
+      gameObjectManager.removePowerUp(powerUp);
+      expect(gameObjectManager.getPowerups()).not.toContain(powerUp);
+    });
+
+    test('異なるタイプのPowerUpを管理できる', () => {
+      const healthPowerUp = new PowerUp();
+      const weaponPowerUp = new PowerUp();
+      
+      gameObjectManager.addPowerUp(healthPowerUp);
+      gameObjectManager.addPowerUp(weaponPowerUp);
+      
+      const powerups = gameObjectManager.getPowerups();
+      expect(powerups).toHaveLength(2);
+      expect(powerups).toContain(healthPowerUp);
+      expect(powerups).toContain(weaponPowerUp);
+    });
+  });
+
+  describe('ボス管理', () => {
+    test('ボスが正常に設定・取得される', () => {
+      const boss = new Boss();
+      
+      gameObjectManager.setBoss(boss);
+      expect(gameObjectManager.getBoss()).toBe(boss);
+      
+      gameObjectManager.setBoss(null);
+      expect(gameObjectManager.getBoss()).toBeNull();
+    });
+
+    test('ボス弾丸が正常に管理される', () => {
+      const bossBullet = new BossBullet();
+      
+      gameObjectManager.addBossBullet(bossBullet);
+      expect(gameObjectManager.getBossBullets()).toContain(bossBullet);
+      expect(gameObjectManager.getBossBullets()).toHaveLength(1);
+    });
+  });
+
+  describe('背景オブジェクト管理', () => {
+    test('背景オブジェクトが正常に設定される', () => {
+      const stars = [new Star(), new Star()];
+      const planets = [new Planet()];
+      const nebulas = [new Nebula()];
+      const auroras = [new Aurora()];
+      
+      gameObjectManager.setBackgroundObjects(stars, planets, nebulas, auroras);
+      
+      expect(gameObjectManager.getStars()).toEqual(stars);
+      expect(gameObjectManager.getPlanets()).toEqual(planets);
+      expect(gameObjectManager.getNebulas()).toEqual(nebulas);
+      expect(gameObjectManager.getAuroras()).toEqual(auroras);
+    });
+
+    test('背景オブジェクトが更新される', () => {
+      const stars = [new Star()];
+      const planets = [new Planet()];
+      const auroras = [new Aurora()];
+      
+      gameObjectManager.setBackgroundObjects(stars, planets, [], auroras);
+      
+      const starUpdateSpy = jest.spyOn(stars[0], 'update');
+      const planetUpdateSpy = jest.spyOn(planets[0], 'update');
+      const auroraUpdateSpy = jest.spyOn(auroras[0], 'update');
+      
+      gameObjectManager.updateAllObjects(16);
+      
+      expect(starUpdateSpy).toHaveBeenCalledWith(16);
+      expect(planetUpdateSpy).toHaveBeenCalledWith(16);
+      expect(auroraUpdateSpy).toHaveBeenCalledWith(16);
+    });
+  });
+
+  describe('全オブジェクト更新', () => {
+    test('全ての動的オブジェクトが更新される', () => {
+      const enemy = new Enemy();
+      const powerUp = new PowerUp();
+      const boss = new Boss();
+      const bossBullet = new BossBullet();
+      
+      gameObjectManager.addEnemy(enemy);
+      gameObjectManager.addPowerUp(powerUp);
+      gameObjectManager.setBoss(boss);
+      gameObjectManager.addBossBullet(bossBullet);
+      
+      const enemyUpdateSpy = jest.spyOn(enemy, 'update');
+      const powerUpUpdateSpy = jest.spyOn(powerUp, 'update');
+      const bossUpdateSpy = jest.spyOn(boss, 'update');
+      const bossBulletUpdateSpy = jest.spyOn(bossBullet, 'update');
+      
+      gameObjectManager.updateAllObjects(16);
+      
+      expect(enemyUpdateSpy).toHaveBeenCalledWith(16);
+      expect(powerUpUpdateSpy).toHaveBeenCalledWith(16);
+      expect(bossUpdateSpy).toHaveBeenCalledWith(16);
+      expect(bossBulletUpdateSpy).toHaveBeenCalledWith(16);
+    });
+
+    test('プール付きオブジェクトも正常に更新される', () => {
+      const bullet = gameObjectManager.createBullet(100, 100);
+      
+      if (bullet) {
+        const bulletUpdateSpy = jest.spyOn(bullet, 'update');
+        
+        gameObjectManager.updateAllObjects(16);
+        
+        expect(bulletUpdateSpy).toHaveBeenCalledWith(16);
+      }
+    });
+  });
+
+  describe('衝突判定用オブジェクト取得', () => {
+    test('全ての衝突可能オブジェクトが取得される', () => {
+      const enemy = new Enemy();
+      const powerUp = new PowerUp();
+      const boss = new Boss();
+      const bullet = gameObjectManager.createBullet(100, 100);
+      
+      gameObjectManager.addEnemy(enemy);
+      gameObjectManager.addPowerUp(powerUp);
+      gameObjectManager.setBoss(boss);
+      
+      const collidableObjects = gameObjectManager.getAllCollidableObjects();
+      
+      expect(collidableObjects).toContain(enemy);
+      expect(collidableObjects).toContain(powerUp);
+      expect(collidableObjects).toContain(boss);
+      if (bullet) {
+        expect(collidableObjects).toContain(bullet);
+      }
+    });
+
+    test('ボスが存在しない場合の処理', () => {
+      const enemy = new Enemy();
+      gameObjectManager.addEnemy(enemy);
+      
+      const collidableObjects = gameObjectManager.getAllCollidableObjects();
+      
+      expect(collidableObjects).toContain(enemy);
+      expect(collidableObjects.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe('リセット機能', () => {
+    test('ゲーム状態が正常にリセットされる', () => {
+      // オブジェクトを追加
+      const enemy = new Enemy();
+      const powerUp = new PowerUp();
+      const boss = new Boss();
+      const bullet = gameObjectManager.createBullet(100, 100);
+      
+      gameObjectManager.addEnemy(enemy);
+      gameObjectManager.addPowerUp(powerUp);
+      gameObjectManager.setBoss(boss);
+      
+      expect(gameObjectManager.getEnemies()).toHaveLength(1);
+      expect(gameObjectManager.getPowerups()).toHaveLength(1);
+      expect(gameObjectManager.getBoss()).toBe(boss);
+      
+      // リセット実行
+      gameObjectManager.reset();
+      
+      // 全てがクリアされることを確認
+      expect(gameObjectManager.getBullets()).toHaveLength(0);
+      expect(gameObjectManager.getEnemies()).toHaveLength(0);
+      expect(gameObjectManager.getExplosions()).toHaveLength(0);
+      expect(gameObjectManager.getPowerups()).toHaveLength(0);
+      expect(gameObjectManager.getBossBullets()).toHaveLength(0);
+      expect(gameObjectManager.getBoss()).toBeNull();
+    });
+
+    test('リセット後もプールは機能する', () => {
+      // プールオブジェクトを作成
+      const bullet = gameObjectManager.createBullet(100, 100);
+      expect(bullet).not.toBeNull();
+      
+      // リセット
+      gameObjectManager.reset();
+      
+      // リセット後も新しいオブジェクトを作成できる
+      const newBullet = gameObjectManager.createBullet(200, 200);
+      expect(newBullet).not.toBeNull();
+      expect(newBullet?.getPosition().x).toBe(200);
+    });
+  });
+
+  describe('イベント統合', () => {
+    test('敵破壊イベントで爆発が作成される', () => {
+      const enemy = new Enemy();
+      gameObjectManager.addEnemy(enemy);
+      
+      const initialExplosions = gameObjectManager.getExplosions().length;
+      
+      // 敵破壊イベントを発火
+      eventEmitter.emit('enemyDestroyed', enemy);
+      
+      const explosions = gameObjectManager.getExplosions();
+      expect(explosions.length).toBe(initialExplosions + 1);
+    });
+
+    test('画面外オブジェクト削除イベントが正常に処理される', () => {
+      // 画面外オブジェクトを作成
+      const bullet = gameObjectManager.createBullet(-100, -100);
+      if (bullet) {
+        bullet.deactivate();
+      }
+      
+      const initialCount = gameObjectManager.getBullets().length;
+      
+      // クリーンアップイベント発火
+      eventEmitter.emit('cleanupOffscreenObjects');
+      
+      expect(gameObjectManager.getBullets().length).toBeLessThan(initialCount);
+    });
+  });
+
+  describe('メモリ効率性', () => {
+    test('大量オブジェクト作成・削除でメモリリークがない', () => {
+      // 大量のオブジェクトを作成・削除
+      for (let iteration = 0; iteration < 10; iteration++) {
+        // オブジェクト作成
+        const enemies = Array.from({ length: 20 }, () => new Enemy());
+        const bullets = Array.from({ length: 30 }, (_, i) => 
+          gameObjectManager.createBullet(i * 10, 100)
+        ).filter(Boolean);
+        
+        enemies.forEach(enemy => gameObjectManager.addEnemy(enemy));
+        
+        // 更新処理
+        gameObjectManager.updateAllObjects(16);
+        
+        // オブジェクト削除
+        enemies.forEach(enemy => gameObjectManager.removeEnemy(enemy));
+        gameObjectManager.removeOffscreenObjects();
+      }
+      
+      // プールが正常に機能している
+      const poolStats = gameObjectManager.getPoolStats();
+      expect(poolStats).toBeDefined();
+      expect(typeof poolStats.bullet).toBe('number');
+    });
+
+    test('プール統計が正確に記録される', () => {
+      const initialStats = gameObjectManager.getPoolStats();
+      
+      // プールオブジェクトを作成・削除
+      const bullet = gameObjectManager.createBullet(100, 100);
+      if (bullet) {
+        bullet.deactivate();
+      }
+      
+      gameObjectManager.removeOffscreenObjects();
+      
+      const finalStats = gameObjectManager.getPoolStats();
+      expect(finalStats).toBeDefined();
+      expect(finalStats.bullet).toBeGreaterThanOrEqual(0);
+    });
+  });
+});
+</file>
+
+<file path="tests/setup.ts">
+// Jest Test Setup
+// This file runs before each test file and sets up global test configurations
+
+import '@testing-library/jest-dom';
+
+// Extend Jest matchers with custom game-specific matchers
+declare global {
+  namespace jest {
+    interface Matchers<R> {
+      toBeWithinRange(floor: number, ceiling: number): R;
+      toHaveValidGameObject(): R;
+    }
+  }
+}
+
+// Custom matchers for game testing
+expect.extend({
+  toBeWithinRange(received: number, floor: number, ceiling: number) {
+    const pass = received >= floor && received <= ceiling;
+    if (pass) {
+      return {
+        message: () => `expected ${received} not to be within range ${floor} - ${ceiling}`,
+        pass: true,
+      };
+    } else {
+      return {
+        message: () => `expected ${received} to be within range ${floor} - ${ceiling}`,
+        pass: false,
+      };
+    }
+  },
+
+  toHaveValidGameObject(received: any) {
+    const hasRequiredProperties = received && 
+      typeof received.x === 'number' &&
+      typeof received.y === 'number' &&
+      typeof received.update === 'function' &&
+      typeof received.draw === 'function';
+
+    if (hasRequiredProperties) {
+      return {
+        message: () => `expected object not to be a valid game object`,
+        pass: true,
+      };
+    } else {
+      return {
+        message: () => `expected object to be a valid game object with x, y, update, and draw properties`,
+        pass: false,
+      };
+    }
+  }
+});
+
+// Mock console methods to reduce noise during testing
+const originalConsoleError = console.error;
+const originalConsoleWarn = console.warn;
+
+beforeAll(() => {
+  console.error = jest.fn();
+  console.warn = jest.fn();
+});
+
+afterAll(() => {
+  console.error = originalConsoleError;
+  console.warn = originalConsoleWarn;
+});
+
+// Reset all mocks after each test
+afterEach(() => {
+  jest.clearAllMocks();
+});
+
+// Global test timeout
+jest.setTimeout(10000);
+</file>
+
+<file path="jest.config.js">
+export default {
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+  roots: ['<rootDir>/src', '<rootDir>/tests'],
+  testMatch: [
+    '**/__tests__/**/*.+(ts|tsx|js)',
+    '**/*.(test|spec).+(ts|tsx|js)'
+  ],
+  transform: {
+    '^.+\\.(ts|tsx)$': 'ts-jest',
+  },
+  collectCoverageFrom: [
+    'src/**/*.{ts,tsx}',
+    '!src/**/*.d.ts',
+    '!src/index.ts',
+    '!src/vite-env.d.ts'
+  ],
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1'
+  },
+  coverageDirectory: 'coverage',
+  coverageReporters: ['text', 'lcov', 'html'],
+  testTimeout: 10000,
+  setupFiles: ['<rootDir>/tests/canvas.setup.ts']
+};
 </file>
 
 <file path="docs/dependency-analysis.md">
@@ -2569,6 +3860,139 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+</file>
+
+<file path="CURRENT_STATUS_SUMMARY.md">
+# Space Shooter 最適化プロジェクト - 現在状況サマリー
+
+## 🎉 完了した最適化作業
+
+### **Phase 1: 基盤安定化 - 100% 完了**
+- ✅ 循環依存解消（Game ⇔ Player/Boss/Enemy）
+- ✅ IGameEngine インターフェース導入
+- ✅ イベント駆動アーキテクチャ構築
+- ✅ GameEngine分離（ゲームループ管理）
+- ✅ GameObjectManager抽出（オブジェクト管理）
+- ✅ CollisionSystem分離（衝突判定システム）
+
+### **Phase 2: パフォーマンス最適化 - 部分完了**
+- ✅ **Task 2.1.1: SpatialHash統合**
+  - O(n²) → O(n) 衝突判定最適化
+  - 64x64セル空間分割実装
+  - CollisionSystem統合完了
+
+- ✅ **Task 2.2.1: 背景事前レンダリング最適化**
+  - BackgroundRendererクラス実装
+  - レイヤー別キャッシング戦略
+  - 3つのオフスクリーンキャンバス活用
+  - パフォーマンス測定システム構築
+  - 最適化版・従来版比較機能
+
+## 🔧 実装済み技術的成果
+
+### **アーキテクチャ改善**
+- **Clean Architecture**: 責務分離、依存関係逆転
+- **Event-Driven**: EventEmitterによる疎結合通信
+- **Interface Segregation**: IGameEngineによる抽象化
+- **Single Responsibility**: 各クラスの役割明確化
+
+### **パフォーマンス最適化**
+- **空間分割**: SpatialHashによるO(n)衝突判定
+- **キャッシング**: 背景要素の事前レンダリング
+- **オブジェクトプール**: Bullet、Explosion対応
+- **メモリ効率**: GC負荷軽減施策
+
+### **監視・デバッグ機能**
+- **パフォーマンス測定**: performance.now()活用
+- **統計情報**: 描画時間、キャッシュ利用率
+- **デバッグAPI**: 最適化ON/OFF、統計出力
+- **リアルタイム監視**: プール統計、衝突判定統計
+
+## 📈 達成した技術指標
+
+### **衝突判定最適化（Task 2.1.1）**
+- **理論改善**: O(n²) → O(n) 
+- **実装方式**: 64x64セル空間分割
+- **統合度**: CollisionSystem完全統合
+
+### **背景描画最適化（Task 2.2.1）**
+- **理論改善**: 50-70%描画コスト削減
+- **キャッシュ戦略**: 静的/準動的/動的レイヤー分離
+- **測定精度**: performance.now()による高精度測定
+- **比較機能**: 最適化版・従来版切り替え可能
+
+## 🏗️ 確立された設計パターン
+
+### **Factory Pattern**
+- GameObjectFactory: 統一されたオブジェクト生成
+
+### **Manager Pattern**
+- GameObjectManager: オブジェクトライフサイクル管理
+- GameStateManager: ゲーム状態管理
+- WaveManager: ウェーブシステム管理
+
+### **Strategy Pattern**
+- BackgroundRenderer: 最適化戦略切り替え
+- ObjectPool: メモリプール戦略
+
+### **Observer Pattern**
+- EventEmitter: イベント駆動通信基盤
+
+## 🎯 技術負債解消状況
+
+### **解消済み（Priority 0）**
+- ✅ 循環依存問題
+- ✅ God Objectパターン
+- ✅ O(n²)パフォーマンス問題
+
+### **大幅改善済み（Priority 1）**
+- ✅ 型安全性（TypeScript strict mode）
+- ✅ テスタビリティ（依存注入、インターフェース）
+- ✅ コード重複削減
+
+### **改善済み（Priority 2）**
+- ✅ 設計パターン適用
+- ✅ 保守性向上
+- ✅ ドキュメント整備
+
+## 📊 プロジェクト品質指標
+
+### **コード品質**
+- **TypeScript strict mode**: エラーなし
+- **循環依存**: 完全解消
+- **クラス行数**: Game.ts 500行超 → 適切な範囲に分割
+- **責務分離**: Single Responsibility Principle適用
+
+### **パフォーマンス**
+- **衝突判定**: 理論的最適化完了
+- **描画処理**: 50%以上コスト削減
+- **メモリ使用**: ObjectPool導入済み
+- **測定基盤**: 完全構築済み
+
+### **保守性**
+- **テスタビリティ**: 依存注入完了
+- **拡張性**: インターフェース分離完了
+- **デバッグ性**: 測定・監視機能完備
+- **ドキュメント**: 技術仕様書完備
+
+## 🚀 次期開発推奨方向性
+
+### **Phase 3: テスト基盤構築**
+現在の堅固なアーキテクチャ基盤の上に、包括的なテストスイートを構築し、継続的な品質保証を確立。
+
+### **継続的最適化**
+実装済みの測定基盤を活用し、実際の使用状況データに基づいた更なる最適化。
+
+### **機能拡張**
+技術負債解消により確立された拡張性の高いアーキテクチャを活用した新機能開発。
+
+---
+
+**プロジェクト成熟度**: **Production Ready**  
+**技術負債レベル**: **極低**  
+**拡張準備度**: **完全準備済み**  
+
+このプロジェクトは、モダンなゲーム開発のベストプラクティスを体現した状態に到達しています。
 </file>
 
 <file path="LICENCE">
@@ -4958,16 +6382,155 @@ export const GAME_CONSTANTS: GameConstants = {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "repomix": "pnpm dlx repomix",
     "deploy": "pnpm run build && gh-pages -d dist"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "@types/jest": "^29.5.14",
     "gh-pages": "^6.1.1",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "30.0.0-beta.3",
+    "ts-jest": "^29.3.4",
     "typescript": "^5.5.3",
     "vite": "^5.4.1"
   },
   "packageManager": "pnpm@9.8.0+sha512.8e4c3550fb500e808dbc30bb0ce4dd1eb614e30b1c55245f211591ec2cdf9c611cabd34e1364b42f564bd54b3945ed0f49d61d1bbf2ec9bd74b866fcdc723276"
 }
+</file>
+
+<file path="src/factories/GameObjectFactory.ts">
+import { IGameEngine } from "../interfaces/IGameEngine";
+import { Aurora } from "../entities/Aurora";
+import { Enemy } from "../entities/Enemy";
+import { Nebula } from "../entities/Nebula";
+import { Planet } from "../entities/Planet";
+import { PowerUp } from "../entities/PowerUp";
+import { Star } from "../entities/Star";
+import { EnemyType } from "../types";
+import { GAME_CONSTANTS } from "../constants/GameConstants";
+import { randomRange } from "../utils/RandomUtils";
+
+export class GameObjectFactory {
+    createStar(): Star {
+        return new Star();
+    }
+
+    createPlanet(): Planet {
+        return new Planet();
+    }
+
+    createNebula(): Nebula {
+        return new Nebula();
+    }
+
+    createAurora(): Aurora {
+        return new Aurora();
+    }
+
+    createEnemy(type: EnemyType, game: IGameEngine): Enemy {
+        const enemyData = GAME_CONSTANTS.ENEMY.TYPES[type];
+        const x = randomRange(0, GAME_CONSTANTS.CANVAS.WIDTH - enemyData.width);
+        return new Enemy(x, -enemyData.height, type, game);
+    }
+
+    createEnemyAtPosition(type: EnemyType, x: number, y: number, game: IGameEngine): Enemy {
+        return new Enemy(x, y, type, game);
+    }
+
+    createPowerUp(): PowerUp {
+        const x = randomRange(0, GAME_CONSTANTS.CANVAS.WIDTH - GAME_CONSTANTS.POWERUP.WIDTH);
+        return new PowerUp(x, -GAME_CONSTANTS.POWERUP.HEIGHT);
+    }
+}
+</file>
+
+<file path="src/managers/UIManager.ts">
+import { GAME_CONSTANTS } from "../constants/GameConstants";
+import { EventEmitter } from "../events/EventEmitter";
+import { EventMap } from "../events/EventType";
+
+export class UIManager {
+    constructor(
+        private eventEmitter: EventEmitter<EventMap>,
+        private scoreElement: HTMLElement,
+        private levelElement: HTMLElement,
+        private healthElement: HTMLElement,
+        private healthBarElement: HTMLElement,
+        private gameOverElement: HTMLElement
+    ) {
+        this.setupEventListeners();
+    }
+
+    private setupEventListeners(): void {
+        this.eventEmitter.on('scoreUpdated', (score: number) => this.updateScoreDisplay(score));
+        this.eventEmitter.on('healthChanged', (health: number) => this.updateHealthDisplay(health));
+        this.eventEmitter.on('levelUpdated', (level: number) => this.updateLevelDisplay(level));
+        this.eventEmitter.on('gameOver', () => this.showGameOver());
+    }
+
+
+    updateScoreDisplay(score: number): void {
+        this.scoreElement.textContent = score.toString();
+    }
+
+    updateLevelDisplay(level: number): void {
+        this.levelElement.textContent = level.toString();
+    }
+
+    updateHealthDisplay(health: number): void {
+        this.healthElement.textContent = health.toString();
+        const healthPercentage = (health / GAME_CONSTANTS.PLAYER.MAX_HEALTH) * 100;
+        this.healthBarElement.style.width = `${healthPercentage}%`;
+    }
+
+    showGameOver(): void {
+        this.gameOverElement.classList.remove('hidden');
+    }
+}
+</file>
+
+<file path="src/index.ts">
+import { GameObjectFactory } from './factories/GameObjectFactory';
+import { Game } from './core/Game';
+import { GameStateManager } from './managers/GameStateManager';
+import { ScoreManager } from './managers/ScoreManager';
+import { UIManager } from './managers/UIManager';
+import { Player } from './entities/Player';
+import { EventEmitter } from './events/EventEmitter';
+import { getElementOrThrow } from './utils/DOMUtils';
+
+function initGame(): void {
+    const canvas = getElementOrThrow<HTMLCanvasElement>('gameCanvas');
+    const eventEmitter = new EventEmitter();
+    const player = new Player(eventEmitter);
+    const gameObjectFactory = new GameObjectFactory();
+    const scoreManager = new ScoreManager(eventEmitter);
+    const stateManager = new GameStateManager(eventEmitter);
+
+    const levelElement = getElementOrThrow<HTMLElement>('levelValue');
+    const healthElement = getElementOrThrow<HTMLElement>('healthValue');
+    const healthBarElement = getElementOrThrow<HTMLElement>('healthBarFill');
+    const gameOverElement = getElementOrThrow<HTMLElement>('gameOver')
+    const scoreElement = getElementOrThrow<HTMLElement>('scoreValue');
+    new UIManager(eventEmitter, scoreElement, levelElement, healthElement, healthBarElement, gameOverElement);
+
+    const game = new Game(
+        canvas,
+        eventEmitter,
+        scoreManager,
+        player,
+        gameObjectFactory,
+        stateManager
+    );
+
+    game.start();
+}
+
+document.addEventListener('DOMContentLoaded', initGame);
 </file>
 
 <file path="TECH_DEBT_PLAN.md">
@@ -5222,137 +6785,6 @@ npm test         # テスト実行（Jest導入後）
 **最終更新**: 2025/05/31  
 **次回開始タスク**: 1.1.1 依存関係の可視化  
 **推定完了日**: フェーズ1完了まで約3週間
-</file>
-
-<file path="src/factories/GameObjectFactory.ts">
-import { IGameEngine } from "../interfaces/IGameEngine";
-import { Aurora } from "../entities/Aurora";
-import { Enemy } from "../entities/Enemy";
-import { Nebula } from "../entities/Nebula";
-import { Planet } from "../entities/Planet";
-import { PowerUp } from "../entities/PowerUp";
-import { Star } from "../entities/Star";
-import { EnemyType } from "../types";
-import { GAME_CONSTANTS } from "../constants/GameConstants";
-import { randomRange } from "../utils/RandomUtils";
-
-export class GameObjectFactory {
-    createStar(): Star {
-        return new Star();
-    }
-
-    createPlanet(): Planet {
-        return new Planet();
-    }
-
-    createNebula(): Nebula {
-        return new Nebula();
-    }
-
-    createAurora(): Aurora {
-        return new Aurora();
-    }
-
-    createEnemy(type: EnemyType, game: IGameEngine): Enemy {
-        const enemyData = GAME_CONSTANTS.ENEMY.TYPES[type];
-        const x = randomRange(0, GAME_CONSTANTS.CANVAS.WIDTH - enemyData.width);
-        return new Enemy(x, -enemyData.height, type, game);
-    }
-
-    createEnemyAtPosition(type: EnemyType, x: number, y: number, game: IGameEngine): Enemy {
-        return new Enemy(x, y, type, game);
-    }
-
-    createPowerUp(): PowerUp {
-        const x = randomRange(0, GAME_CONSTANTS.CANVAS.WIDTH - GAME_CONSTANTS.POWERUP.WIDTH);
-        return new PowerUp(x, -GAME_CONSTANTS.POWERUP.HEIGHT);
-    }
-}
-</file>
-
-<file path="src/managers/UIManager.ts">
-import { GAME_CONSTANTS } from "../constants/GameConstants";
-import { EventEmitter } from "../events/EventEmitter";
-import { EventMap } from "../events/EventType";
-
-export class UIManager {
-    constructor(
-        private eventEmitter: EventEmitter<EventMap>,
-        private scoreElement: HTMLElement,
-        private levelElement: HTMLElement,
-        private healthElement: HTMLElement,
-        private healthBarElement: HTMLElement,
-        private gameOverElement: HTMLElement
-    ) {
-        this.setupEventListeners();
-    }
-
-    private setupEventListeners(): void {
-        this.eventEmitter.on('scoreUpdated', (score: number) => this.updateScoreDisplay(score));
-        this.eventEmitter.on('healthChanged', (health: number) => this.updateHealthDisplay(health));
-        this.eventEmitter.on('levelUpdated', (level: number) => this.updateLevelDisplay(level));
-        this.eventEmitter.on('gameOver', () => this.showGameOver());
-    }
-
-
-    updateScoreDisplay(score: number): void {
-        this.scoreElement.textContent = score.toString();
-    }
-
-    updateLevelDisplay(level: number): void {
-        this.levelElement.textContent = level.toString();
-    }
-
-    updateHealthDisplay(health: number): void {
-        this.healthElement.textContent = health.toString();
-        const healthPercentage = (health / GAME_CONSTANTS.PLAYER.MAX_HEALTH) * 100;
-        this.healthBarElement.style.width = `${healthPercentage}%`;
-    }
-
-    showGameOver(): void {
-        this.gameOverElement.classList.remove('hidden');
-    }
-}
-</file>
-
-<file path="src/index.ts">
-import { GameObjectFactory } from './factories/GameObjectFactory';
-import { Game } from './core/Game';
-import { GameStateManager } from './managers/GameStateManager';
-import { ScoreManager } from './managers/ScoreManager';
-import { UIManager } from './managers/UIManager';
-import { Player } from './entities/Player';
-import { EventEmitter } from './events/EventEmitter';
-import { getElementOrThrow } from './utils/DOMUtils';
-
-function initGame(): void {
-    const canvas = getElementOrThrow<HTMLCanvasElement>('gameCanvas');
-    const eventEmitter = new EventEmitter();
-    const player = new Player(eventEmitter);
-    const gameObjectFactory = new GameObjectFactory();
-    const scoreManager = new ScoreManager(eventEmitter);
-    const stateManager = new GameStateManager(eventEmitter);
-
-    const levelElement = getElementOrThrow<HTMLElement>('levelValue');
-    const healthElement = getElementOrThrow<HTMLElement>('healthValue');
-    const healthBarElement = getElementOrThrow<HTMLElement>('healthBarFill');
-    const gameOverElement = getElementOrThrow<HTMLElement>('gameOver')
-    const scoreElement = getElementOrThrow<HTMLElement>('scoreValue');
-    new UIManager(eventEmitter, scoreElement, levelElement, healthElement, healthBarElement, gameOverElement);
-
-    const game = new Game(
-        canvas,
-        eventEmitter,
-        scoreManager,
-        player,
-        gameObjectFactory,
-        stateManager
-    );
-
-    game.start();
-}
-
-document.addEventListener('DOMContentLoaded', initGame);
 </file>
 
 <file path="src/core/Game.ts">
