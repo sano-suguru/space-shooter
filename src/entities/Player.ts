@@ -4,11 +4,7 @@ import { EventEmitter } from "../events/EventEmitter";
 import { Bullet } from "./Bullet";
 import { GameObject } from "./GameObject";
 import { EventMap } from "../events/EventType";
-
-// Game クラスの前方宣言（循環依存回避）
-interface GameInterface {
-    createBullet(x: number, y: number, speed?: number, color?: string): Bullet | null;
-}
+import { IGameEngine } from "../interfaces/IGameEngine";
 
 export class Player extends GameObject {
     private velocity: Vector2D = { x: 0, y: 0 };
@@ -27,7 +23,7 @@ export class Player extends GameObject {
 
     constructor(
         private eventEmitter: EventEmitter<EventMap>,
-        private game?: GameInterface
+        private game?: IGameEngine
     ) {
         super(
             GAME_CONSTANTS.CANVAS.WIDTH / 2 - GAME_CONSTANTS.PLAYER.WIDTH / 2,
@@ -366,7 +362,7 @@ export class Player extends GameObject {
     /**
      * 後からGameインスタンスを設定（循環依存回避のため）
      */
-    public setGame(game: GameInterface): void {
+    public setGame(game: IGameEngine): void {
         this.game = game;
     }
 }

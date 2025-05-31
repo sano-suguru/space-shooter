@@ -40,11 +40,16 @@ The content is organized as follows:
 </file_summary>
 
 <directory_structure>
+docs/
+  dependency-analysis.md
+  performance-benchmarks.md
+  refactoring-notes.md
 src/
   constants/
     GameConstants.ts
   core/
     Game.ts
+    GameEngine.ts
   entities/
     Aurora.ts
     Boss.ts
@@ -61,9 +66,13 @@ src/
   events/
     EventEmitter.ts
     EventType.ts
+    GameCommands.ts
   factories/
     GameObjectFactory.ts
+  interfaces/
+    IGameEngine.ts
   managers/
+    GameObjectManager.ts
     GameStateManager.ts
     ScoreManager.ts
     UIManager.ts
@@ -88,12 +97,1170 @@ index.html
 LICENCE
 package.json
 README.md
+TECH_DEBT_PLAN.md
 tsconfig.json
 vite.config.js
 </directory_structure>
 
 <files>
 This section contains the contents of the repository's files.
+
+<file path="src/events/GameCommands.ts">
+import { Enemy } from "../entities/Enemy";
+import { PowerUp } from "../entities/PowerUp";
+import { EnemyType } from "../types";
+
+/**
+ * ゲーム内のコマンドイベント定義
+ * 直接的なメソッド呼び出しをイベント駆動に変換するためのコマンドイベント
+ */
+export type GameCommandMap = Readonly<{
+    // オブジェクト生成コマンド
+    'createEnemy': (type: EnemyType, x?: number, y?: number) => void;
+    'createPowerUp': (x?: number, y?: number) => void;
+    'createExplosion': (x: number, y: number, scale?: number) => void;
+    
+    // ゲーム状態制御コマンド
+    'startGame': () => void;
+    'pauseGame': () => void;
+    'resumeGame': () => void;
+    'restartGame': () => void;
+    'gameOver': () => void;
+    
+    // レベル制御コマンド
+    'startNextLevel': () => void;
+    'spawnBoss': () => void;
+    
+    // オブジェクト管理コマンド
+    'removeEnemy': (enemy: Enemy) => void;
+    'removePowerUp': (powerUp: PowerUp) => void;
+    'cleanupOffscreenObjects': () => void;
+    
+    // UI制御コマンド
+    'showMessage': (message: string, duration?: number) => void;
+    'hideMessage': () => void;
+    'updateUI': () => void;
+    
+    // デバッグコマンド
+    'toggleDebugMode': () => void;
+    'showPoolStats': () => void;
+}>;
+</file>
+
+<file path="src/managers/GameObjectManager.ts">
+import { GameObject } from '../entities/GameObject';
+import { Bullet } from '../entities/Bullet';
+import { Enemy } from '../entities/Enemy';
+import { Explosion } from '../entities/Explosion';
+import { PowerUp } from '../entities/PowerUp';
+import { BossBullet } from '../entities/BossBullet';
+import { Boss } from '../entities/Boss';
+import { Star } from '../entities/Star';
+import { Planet } from '../entities/Planet';
+import { Nebula } from '../entities/Nebula';
+import { Aurora } from '../entities/Aurora';
+import { EventEmitter } from '../events/EventEmitter';
+import { EventMap } from '../events/EventType';
+import { ObjectPool, PoolManager } from '../utils/ObjectPool';
+
+/**
+ * ゲームオブジェクトの管理を担当するクラス
+ * オブジェクトプールとの統合、ライフサイクル管理、配列操作を一元化
+ */
+export class GameObjectManager {
+    // ゲームオブジェクト配列
+    private bullets: Bullet[] = [];
+    private enemies: Enemy[] = [];
+    private explosions: Explosion[] = [];
+    private powerups: PowerUp[] = [];
+    private bossBullets: BossBullet[] = [];
+    private boss: Boss | null = null;
+
+    // 背景オブジェクト配列
+    private stars: Star[] = [];
+    private planets: Planet[] = [];
+    private nebulas: Nebula[] = [];
+    private auroras: Aurora[] = [];
+
+    // オブジェクトプール管理
+    private poolManager: PoolManager;
+
+    constructor(
+        private eventEmitter: EventEmitter<EventMap>
+    ) {
+        this.poolManager = new PoolManager();
+        this.initializeObjectPools();
+        this.setupEventListeners();
+    }
+
+    private initializeObjectPools(): void {
+        // Bulletプール
+        const bulletPool = new ObjectPool<Bullet>(
+            () => new Bullet(),
+            (bullet) => bullet.reset(),
+            20, // 初期サイズ
+            50  // 最大サイズ
+        );
+        this.poolManager.register('bullet', bulletPool);
+
+        // Explosionプール
+        const explosionPool = new ObjectPool<Explosion>(
+            () => new Explosion(),
+            (explosion) => explosion.reset(),
+            10, // 初期サイズ
+            30  // 最大サイズ
+        );
+        this.poolManager.register('explosion', explosionPool);
+    }
+
+    private setupEventListeners(): void {
+        this.eventEmitter.on('enemyDestroyed', this.handleEnemyDestroyed);
+        this.eventEmitter.on('playerShot', this.handlePlayerShot);
+        this.eventEmitter.on('createExplosion', this.createExplosion);
+        this.eventEmitter.on('cleanupOffscreenObjects', this.removeOffscreenObjects);
+    }
+
+    private handleEnemyDestroyed = (enemy: Enemy): void => {
+        const enemyPosition = enemy.getPosition();
+        const explosionPosition = {
+            x: enemyPosition.x + enemy.getWidth() / 2,
+            y: enemyPosition.y + enemy.getHeight() / 2
+        };
+        this.createExplosion(explosionPosition.x, explosionPosition.y);
+    };
+
+    private handlePlayerShot = (bullet: Bullet): void => {
+        this.bullets.push(bullet);
+    };
+
+    /**
+     * 全ゲームオブジェクトを更新
+     */
+    public updateAllObjects(deltaTime: number): void {
+        // 動的オブジェクトの更新
+        this.bullets.forEach(bullet => bullet.update(deltaTime));
+        this.enemies.forEach(enemy => enemy.update(deltaTime));
+        this.powerups.forEach(powerup => powerup.update(deltaTime));
+        this.explosions.forEach(explosion => explosion.update(deltaTime));
+        this.bossBullets.forEach(bossBullet => bossBullet.update(deltaTime));
+
+        if (this.boss) {
+            this.boss.update(deltaTime);
+        }
+
+        // 背景オブジェクトの更新
+        this.stars.forEach(star => star.update(deltaTime));
+        this.planets.forEach(planet => planet.update(deltaTime));
+        this.auroras.forEach(aurora => aurora.update(deltaTime));
+    }
+
+    /**
+     * 画面外のオブジェクトを削除
+     */
+    public removeOffscreenObjects = (): void => {
+        // 弾丸をプールに戻す
+        const bulletPool = this.poolManager.getPool<Bullet>('bullet');
+        this.bullets = this.bullets.filter(bullet => {
+            if (!bullet.isOnScreen() || !bullet.isActive()) {
+                if (bulletPool) {
+                    bulletPool.release(bullet);
+                }
+                return false;
+            }
+            return true;
+        });
+
+        // 爆発エフェクトをプールに戻す
+        const explosionPool = this.poolManager.getPool<Explosion>('explosion');
+        this.explosions = this.explosions.filter(explosion => {
+            if (explosion.isFinished()) {
+                if (explosionPool) {
+                    explosionPool.release(explosion);
+                }
+                return false;
+            }
+            return true;
+        });
+
+        // その他のオブジェクト（プール未対応）
+        this.enemies = this.enemies.filter(enemy => enemy.isOnScreen());
+        this.powerups = this.powerups.filter(powerup => powerup.isOnScreen());
+        this.bossBullets = this.bossBullets.filter(bullet => bullet.isOnScreen());
+    };
+
+    /**
+     * 爆発エフェクトを作成
+     */
+    public createExplosion = (x: number, y: number, scale?: number): void => {
+        const explosionPool = this.poolManager.getPool<Explosion>('explosion');
+        if (explosionPool) {
+            const explosion = explosionPool.get();
+            explosion.initialize({ x, y }, scale);
+            this.explosions.push(explosion);
+        }
+    };
+
+    /**
+     * プール付きBulletを作成
+     */
+    public createBullet(x: number, y: number, speed?: number, color?: string): Bullet | null {
+        const bulletPool = this.poolManager.getPool<Bullet>('bullet');
+        if (bulletPool) {
+            const bullet = bulletPool.get();
+            bullet.initialize(x, y, speed, color);
+            return bullet;
+        }
+        return null;
+    }
+
+    /**
+     * 背景オブジェクトを設定
+     */
+    public setBackgroundObjects(
+        stars: Star[], 
+        planets: Planet[], 
+        nebulas: Nebula[], 
+        auroras: Aurora[]
+    ): void {
+        this.stars = stars;
+        this.planets = planets;
+        this.nebulas = nebulas;
+        this.auroras = auroras;
+    }
+
+    /**
+     * ゲームをリセット
+     */
+    public reset(): void {
+        // プールオブジェクトを適切に返却
+        const bulletPool = this.poolManager.getPool<Bullet>('bullet');
+        const explosionPool = this.poolManager.getPool<Explosion>('explosion');
+
+        this.bullets.forEach(bullet => {
+            if (bulletPool) bulletPool.release(bullet);
+        });
+        this.explosions.forEach(explosion => {
+            if (explosionPool) explosionPool.release(explosion);
+        });
+
+        // 配列をクリア
+        this.bullets = [];
+        this.enemies = [];
+        this.explosions = [];
+        this.powerups = [];
+        this.bossBullets = [];
+        this.boss = null;
+    }
+
+    // ========================================
+    // Getter/Setter メソッド
+    // ========================================
+
+    public getBullets(): Bullet[] {
+        return this.bullets;
+    }
+
+    public getEnemies(): Enemy[] {
+        return this.enemies;
+    }
+
+    public getExplosions(): Explosion[] {
+        return this.explosions;
+    }
+
+    public getPowerups(): PowerUp[] {
+        return this.powerups;
+    }
+
+    public getBossBullets(): BossBullet[] {
+        return this.bossBullets;
+    }
+
+    public getBoss(): Boss | null {
+        return this.boss;
+    }
+
+    public setBoss(boss: Boss | null): void {
+        this.boss = boss;
+    }
+
+    public getStars(): Star[] {
+        return this.stars;
+    }
+
+    public getPlanets(): Planet[] {
+        return this.planets;
+    }
+
+    public getNebulas(): Nebula[] {
+        return this.nebulas;
+    }
+
+    public getAuroras(): Aurora[] {
+        return this.auroras;
+    }
+
+    public addEnemy(enemy: Enemy): void {
+        this.enemies.push(enemy);
+    }
+
+    public removeEnemy(enemy: Enemy): void {
+        const index = this.enemies.indexOf(enemy);
+        if (index > -1) {
+            this.enemies.splice(index, 1);
+        }
+    }
+
+    public addPowerUp(powerup: PowerUp): void {
+        this.powerups.push(powerup);
+    }
+
+    public removePowerUp(powerup: PowerUp): void {
+        const index = this.powerups.indexOf(powerup);
+        if (index > -1) {
+            this.powerups.splice(index, 1);
+        }
+    }
+
+    public addBossBullet(bullet: BossBullet): void {
+        this.bossBullets.push(bullet);
+    }
+
+    /**
+     * プールの統計情報を取得（デバッグ用）
+     */
+    public getPoolStats(): { [key: string]: number } {
+        return this.poolManager.getStats();
+    }
+
+    /**
+     * 衝突判定用の全オブジェクトを取得
+     */
+    public getAllCollidableObjects(): GameObject[] {
+        const objects: GameObject[] = [
+            ...this.bullets,
+            ...this.enemies,
+            ...this.powerups,
+            ...this.bossBullets
+        ];
+
+        if (this.boss) {
+            objects.push(this.boss);
+        }
+
+        return objects;
+    }
+}
+</file>
+
+<file path="docs/dependency-analysis.md">
+# 依存関係分析レポート
+
+## 📊 分析実行日
+**日付**: 2025/5/31 午後4:19  
+**分析者**: Tech Debt Improvement Project  
+**分析方法**: 静的解析（grep + 手動確認）
+
+---
+
+## 🔄 循環依存の特定
+
+### **循環依存 1: Game ⇔ Player**
+- **状況**: ✅ 調査完了（循環依存なし）
+- **パターン**: 
+  - `Game.ts` → `import { Player }` ✅ 確認済み
+  - `Player.ts` → 直接のGame import なし ✅ 確認済み
+- **影響度**: 低（直接的循環依存は存在しない）
+- **解決優先度**: P2
+
+### **循環依存 2: Game ⇔ Boss**
+- **状況**: ✅ 調査完了（循環依存確認）
+- **パターン**: 
+  - `Game.ts` → `import { Boss }` ✅ 確認済み
+  - `Boss.ts` → `import { Game }` ✅ 確認済み
+- **影響度**: 高
+- **解決優先度**: P0
+
+### **循環依存 3: Game ⇔ Enemy**
+- **状況**: ✅ 調査完了（循環依存確認）
+- **パターン**: 
+  - `Game.ts` → `import { Enemy }` ✅ 確認済み
+  - `Enemy.ts` → `import { Game }` ✅ 確認済み
+- **影響度**: 高
+- **解決優先度**: P0
+
+---
+
+## 📋 依存関係マップ
+
+### **Gameクラスを参照するファイル**
+```bash
+# 実行コマンド:
+find src -name "*.ts" -exec grep -l "import.*Game" {} \;
+
+# 結果: ✅ 実行完了
+src/core/Game.ts
+src/constants/GameConstants.ts
+src/managers/UIManager.ts
+src/managers/WaveManager.ts
+src/managers/GameStateManager.ts
+src/utils/SpatialHash.ts
+src/utils/CollisionUtils.ts
+src/factories/GameObjectFactory.ts
+src/index.ts
+src/events/EventType.ts
+src/entities/Nebula.ts
+src/entities/Explosion.ts
+src/entities/Enemy.ts
+src/entities/Bullet.ts
+src/entities/PowerUp.ts
+src/entities/Planet.ts
+src/entities/Player.ts
+src/entities/Aurora.ts
+src/entities/Boss.ts
+src/entities/Star.ts
+src/entities/BossBullet.ts
+```
+
+### **Player/Boss/Enemyを参照するファイル**
+```bash
+# 実行コマンド:
+find src -name "*.ts" -exec grep -l "import.*Player\|Boss\|Enemy" {} \;
+
+# 結果: ✅ 実行完了
+src/types/index.ts
+src/core/Game.ts
+src/constants/GameConstants.ts
+src/managers/WaveManager.ts
+src/factories/GameObjectFactory.ts
+src/index.ts
+src/events/EventType.ts
+src/entities/Enemy.ts
+src/entities/Boss.ts
+src/entities/BossBullet.ts
+```
+
+### **依存関係の詳細**
+
+#### **src/core/Game.ts の import**
+```typescript
+import { GAME_CONSTANTS } from '../constants/GameConstants';
+import { Aurora } from '../entities/Aurora';
+import { Boss } from '../entities/Boss';           // 循環依存の原因
+import { BossBullet } from '../entities/BossBullet';
+import { Bullet } from '../entities/Bullet';
+import { Enemy } from '../entities/Enemy';         // 循環依存の原因
+import { Explosion } from '../entities/Explosion';
+import { GameObject } from '../entities/GameObject';
+import { Nebula } from '../entities/Nebula';
+import { Planet } from '../entities/Planet';
+import { Player } from '../entities/Player';       // 一方向依存
+import { PowerUp } from '../entities/PowerUp';
+import { Star } from '../entities/Star';
+import { EventEmitter } from '../events/EventEmitter';
+import { EventMap } from '../events/EventType';
+import { GameObjectFactory } from '../factories/GameObjectFactory';
+import { GameStateManager } from '../managers/GameStateManager';
+import { ScoreManager } from '../managers/ScoreManager';
+import { WaveManager } from '../managers/WaveManager';
+import { EnemyType } from '../types';
+import { checkCollision } from '../utils/CollisionUtils';
+import { ObjectPool, PoolManager } from '../utils/ObjectPool';
+import { CollisionOptimizer } from '../utils/SpatialHash';
+```
+
+#### **src/entities/Player.ts の import**
+```typescript
+import { PowerUpType, Vector2D } from "../types";
+import { GAME_CONSTANTS } from "../constants/GameConstants";
+import { EventEmitter } from "../events/EventEmitter";
+import { Bullet } from "./Bullet";
+import { GameObject } from "./GameObject";
+import { EventMap } from "../events/EventType";
+```
+
+#### **src/entities/Boss.ts の import**
+```typescript
+import { Game } from "../core/Game";               // 循環依存の原因
+import { Vector2D } from "../types";
+import { GAME_CONSTANTS } from "../constants/GameConstants";
+import { BossBullet } from "./BossBullet";
+import { GameObject } from "./GameObject";
+```
+
+#### **src/entities/Enemy.ts の import**
+```typescript
+import { Game } from "../core/Game";               // 循環依存の原因
+import { EnemyType, MovementPattern, Vector2D } from "../types";
+import { GAME_CONSTANTS } from "../constants/GameConstants";
+import { GameObject } from "./GameObject";
+```
+
+---
+
+## 🎯 解決戦略
+
+### **Phase 1: インターフェース分離**
+1. `IGameEngine` インターフェース作成
+2. `GameInterface` を `IGameEngine` に置換
+3. 具象クラス依存を抽象インターフェース依存に変更
+
+### **Phase 2: イベント駆動通信**
+1. 直接メソッド呼び出しをイベント通信に変更
+2. `GameCommands` イベント定義
+3. 双方向参照の完全除去
+
+### **Phase 3: 検証**
+1. `npm run build` でエラーなし確認
+2. アプリケーション動作確認
+3. 循環依存の完全解消確認
+
+---
+
+## 📈 進捗状況
+
+### **分析進捗**
+- [x] 依存関係コマンド実行
+- [x] 循環依存3つの詳細調査
+- [x] import文の整理
+- [ ] 依存関係図の作成
+
+### **解決進捗**
+- [ ] IGameEngine インターフェース設計
+- [ ] Player.ts の GameInterface 置換（不要と判明）
+- [ ] Boss.ts の Game import 除去
+- [ ] Enemy.ts の Game import 除去
+- [ ] イベント駆動通信への移行
+- [ ] 循環依存解消の確認
+
+---
+
+## 🚨 発見された問題
+
+### **実際の循環依存**
+1. **Game ⇔ Boss**: 確実な循環依存を確認
+2. **Game ⇔ Enemy**: 確実な循環依存を確認
+3. **Game → Player**: 一方向依存のみ（循環依存ではない）
+
+### **追加の技術的負債**
+- Game.tsが23個のファイルをimportしている（God Object問題の証拠）
+- 21個のファイルがGameクラスを参照している（強結合問題）
+
+### **解決時の課題**
+- BossとEnemyクラスがGameインスタンスに直接依存している
+- 具体的な参照箇所を特定して適切なインターフェースに置換する必要がある
+
+### **注意事項**
+- Player.tsは循環依存を起こしていないため、優先度を下げる
+- Boss/Enemyの循環依存解消を最優先とする
+
+---
+
+**分析開始日**: 2025/5/31 午後4:16  
+**分析完了日**: 2025/5/31 午後4:20  
+**次回アクション**: Task 1.1.2 IGameEngine インターフェース作成
+</file>
+
+<file path="docs/performance-benchmarks.md">
+# パフォーマンス測定結果
+
+## 📊 概要
+技術的負債改善前後のパフォーマンス比較とベンチマーク結果
+
+---
+
+## 🎯 測定対象
+
+### **1. 衝突判定処理時間**
+- **対象**: `checkCollisions()` メソッド
+- **測定単位**: ミリ秒 (ms)
+- **測定条件**: オブジェクト数別（10, 50, 100, 200）
+
+### **2. 描画処理時間**
+- **対象**: `draw()` メソッド全体
+- **測定単位**: ミリ秒 (ms)
+- **測定条件**: 背景要素数別
+
+### **3. フレームレート**
+- **対象**: ゲーム全体のFPS
+- **測定単位**: FPS (frames per second)
+- **測定条件**: 通常プレイ、高負荷状態
+
+### **4. メモリ使用量**
+- **対象**: ヒープメモリ使用量
+- **測定単位**: MB
+- **測定条件**: 10分間プレイ後
+
+---
+
+## 📈 改善前ベースライン（2025/05/31）
+
+### **衝突判定性能**
+| オブジェクト数 | 処理時間 (ms) | アルゴリズム |
+|-------------|-------------|------------|
+| 10          | 未測定        | O(n²)      |
+| 50          | 未測定        | O(n²)      |
+| 100         | 未測定        | O(n²)      |
+| 200         | 未測定        | O(n²)      |
+
+### **描画性能**
+| 背景要素数 | 処理時間 (ms) | 最適化状況 |
+|----------|-------------|-----------|
+| 星100個   | 未測定        | 毎フレーム再描画 |
+| 惑星2個   | 未測定        | 毎フレーム再描画 |
+| 星雲1個   | 未測定        | 毎フレーム再描画 |
+
+### **フレームレート**
+| 状況 | FPS | 備考 |
+|-----|-----|-----|
+| 通常プレイ | 未測定 | 敵10体程度 |
+| 高負荷 | 未測定 | 敵50体以上 |
+
+### **メモリ使用量**
+| 時間 | メモリ (MB) | 備考 |
+|-----|-----------|-----|
+| 開始時 | 未測定 | ゲーム起動直後 |
+| 5分後 | 未測定 | 通常プレイ |
+| 10分後 | 未測定 | メモリリーク確認 |
+
+---
+
+## 🚀 改善後結果
+
+### **Phase 2完了後 (SpatialHash導入)**
+| オブジェクト数 | 改善前 (ms) | 改善後 (ms) | 改善率 |
+|-------------|-----------|-----------|-------|
+| 10          | TBD       | TBD       | TBD   |
+| 50          | TBD       | TBD       | TBD   |
+| 100         | TBD       | TBD       | TBD   |
+| 200         | TBD       | TBD       | TBD   |
+
+### **Phase 2完了後 (描画最適化)**
+| 背景要素数 | 改善前 (ms) | 改善後 (ms) | 改善率 |
+|----------|-----------|-----------|-------|
+| 星100個   | TBD       | TBD       | TBD   |
+| 惑星2個   | TBD       | TBD       | TBD   |
+| 星雲1個   | TBD       | TBD       | TBD   |
+
+---
+
+## 🔧 測定方法
+
+### **衝突判定の測定**
+```typescript
+// 測定コード例
+function measureCollisionPerformance() {
+  const start = performance.now();
+  
+  // 衝突判定処理
+  this.checkCollisions();
+  
+  const end = performance.now();
+  const duration = end - start;
+  
+  console.log(`Collision Detection: ${duration.toFixed(2)}ms`);
+  return duration;
+}
+```
+
+### **描画性能の測定**
+```typescript
+// 測定コード例  
+function measureRenderPerformance() {
+  const start = performance.now();
+  
+  // 描画処理
+  this.draw(ctx);
+  
+  const end = performance.now();
+  const duration = end - start;
+  
+  console.log(`Rendering: ${duration.toFixed(2)}ms`);
+  return duration;
+}
+```
+
+### **フレームレート測定**
+```typescript
+// FPS計測器
+class FPSCounter {
+  private frameCount = 0;
+  private lastTime = performance.now();
+  private fps = 0;
+  
+  update() {
+    this.frameCount++;
+    const currentTime = performance.now();
+    
+    if (currentTime - this.lastTime >= 1000) {
+      this.fps = this.frameCount;
+      this.frameCount = 0;
+      this.lastTime = currentTime;
+    }
+  }
+  
+  getFPS() {
+    return this.fps;
+  }
+}
+```
+
+### **メモリ使用量測定**
+```typescript
+// メモリ使用量チェック
+function measureMemoryUsage() {
+  if ('memory' in performance) {
+    const memory = (performance as any).memory;
+    return {
+      used: Math.round(memory.usedJSHeapSize / 1024 / 1024),
+      total: Math.round(memory.totalJSHeapSize / 1024 / 1024),
+      limit: Math.round(memory.jsHeapSizeLimit / 1024 / 1024)
+    };
+  }
+  return null;
+}
+```
+
+---
+
+## 📊 測定環境
+
+### **ハードウェア環境**
+- **CPU**: 未記録
+- **メモリ**: 未記録
+- **GPU**: 未記録
+
+### **ソフトウェア環境**
+- **OS**: macOS (推定)
+- **ブラウザ**: 未記録
+- **Node.js**: 未記録
+- **TypeScript**: 5.5.3
+
+### **測定条件**
+- **画面サイズ**: 400x600 (ゲームキャンバス)
+- **測定回数**: 各条件10回の平均値
+- **ウォームアップ**: 各測定前に5秒間の準備時間
+
+---
+
+## 🎯 性能目標
+
+### **Phase 2完了時の目標**
+- **衝突判定**: 30%以上の処理時間削減
+- **描画処理**: 50%以上の処理時間削減
+- **フレームレート**: 60FPS安定維持
+- **メモリ使用量**: 10分プレイでリーク0MB
+
+### **最終目標（全フェーズ完了時）**
+- **衝突判定**: 200オブジェクト時でも2ms以内
+- **描画処理**: 背景描画1ms以内
+- **フレームレート**: 高負荷時でも45FPS以上維持
+- **メモリ効率**: 30分プレイでメモリ増加10MB以内
+
+---
+
+## 📝 測定ログ
+
+### **2025/05/31 - ベースライン測定準備**
+- **状況**: 測定コード未実装
+- **次回アクション**: 測定コードの実装
+
+### **測定予定スケジュール**
+- [ ] **Phase 1完了時**: 改善前ベースライン測定
+- [ ] **Phase 2完了時**: SpatialHash効果測定
+- [ ] **Phase 2完了時**: 描画最適化効果測定
+- [ ] **Phase 3完了時**: 全体性能の最終確認
+
+---
+
+## 🚨 パフォーマンス課題
+
+### **発見された問題**
+*(測定中に発見されたボトルネックを記録)*
+
+### **改善案**
+*(追加の最適化提案を記録)*
+
+### **制限事項**
+*(技術的制約やトレードオフを記録)*
+
+---
+
+## 📚 参考情報
+
+### **パフォーマンス測定ツール**
+- `performance.now()` - 高精度時間測定
+- `performance.memory` - メモリ使用量（Chrome限定）
+- Chrome DevTools - プロファイリング
+
+### **最適化技術**
+- 空間分割 (SpatialHash)
+- オブジェクトプーリング
+- Canvas描画最適化
+- リクエストアニメーションフレーム最適化
+
+---
+
+**最終更新**: 2025/05/31  
+**次回測定予定**: Phase 1完了時  
+**目標達成期限**: Phase 2完了時（改善開始から5週間後）
+</file>
+
+<file path="docs/refactoring-notes.md">
+# リファクタリングメモ
+
+## 📝 概要
+技術的負債改善作業中に発見した問題、解決策、学習内容を記録
+
+---
+
+## 🔧 作業ログ
+
+### **2025/05/31 - プロジェクト開始**
+- **作業内容**: 技術的負債調査、改善計画策定
+- **発見事項**: 
+  - Gameクラスが500行超のGod Object
+  - 循環依存が3箇所で発生
+  - SpatialHashが実装済みだが未使用
+- **次回アクション**: 依存関係の具体的分析
+
+---
+
+## 💡 解決パターン集
+
+### **循環依存の解決方法**
+
+#### **パターン1: インターフェース分離**
+```typescript
+// Before: 具象クラス依存
+import { Game } from '../core/Game';
+private game: Game;
+
+// After: インターフェース依存
+import { IGameEngine } from '../interfaces/IGameEngine';
+private gameEngine: IGameEngine;
+```
+
+#### **パターン2: イベント駆動通信**
+```typescript
+// Before: 直接メソッド呼び出し
+this.game.createBullet(x, y);
+
+// After: イベント発行
+this.eventEmitter.emit('createBullet', { x, y });
+```
+
+#### **パターン3: 依存注入**
+```typescript
+// Before: 具象クラスを直接作成
+class Player {
+  constructor() {
+    this.game = new Game(); // 循環依存の原因
+  }
+}
+
+// After: 依存注入
+class Player {
+  constructor(private gameEngine: IGameEngine) {}
+}
+```
+
+### **大きなクラスの分割方法**
+
+#### **責務の特定**
+1. **単一責任原則の適用**: 1クラス1責務
+2. **関連するメソッドをグループ化**
+3. **依存関係の最小化**
+
+#### **分割の手順**
+1. 責務別にメソッドを分類
+2. 新しいクラス/インターフェースを設計
+3. 段階的にメソッドを移動
+4. 依存関係を再構築
+
+---
+
+## 🚨 よくある問題と対処法
+
+### **問題: TypeScriptコンパイルエラー**
+```bash
+# エラー例
+TS2305: Module '"./Game"' has no exported member 'GameInterface'.
+```
+**対処法**: インターフェースの export/import を確認
+
+### **問題: 実行時エラー**
+```bash
+# エラー例
+TypeError: Cannot read property 'createBullet' of undefined
+```
+**対処法**: 依存注入の設定を確認
+
+### **問題: 循環依存警告**
+```bash
+# 警告例
+Circular dependency detected: Game -> Player -> Game
+```
+**対処法**: イベント駆動通信への置換
+
+---
+
+## 📊 パフォーマンス改善メモ
+
+### **衝突判定最適化**
+- **現状**: O(n²) の総当たり判定
+- **改善案**: SpatialHashによるO(n)最適化
+- **実装場所**: `src/systems/CollisionSystem.ts`
+
+### **描画最適化**
+- **現状**: 毎フレーム全背景を再描画
+- **改善案**: 静的背景の事前レンダリング
+- **実装場所**: `src/rendering/BackgroundRenderer.ts`
+
+---
+
+## 🧪 テスト戦略
+
+### **テスト対象の優先順位**
+1. **P0**: コアロジック（Player, Game, CollisionUtils）
+2. **P1**: マネージャー系（ScoreManager, GameStateManager）
+3. **P2**: ファクトリー系（GameObjectFactory）
+
+### **モック戦略**
+```typescript
+// Canvas APIのモック
+const mockContext = {
+  fillRect: jest.fn(),
+  drawImage: jest.fn(),
+  // ...
+};
+
+// 時間関数のモック
+jest.spyOn(Date, 'now').mockReturnValue(1000);
+jest.spyOn(Math, 'random').mockReturnValue(0.5);
+```
+
+---
+
+## 🎯 アーキテクチャ決定記録
+
+### **ADR-001: インターフェース分離の採用**
+- **日付**: 2025/05/31
+- **決定**: 循環依存解消のためインターフェース分離を採用
+- **理由**: 
+  - テスタビリティの向上
+  - 依存関係の明確化
+  - 将来の拡張性確保
+- **トレードオフ**: 
+  - ファイル数の増加
+  - 初期実装コストの増加
+
+### **ADR-002: イベント駆動アーキテクチャの部分採用**
+- **日付**: 2025/05/31
+- **決定**: 循環依存が発生する箇所でイベント駆動通信を採用
+- **理由**:
+  - 完全な依存関係の分離
+  - 拡張性の向上
+- **トレードオフ**:
+  - デバッグの複雑化
+  - イベントの型安全性確保が必要
+
+---
+
+## 📚 学習メモ
+
+### **TypeScript関連**
+- 循環依存の検出方法
+- インターフェース分離の原則
+- 依存注入パターンの実装
+
+### **ゲーム開発関連**
+- 空間分割による衝突判定最適化
+- Canvas描画の最適化テクニック
+- ゲームループの設計パターン
+
+### **設計パターン関連**
+- Strategy パターンの活用場面
+- Observer パターン（EventEmitter）の応用
+- Factory パターンの拡張
+
+---
+
+## 🔜 次回セッション準備
+
+### **開始前チェック**
+- [ ] 前回の進捗確認
+- [ ] 動作確認（npm run dev）
+- [ ] 今回のタスク内容確認
+
+### **今回のタスク**
+**Task**: 1.1.1 依存関係の可視化
+- [ ] 依存関係コマンド実行
+- [ ] 結果をdependency-analysis.mdに記録
+- [ ] 循環依存の詳細分析
+
+### **想定課題**
+- Gameクラスの複雑な依存関係
+- 隠れた循環依存の発見
+- リファクタリング範囲の拡大
+
+---
+
+**最終更新**: 2025/05/31  
+**次回更新予定**: 次回セッション終了時
+</file>
+
+<file path="src/core/GameEngine.ts">
+/**
+ * GameEngine - ゲームループの管理を担当するクラス
+ * 
+ * 責務:
+ * - ゲームループの開始・停止・一時停止・再開
+ * - deltaTime 計算
+ * - requestAnimationFrame 管理
+ * - フレームレート制御
+ */
+export class GameEngine {
+    private lastTime = 0;
+    private deltaTime = 0;
+    private gameLoopId: number | null = null;
+    private isRunning = false;
+    private isPaused = false;
+
+    constructor(
+        private updateCallback: (deltaTime: number) => void,
+        private drawCallback: () => void
+    ) {}
+
+    /**
+     * ゲームを開始
+     */
+    public start(): void {
+        if (this.isRunning && !this.isPaused) {
+            return; // 既に実行中の場合は何もしない
+        }
+
+        this.isRunning = true;
+        this.isPaused = false;
+        this.lastTime = 0; // リセット
+        this.startGameLoop();
+    }
+
+    /**
+     * ゲームを一時停止
+     */
+    public pause(): void {
+        if (!this.isRunning || this.isPaused) {
+            return;
+        }
+
+        this.isPaused = true;
+        this.stopGameLoop();
+    }
+
+    /**
+     * ゲームを再開
+     */
+    public resume(): void {
+        if (!this.isRunning || !this.isPaused) {
+            return;
+        }
+
+        this.isPaused = false;
+        this.lastTime = 0; // リセットしてdeltaTimeのジャンプを防ぐ
+        this.startGameLoop();
+    }
+
+    /**
+     * ゲームを停止
+     */
+    public stop(): void {
+        this.isRunning = false;
+        this.isPaused = false;
+        this.stopGameLoop();
+    }
+
+    /**
+     * ゲームループの内部実装
+     */
+    private gameLoop = (currentTime: number): void => {
+        // deltaTime計算（初回は0にする）
+        this.deltaTime = this.lastTime === 0 ? 0 : (currentTime - this.lastTime) / 1000;
+        this.lastTime = currentTime;
+
+        // deltaTimeの上限を設定（長時間の一時停止後の異常な値を防ぐ）
+        this.deltaTime = Math.min(this.deltaTime, 1/30); // 最大30FPS相当
+
+        // ゲーム更新
+        this.updateCallback(this.deltaTime);
+        
+        // 描画
+        this.drawCallback();
+
+        // 次のフレームをリクエスト（停止されていない場合のみ）
+        if (this.isRunning && !this.isPaused) {
+            this.gameLoopId = requestAnimationFrame(this.gameLoop);
+        }
+    }
+
+    /**
+     * ゲームループを開始
+     */
+    private startGameLoop(): void {
+        if (this.gameLoopId === null) {
+            this.gameLoopId = requestAnimationFrame(this.gameLoop);
+        }
+    }
+
+    /**
+     * ゲームループを停止
+     */
+    private stopGameLoop(): void {
+        if (this.gameLoopId !== null) {
+            cancelAnimationFrame(this.gameLoopId);
+            this.gameLoopId = null;
+        }
+    }
+
+    /**
+     * 現在のdeltaTimeを取得
+     */
+    public getDeltaTime(): number {
+        return this.deltaTime;
+    }
+
+    /**
+     * ゲームが実行中かどうか
+     */
+    public isGameRunning(): boolean {
+        return this.isRunning && !this.isPaused;
+    }
+
+    /**
+     * ゲームが一時停止中かどうか
+     */
+    public isGamePaused(): boolean {
+        return this.isPaused;
+    }
+
+    /**
+     * デバッグ情報を取得
+     */
+    public getDebugInfo(): {
+        isRunning: boolean;
+        isPaused: boolean;
+        deltaTime: number;
+        fps: number;
+    } {
+        return {
+            isRunning: this.isRunning,
+            isPaused: this.isPaused,
+            deltaTime: this.deltaTime,
+            fps: this.deltaTime > 0 ? Math.round(1 / this.deltaTime) : 0
+        };
+    }
+}
+</file>
 
 <file path="src/entities/Aurora.ts">
 import { GAME_CONSTANTS } from "../constants/GameConstants";
@@ -517,6 +1684,34 @@ export class EventEmitter<EventMap extends Record<string, any>> {
             }
         });
     }
+}
+</file>
+
+<file path="src/interfaces/IGameEngine.ts">
+import { BossBullet } from '../entities/BossBullet';
+import { Bullet } from '../entities/Bullet';
+
+/**
+ * ゲームエンジンのインターフェース
+ * 循環依存を解消するため、GameクラスとEntityクラス間の結合を抽象化
+ */
+export interface IGameEngine {
+  /**
+   * ボス弾を追加する
+   */
+  addBossBullet(bullet: BossBullet): void;
+
+  /**
+   * 現在の難易度係数を取得
+   * ウェーブ数に基づいて敵の強度を調整するための係数
+   */
+  getDifficultyFactor(): number;
+
+  /**
+   * プレイヤー弾を作成する
+   * オブジェクトプールを使用した弾丸の効率的な管理
+   */
+  createBullet(x: number, y: number, speed?: number, color?: string): Bullet | null;
 }
 </file>
 
@@ -1294,426 +2489,6 @@ export default defineConfig({
 })
 </file>
 
-<file path="src/entities/Boss.ts">
-import { Game } from "../core/Game";
-import { Vector2D } from "../types";
-import { GAME_CONSTANTS } from "../constants/GameConstants";
-import { BossBullet } from "./BossBullet";
-import { GameObject } from "./GameObject";
-
-export class Boss extends GameObject {
-    private health: number;
-    private moveDirection: number = 1;
-    private lastFireTime: number = 0;
-    private game: Game;
-    private animationPhase: number = 0;
-    private corePulse: number = 0;
-    
-    // プレイヤーと統一感のある洗練された要素
-    private engineGlow: { phase: number; intensity: number } = { phase: 0, intensity: 0 };
-    private shieldLayers: Array<{ radius: number; rotation: number; opacity: number; speed: number }> = [];
-    private geometricPanels: Array<{ x: number; y: number; size: number; rotation: number; glow: number }> = [];
-    private thrusterNodes: Array<{ x: number; y: number; size: number; pulse: number }> = [];
-    private energyBeams: Array<{ angle: number; length: number; intensity: number; rotation: number }> = [];
-
-    constructor(game: Game) {
-        super(
-            GAME_CONSTANTS.CANVAS.WIDTH / 2 - GAME_CONSTANTS.BOSS.WIDTH / 2,
-            -GAME_CONSTANTS.BOSS.HEIGHT,
-            GAME_CONSTANTS.BOSS.WIDTH,
-            GAME_CONSTANTS.BOSS.HEIGHT
-        );
-        this.health = game.getCurrentBossHealth();
-        this.game = game;
-        
-        this.initializeRefinedStructure();
-    }
-
-    private initializeRefinedStructure(): void {
-        // プレイヤーのような多層シールド
-        const shieldCount = 4;
-        for (let i = 0; i < shieldCount; i++) {
-            this.shieldLayers.push({
-                radius: 40 + i * 25,
-                rotation: Math.random() * Math.PI * 2,
-                opacity: Math.random() * Math.PI * 2,
-                speed: 0.3 + i * 0.2
-            });
-        }
-
-        // 幾何学的パネル - プレイヤーの補助翼のような要素
-        const panelCount = 8;
-        for (let i = 0; i < panelCount; i++) {
-            this.geometricPanels.push({
-                x: (Math.random() - 0.5) * this.width * 0.7,
-                y: (Math.random() - 0.5) * this.height * 0.7,
-                size: 8 + Math.random() * 12,
-                rotation: Math.random() * Math.PI * 2,
-                glow: Math.random() * Math.PI * 2
-            });
-        }
-
-        // スラスターノード - プレイヤーのエンジンのような要素
-        const nodeCount = 6;
-        for (let i = 0; i < nodeCount; i++) {
-            this.thrusterNodes.push({
-                x: (Math.random() - 0.5) * this.width * 0.5,
-                y: (Math.random() - 0.5) * this.height * 0.5,
-                size: 6 + Math.random() * 8,
-                pulse: Math.random() * Math.PI * 2
-            });
-        }
-
-        // エネルギービーム
-        const beamCount = 12;
-        for (let i = 0; i < beamCount; i++) {
-            this.energyBeams.push({
-                angle: (i / beamCount) * Math.PI * 2,
-                length: 25 + Math.random() * 20,
-                intensity: Math.random() * Math.PI * 2,
-                rotation: (Math.random() - 0.5) * 0.02
-            });
-        }
-    }
-
-    public update(deltaTime: number): void {
-        if (this.y < 50) {
-            this.y += GAME_CONSTANTS.BOSS.INITIAL_SPEED * deltaTime;
-        } else {
-            const nextX = this.x + this.moveDirection * GAME_CONSTANTS.BOSS.MOVEMENT_SPEED * deltaTime;
-
-            if (nextX <= 0) {
-                this.x = 0;
-                this.moveDirection = 1;
-            } else if (nextX + this.width >= GAME_CONSTANTS.CANVAS.WIDTH) {
-                this.x = GAME_CONSTANTS.CANVAS.WIDTH - this.width;
-                this.moveDirection = -1;
-            } else {
-                this.x = nextX;
-            }
-        }
-
-        // プレイヤーのような洗練されたアニメーション
-        this.animationPhase += deltaTime * 1.5;
-        this.corePulse += deltaTime * 2.8;
-        
-        // エンジンのグロー更新
-        this.engineGlow.phase += deltaTime * 8;
-        this.engineGlow.intensity += deltaTime * 3;
-        
-        // シールドレイヤーの回転
-        this.shieldLayers.forEach((shield, index) => {
-            shield.rotation += deltaTime * shield.speed;
-            shield.opacity += deltaTime * (2 + index * 0.3);
-        });
-        
-        // 幾何学的パネルの回転と発光
-        this.geometricPanels.forEach((panel, index) => {
-            panel.rotation += deltaTime * (0.6 + index * 0.1);
-            panel.glow += deltaTime * (2.5 + index * 0.2);
-        });
-        
-        // スラスターノードの脈動
-        this.thrusterNodes.forEach((node, index) => {
-            node.pulse += deltaTime * (3 + index * 0.4);
-        });
-
-        // エネルギービームの回転
-        this.energyBeams.forEach((beam, index) => {
-            beam.angle += beam.rotation * deltaTime;
-            beam.intensity += deltaTime * (2.2 + index * 0.1);
-        });
-
-        const currentTime = Date.now();
-        if (currentTime - this.lastFireTime > GAME_CONSTANTS.BOSS.FIRE_RATE) {
-            this.shoot();
-            this.lastFireTime = currentTime;
-        }
-    }
-
-    private shoot(): void {
-        const angleSpread = Math.PI / 6;
-        for (let i = -2; i <= 2; i++) {
-            const angle = i * (angleSpread / 4);
-            const speedX = Math.sin(angle) * GAME_CONSTANTS.BOSS.BULLET_SPEED;
-            const speedY = Math.cos(angle) * GAME_CONSTANTS.BOSS.BULLET_SPEED;
-            this.game.addBossBullet(new BossBullet(
-                this.x + this.width / 2,
-                this.y + this.height,
-                speedX,
-                speedY
-            ));
-        }
-    }
-
-    public draw(ctx: CanvasRenderingContext2D): void {
-        ctx.save();
-        ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
-
-        // プレイヤーと統一感のある描画順序
-        this.drawShieldLayers(ctx);
-        this.drawMainBody(ctx);
-        this.drawGeometricPanels(ctx);
-        this.drawThrusterNodes(ctx);
-        this.drawEnergyBeams(ctx);
-        this.drawCore(ctx);
-
-        ctx.restore();
-        this.drawHealthBar(ctx);
-    }
-
-    private drawMainBody(ctx: CanvasRenderingContext2D): void {
-        const baseRadius = this.width / 2.8;
-        
-        // プレイヤーと同様の深い青系グラデーション
-        const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, baseRadius * 1.4);
-        gradient.addColorStop(0, GAME_CONSTANTS.PLAYER.COLORS.ACCENT); // シアン
-        gradient.addColorStop(0.4, GAME_CONSTANTS.PLAYER.COLORS.SECONDARY); // 紺碧
-        gradient.addColorStop(1, GAME_CONSTANTS.PLAYER.COLORS.PRIMARY); // 濃紺
-        
-        ctx.fillStyle = gradient;
-        ctx.strokeStyle = GAME_CONSTANTS.PLAYER.COLORS.ACCENT;
-        ctx.lineWidth = 3;
-        
-        // プレイヤーのような幾何学的形状（複雑な多角形）
-        const vertices = 16;
-        ctx.beginPath();
-        for (let i = 0; i < vertices; i++) {
-            const angle = (i / vertices) * Math.PI * 2;
-            const wave1 = Math.sin(this.animationPhase * 0.7 + angle * 3) * (baseRadius * 0.15);
-            const wave2 = Math.cos(this.animationPhase * 1.1 + angle * 5) * (baseRadius * 0.08);
-            const radius = baseRadius + wave1 + wave2;
-            
-            const x = Math.cos(angle) * radius;
-            const y = Math.sin(angle) * radius * 0.9;
-            
-            if (i === 0) {
-                ctx.moveTo(x, y);
-            } else {
-                ctx.lineTo(x, y);
-            }
-        }
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-    }
-
-    private drawShieldLayers(ctx: CanvasRenderingContext2D): void {
-        this.shieldLayers.forEach((shield, index) => {
-            const opacity = Math.sin(shield.opacity) * 0.3 + 0.4;
-            const alpha = Math.floor(opacity * 255).toString(16).padStart(2, '0');
-            
-            // プレイヤーのシールドと同様の色
-            ctx.strokeStyle = `${GAME_CONSTANTS.PLAYER.COLORS.ACCENT}${alpha}`;
-            ctx.lineWidth = 2 - index * 0.3;
-            
-            // 波打つシールドリング
-            ctx.beginPath();
-            const segments = 32;
-            for (let i = 0; i <= segments; i++) {
-                const angle = (i / segments) * Math.PI * 2 + shield.rotation;
-                const wave = Math.sin(angle * 4 + shield.opacity) * 6;
-                const radius = shield.radius + wave;
-                
-                const x = Math.cos(angle) * radius;
-                const y = Math.sin(angle) * radius;
-                
-                if (i === 0) {
-                    ctx.moveTo(x, y);
-                } else {
-                    ctx.lineTo(x, y);
-                }
-            }
-            ctx.stroke();
-        });
-    }
-
-    private drawGeometricPanels(ctx: CanvasRenderingContext2D): void {
-        this.geometricPanels.forEach((panel) => {
-            ctx.save();
-            ctx.translate(panel.x, panel.y);
-            ctx.rotate(panel.rotation);
-            
-            const glowIntensity = Math.sin(panel.glow) * 0.5 + 0.5;
-            const alpha = Math.floor(glowIntensity * 255).toString(16).padStart(2, '0');
-            
-            // プレイヤーの補助翼のような幾何学的形状
-            ctx.fillStyle = `${GAME_CONSTANTS.PLAYER.COLORS.SECONDARY}${alpha}`;
-            ctx.strokeStyle = `${GAME_CONSTANTS.PLAYER.COLORS.ACCENT}${alpha}`;
-            ctx.lineWidth = 1.5;
-            
-            const size = panel.size;
-            ctx.beginPath();
-            ctx.moveTo(0, -size);
-            ctx.lineTo(-size * 0.6, size * 0.4);
-            ctx.lineTo(0, size * 0.7);
-            ctx.lineTo(size * 0.6, size * 0.4);
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
-            
-            // 内部の発光
-            ctx.fillStyle = `rgba(255, 255, 255, ${glowIntensity * 0.6})`;
-            ctx.beginPath();
-            ctx.arc(0, 0, size * 0.4, 0, Math.PI * 2);
-            ctx.fill();
-            
-            ctx.restore();
-        });
-    }
-
-    private drawThrusterNodes(ctx: CanvasRenderingContext2D): void {
-        this.thrusterNodes.forEach((node) => {
-            const pulseSize = Math.sin(node.pulse) * 3;
-            const size = node.size + pulseSize;
-            const intensity = Math.sin(node.pulse * 1.5) * 0.4 + 0.6;
-            
-            // プレイヤーのエンジンのようなグラデーション
-            const gradient = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, size * 3);
-            gradient.addColorStop(0, GAME_CONSTANTS.PLAYER.COLORS.ENGINE); // オレンジ
-            gradient.addColorStop(0.4, `${GAME_CONSTANTS.PLAYER.COLORS.ENGINE}80`);
-            gradient.addColorStop(1, `${GAME_CONSTANTS.PLAYER.COLORS.ENGINE}00`);
-            
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.arc(node.x, node.y, size * 3, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // 中心の明るいコア
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-            ctx.globalAlpha = intensity;
-            ctx.beginPath();
-            ctx.arc(node.x, node.y, size, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.globalAlpha = 1;
-        });
-    }
-
-    private drawEnergyBeams(ctx: CanvasRenderingContext2D): void {
-        this.energyBeams.forEach((beam) => {
-            const intensity = Math.sin(beam.intensity) * 0.5 + 0.5;
-            const alpha = Math.floor(intensity * 150).toString(16).padStart(2, '0');
-            
-            ctx.strokeStyle = `${GAME_CONSTANTS.PLAYER.COLORS.ACCENT}${alpha}`;
-            ctx.lineWidth = 2;
-            
-            const startRadius = this.width / 4;
-            const endRadius = startRadius + beam.length;
-            
-            ctx.beginPath();
-            ctx.moveTo(Math.cos(beam.angle) * startRadius, Math.sin(beam.angle) * startRadius);
-            ctx.lineTo(Math.cos(beam.angle) * endRadius, Math.sin(beam.angle) * endRadius);
-            ctx.stroke();
-            
-            // ビームの先端の光点
-            const lightX = Math.cos(beam.angle) * endRadius;
-            const lightY = Math.sin(beam.angle) * endRadius;
-            
-            ctx.fillStyle = `rgba(255, 255, 255, ${intensity * 0.9})`;
-            ctx.beginPath();
-            ctx.arc(lightX, lightY, 2.5, 0, Math.PI * 2);
-            ctx.fill();
-        });
-    }
-
-    private drawCore(ctx: CanvasRenderingContext2D): void {
-        const coreSize = 15 + Math.sin(this.corePulse) * 5;
-        const engineGlowSize = 8 + Math.sin(this.engineGlow.phase) * 3;
-        
-        // プレイヤーのコックピットのような中央コア
-        const coreGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, coreSize * 2);
-        coreGradient.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
-        coreGradient.addColorStop(0.5, `${GAME_CONSTANTS.PLAYER.COLORS.ACCENT}CC`);
-        coreGradient.addColorStop(1, `${GAME_CONSTANTS.PLAYER.COLORS.PRIMARY}80`);
-        
-        ctx.fillStyle = coreGradient;
-        ctx.beginPath();
-        ctx.arc(0, 0, coreSize * 2, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // メインコア
-        ctx.fillStyle = GAME_CONSTANTS.PLAYER.COLORS.ACCENT;
-        ctx.beginPath();
-        ctx.arc(0, 0, coreSize, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // プレイヤーのエンジンのような輝き
-        const engineGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, engineGlowSize);
-        engineGradient.addColorStop(0, GAME_CONSTANTS.PLAYER.COLORS.ENGINE);
-        engineGradient.addColorStop(0.5, `${GAME_CONSTANTS.PLAYER.COLORS.ENGINE}80`);
-        engineGradient.addColorStop(1, `${GAME_CONSTANTS.PLAYER.COLORS.ENGINE}00`);
-        
-        ctx.fillStyle = engineGradient;
-        ctx.beginPath();
-        ctx.arc(0, 0, engineGlowSize, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // 放射状のエネルギー線
-        ctx.strokeStyle = `rgba(255, 255, 255, 0.8)`;
-        ctx.lineWidth = 2;
-        for (let i = 0; i < 8; i++) {
-            const angle = (i / 8) * Math.PI * 2 + this.corePulse * 0.4;
-            const innerLength = coreSize * 0.8;
-            const outerLength = coreSize + Math.sin(this.corePulse + i * 0.5) * 10;
-            
-            ctx.beginPath();
-            ctx.moveTo(Math.cos(angle) * innerLength, Math.sin(angle) * innerLength);
-            ctx.lineTo(Math.cos(angle) * outerLength, Math.sin(angle) * outerLength);
-            ctx.stroke();
-        }
-    }
-
-    private drawHealthBar(ctx: CanvasRenderingContext2D): void {
-        const healthPercentage = this.health / GAME_CONSTANTS.BOSS.INITIAL_HEALTH;
-        const barWidth = this.width + 20;
-        const barHeight = 8;
-        
-        // 体力バーの背景
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-        ctx.fillRect(this.x - 10, this.y - 35, barWidth, barHeight + 4);
-        
-        // プレイヤーの色と統一感のあるグラデーション
-        const gradient = ctx.createLinearGradient(this.x - 8, 0, this.x - 8 + barWidth - 4, 0);
-        if (healthPercentage > 0.6) {
-            gradient.addColorStop(0, GAME_CONSTANTS.PLAYER.COLORS.ACCENT);
-            gradient.addColorStop(1, '#88ffff');
-        } else if (healthPercentage > 0.3) {
-            gradient.addColorStop(0, GAME_CONSTANTS.PLAYER.COLORS.ENGINE);
-            gradient.addColorStop(1, '#ffcc88');
-        } else {
-            gradient.addColorStop(0, '#ff4444');
-            gradient.addColorStop(1, '#ffaaaa');
-        }
-        
-        ctx.fillStyle = gradient;
-        ctx.fillRect(this.x - 8, this.y - 33, (barWidth - 4) * healthPercentage, barHeight);
-        
-        // 体力バーの枠
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(this.x - 8, this.y - 33, barWidth - 4, barHeight);
-        
-        // 低体力時のフリッカーエフェクト
-        if (healthPercentage < 0.3) {
-            const flicker = Math.sin(this.animationPhase * 8) * 0.4 + 0.6;
-            ctx.globalAlpha = flicker;
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-            ctx.fillRect(this.x - 8, this.y - 33, (barWidth - 4) * healthPercentage, barHeight);
-            ctx.globalAlpha = 1;
-        }
-    }
-
-    public takeDamage(): boolean {
-        this.health--;
-        return this.health <= 0;
-    }
-
-    public getPosition(): Vector2D {
-        return { x: this.x, y: this.y };
-    }
-}
-</file>
-
 <file path="src/entities/Bullet.ts">
 import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { GameObject } from "./GameObject";
@@ -1785,347 +2560,6 @@ export class Bullet extends GameObject {
     public setType(speed: number, color: string): void {
         this.speed = speed;
         this.color = color;
-    }
-}
-</file>
-
-<file path="src/entities/Enemy.ts">
-import { Game } from "../core/Game";
-import { EnemyType, MovementPattern, Vector2D } from "../types";
-import { GAME_CONSTANTS } from "../constants/GameConstants";
-import { GameObject } from "./GameObject";
-
-export class Enemy extends GameObject {
-    private type: EnemyType;
-    private speed: number;
-    private health: number;
-    private score: number;
-    private color: string;
-    private movementPattern: MovementPattern;
-    private movementTimer: number = 0;
-    private game: Game;
-    private animationPhase: number = 0;
-
-    // 洗練されたデザイン要素
-    private geometricSegments: Array<{ angle: number; radius: number; rotation: number; glow: number }> = [];
-    private energyCore: { pulse: number; intensity: number } = { pulse: 0, intensity: 0 };
-    private thrusterParticles: Array<{ x: number; y: number; life: number; speed: number }> = [];
-    private shieldRings: Array<{ radius: number; rotation: number; opacity: number }> = [];
-    private damageFlicker: number = 0;
-
-    constructor(type: EnemyType, x: number, y: number, game: Game) {
-        const enemyData = GAME_CONSTANTS.ENEMY.TYPES[type];
-        super(x, y, enemyData.width, enemyData.height);
-        this.type = type;
-        this.speed = enemyData.speed;
-        this.health = enemyData.health;
-        this.score = enemyData.score;
-        this.color = enemyData.color;
-        this.movementPattern = this.getMovementPatternForType();
-        this.game = game;
-
-        this.initializeGeometricStructure();
-    }
-
-    private initializeGeometricStructure(): void {
-        const complexity = this.type === 'SMALL' ? 1 : this.type === 'MEDIUM' ? 2 : 3;
-
-        // 幾何学的セグメント - プレイヤーのような洗練された形状
-        const segmentCount = 3 + complexity * 2;
-        for (let i = 0; i < segmentCount; i++) {
-            this.geometricSegments.push({
-                angle: (i / segmentCount) * Math.PI * 2,
-                radius: (this.width / 3) + Math.random() * (this.width / 6),
-                rotation: Math.random() * Math.PI * 2,
-                glow: Math.random() * Math.PI * 2
-            });
-        }
-
-        // シールドリング
-        const ringCount = complexity;
-        for (let i = 0; i < ringCount; i++) {
-            this.shieldRings.push({
-                radius: (this.width / 2) + (i * 8),
-                rotation: Math.random() * Math.PI * 2,
-                opacity: Math.random() * Math.PI * 2
-            });
-        }
-    }
-
-    private getMovementPatternForType(): MovementPattern {
-        switch (this.type) {
-            case 'SMALL':
-                return Math.random() > 0.5 ? 'zigzag' : 'sine';
-            case 'MEDIUM':
-                return Math.random() > 0.3 ? 'sine' : 'straight';
-            case 'LARGE':
-                return 'straight';
-            default:
-                return 'straight';
-        }
-    }
-
-    public update(deltaTime: number): void {
-        const speedMultiplier = 1 + this.game.getDifficultyFactor();
-        this.y += this.speed * speedMultiplier * deltaTime;
-
-        this.movementTimer += 2.5 * deltaTime;
-        switch (this.movementPattern) {
-            case 'zigzag':
-                this.x += Math.sin(this.movementTimer * 2.5) * 1.8;
-                break;
-            case 'sine':
-                this.x += Math.sin(this.movementTimer * 1.2) * 1.2;
-                break;
-        }
-
-        if (this.x < 0 || this.x + this.width > GAME_CONSTANTS.CANVAS.WIDTH) {
-            this.movementPattern = 'straight';
-        }
-
-        // 洗練されたアニメーション
-        this.animationPhase += deltaTime * 2.0;
-        this.damageFlicker = Math.max(0, this.damageFlicker - deltaTime * 3);
-
-        // エネルギーコアの脈動
-        this.energyCore.pulse += deltaTime * 3.0;
-        this.energyCore.intensity += deltaTime * 2.5;
-
-        // 幾何学的セグメントの回転
-        this.geometricSegments.forEach((segment, index) => {
-            segment.rotation += deltaTime * (0.8 + index * 0.2);
-            segment.glow += deltaTime * (2.5 + index * 0.3);
-        });
-
-        // シールドリングの回転
-        this.shieldRings.forEach((ring, index) => {
-            ring.rotation += deltaTime * (0.5 + index * 0.3);
-            ring.opacity += deltaTime * (1.8 + index * 0.4);
-        });
-
-        // スラスターパーティクルの生成
-        this.generateThrusterParticles();
-        this.updateThrusterParticles(deltaTime);
-    }
-
-    private generateThrusterParticles(): void {
-        if (Math.random() > 0.7) {
-            this.thrusterParticles.push({
-                x: (Math.random() - 0.5) * this.width * 0.4,
-                y: this.height / 2,
-                life: 1.0,
-                speed: 30 + Math.random() * 20
-            });
-        }
-    }
-
-    private updateThrusterParticles(deltaTime: number): void {
-        for (let i = this.thrusterParticles.length - 1; i >= 0; i--) {
-            const particle = this.thrusterParticles[i];
-            particle.y += particle.speed * deltaTime;
-            particle.life -= deltaTime * 2;
-
-            if (particle.life <= 0) {
-                this.thrusterParticles.splice(i, 1);
-            }
-        }
-    }
-
-    public draw(ctx: CanvasRenderingContext2D): void {
-        ctx.save();
-        ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
-
-        // 洗練された描画順序
-        this.drawShieldRings(ctx);
-        this.drawMainBody(ctx);
-        this.drawGeometricSegments(ctx);
-        this.drawEnergyCore(ctx);
-        this.drawThrusterParticles(ctx);
-
-        ctx.restore();
-    }
-
-    private drawMainBody(ctx: CanvasRenderingContext2D): void {
-        const baseRadius = Math.min(this.width, this.height) / 2.2;
-
-        // プレイヤーのような洗練されたグラデーション
-        const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, baseRadius * 1.3);
-        gradient.addColorStop(0, this.color);
-        gradient.addColorStop(0.6, this.adjustColorBrightness(this.color, -0.4));
-        gradient.addColorStop(1, this.adjustColorBrightness(this.color, -0.7));
-
-        ctx.fillStyle = gradient;
-        ctx.strokeStyle = this.adjustColorBrightness(this.color, 0.3);
-        ctx.lineWidth = 2;
-
-        // プレイヤーのような幾何学的形状
-        let vertices: number;
-        switch (this.type) {
-            case 'SMALL':
-                vertices = 6; // 六角形
-                break;
-            case 'MEDIUM':
-                vertices = 8; // 八角形
-                break;
-            case 'LARGE':
-                vertices = 12; // 十二角形
-                break;
-            default:
-                vertices = 6;
-        }
-
-        ctx.beginPath();
-        for (let i = 0; i < vertices; i++) {
-            const angle = (i / vertices) * Math.PI * 2;
-            const wave = Math.sin(this.animationPhase + angle * 2) * (baseRadius * 0.08);
-            const radius = baseRadius + wave;
-
-            const x = Math.cos(angle) * radius;
-            const y = Math.sin(angle) * radius;
-
-            if (i === 0) {
-                ctx.moveTo(x, y);
-            } else {
-                ctx.lineTo(x, y);
-            }
-        }
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        // ダメージ時のエフェクト
-        if (this.damageFlicker > 0) {
-            ctx.fillStyle = `rgba(255, 255, 255, ${this.damageFlicker * 0.7})`;
-            ctx.fill();
-        }
-    }
-
-    private drawShieldRings(ctx: CanvasRenderingContext2D): void {
-        this.shieldRings.forEach((ring) => {
-            const opacity = Math.sin(ring.opacity) * 0.3 + 0.4;
-
-            ctx.strokeStyle = `${this.color}${Math.floor(opacity * 255).toString(16).padStart(2, '0')}`;
-            ctx.lineWidth = 1.5;
-
-            ctx.beginPath();
-            ctx.arc(0, 0, ring.radius, 0, Math.PI * 2);
-            ctx.stroke();
-        });
-    }
-
-    private drawGeometricSegments(ctx: CanvasRenderingContext2D): void {
-        this.geometricSegments.forEach((segment) => {
-            ctx.save();
-
-            const x = Math.cos(segment.angle) * segment.radius * 0.7;
-            const y = Math.sin(segment.angle) * segment.radius * 0.7;
-
-            ctx.translate(x, y);
-            ctx.rotate(segment.rotation);
-
-            const glowIntensity = Math.sin(segment.glow) * 0.5 + 0.5;
-            const alpha = glowIntensity * 0.8;
-
-            // プレイヤーのような幾何学的詳細
-            ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-            ctx.strokeStyle = `${this.color}${Math.floor(alpha * 255).toString(16).padStart(2, '0')}`;
-            ctx.lineWidth = 1;
-
-            // 小さな幾何学的形状
-            const size = this.width * 0.15;
-            ctx.beginPath();
-            ctx.moveTo(0, -size);
-            ctx.lineTo(-size * 0.6, size * 0.3);
-            ctx.lineTo(size * 0.6, size * 0.3);
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
-
-            ctx.restore();
-        });
-    }
-
-    private drawEnergyCore(ctx: CanvasRenderingContext2D): void {
-        const coreSize = (this.width * 0.2) + Math.sin(this.energyCore.pulse) * 2;
-        const intensity = Math.sin(this.energyCore.intensity) * 0.4 + 0.6;
-
-        // プレイヤーのエンジンのようなグラデーション
-        const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, coreSize * 2);
-        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
-        gradient.addColorStop(0.4, `${this.color}CC`);
-        gradient.addColorStop(1, `${this.color}00`);
-
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(0, 0, coreSize * 2, 0, Math.PI * 2);
-        ctx.fill();
-
-        // 中心の明るいコア
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-        ctx.beginPath();
-        ctx.arc(0, 0, coreSize, 0, Math.PI * 2);
-        ctx.fill();
-
-        // LARGEタイプには放射状エフェクト
-        if (this.type === 'LARGE') {
-            ctx.strokeStyle = `rgba(255, 255, 255, ${intensity * 0.6})`;
-            ctx.lineWidth = 2;
-
-            for (let i = 0; i < 8; i++) {
-                const angle = (i / 8) * Math.PI * 2 + this.energyCore.pulse * 0.3;
-                const length = coreSize + Math.sin(this.energyCore.pulse + i) * 6;
-
-                ctx.beginPath();
-                ctx.moveTo(Math.cos(angle) * coreSize, Math.sin(angle) * coreSize);
-                ctx.lineTo(Math.cos(angle) * length, Math.sin(angle) * length);
-                ctx.stroke();
-            }
-        }
-    }
-
-    private drawThrusterParticles(ctx: CanvasRenderingContext2D): void {
-        this.thrusterParticles.forEach(particle => {
-            const alpha = particle.life;
-            const size = 3 * particle.life;
-
-            ctx.fillStyle = `${this.color}${Math.floor(alpha * 255).toString(16).padStart(2, '0')}`;
-            ctx.beginPath();
-            ctx.arc(particle.x, particle.y, size, 0, Math.PI * 2);
-            ctx.fill();
-        });
-    }
-
-    private adjustColorBrightness(hex: string, percent: number): string {
-        const num = parseInt(hex.replace("#", ""), 16);
-        const amt = Math.round(2.55 * percent * 100);
-        const R = (num >> 16) + amt;
-        const G = (num >> 8 & 0x00FF) + amt;
-        const B = (num & 0x0000FF) + amt;
-        return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
-            (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
-            (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
-    }
-
-    public takeDamage(): boolean {
-        this.health--;
-        this.damageFlicker = 1;
-        return this.health <= 0;
-    }
-
-    public getScore(): number {
-        return this.score;
-    }
-
-    public isOnScreen(): boolean {
-        return this.y < GAME_CONSTANTS.CANVAS.HEIGHT;
-    }
-
-    public getPosition(): Vector2D {
-        return { x: this.x, y: this.y };
-    }
-
-    public getType(): EnemyType {
-        return this.type;
     }
 }
 </file>
@@ -2261,8 +2695,10 @@ import { Enemy } from "../entities/Enemy";
 import { PowerUp } from "../entities/PowerUp";
 import { GameStateKey } from "../managers/GameStateManager";
 import { WaveConfig } from "../types";
+import { GameCommandMap } from "./GameCommands";
 
 export type EventMap = Readonly<{
+    // ゲーム状態イベント
     'enemyDestroyed': (enemy: Enemy) => void;
     'playerShot': (bulltet: Bullet) => void;
     'playerDamaged': (damage: number) => void;
@@ -2284,156 +2720,7 @@ export type EventMap = Readonly<{
     'stateChanged': (newState: GameStateKey) => void;
     'waveStarted': (waveConfig: WaveConfig) => void;
     'waveCompleted': (waveNumber: number, bonusScore: number) => void;
-}>;
-</file>
-
-<file path="src/managers/GameStateManager.ts">
-import { Game } from "../core/Game";
-import { EventEmitter } from "../events/EventEmitter";
-import { EventMap } from "../events/EventType";
-
-export type GameStateKey = 'STARTING' | 'PLAYING' | 'PAUSED' | 'GAME_OVER';
-
-export interface GameState {
-    enter(game: Game): void;
-    update(game: Game): void;
-    exit(game: Game): void;
-    handleInput(game: Game, input: string): void;
-}
-
-class StartingState implements GameState {
-    enter(game: Game): void {
-        console.log("Entering Starting state");
-        game.resetGame();
-        game.showMessage("Press SPACE to start the game");
-    }
-
-    update(_game: Game): void {
-        // Starting state doesn't need update logic
-    }
-
-    exit(game: Game): void {
-        console.log("Exiting Starting state");
-        game.hideMessage();
-    }
-
-    handleInput(game: Game, input: string): void {
-        if (input === ' ') {
-            game.getStateManager().setState('PLAYING', game);
-        }
-    }
-}
-
-class PlayingState implements GameState {
-    enter(game: Game): void {
-        console.log("Entering Playing state");
-        game.resumeGameLoop();
-        game.startWaveSystem();
-    }
-
-    update(game: Game): void {
-        game.updateGameObjects();
-        game.checkCollisions();
-        game.removeOffscreenObjects();
-        game.updateUI();
-    }
-
-    exit(_game: Game): void {
-        console.log("Exiting Playing state");
-    }
-
-    handleInput(game: Game, input: string): void {
-        if (input === 'Escape') {
-            game.getStateManager().setState('PAUSED', game);
-        }
-    }
-}
-
-class PausedState implements GameState {
-    enter(game: Game): void {
-        console.log("Entering Paused state");
-        game.pauseGameLoop();
-        game.showMessage("Game Paused. Press SPACE to resume");
-    }
-
-    update(_game: Game): void {
-        // Paused state doesn't need update logic
-    }
-
-    exit(game: Game): void {
-        console.log("Exiting Paused state");
-        game.hideMessage();
-    }
-
-    handleInput(game: Game, input: string): void {
-        if (input === ' ') {
-            game.getStateManager().setState('PLAYING', game);
-        }
-    }
-}
-
-class GameOverState implements GameState {
-    enter(game: Game): void {
-        console.log("Entering Game Over state");
-        game.pauseGameLoop();
-        game.showGameOverScreen();
-    }
-
-    update(_game: Game): void {
-        // Game Over state doesn't need update logic
-    }
-
-    exit(game: Game): void {
-        console.log("Exiting Game Over state");
-        game.hideGameOverScreen();
-    }
-
-    handleInput(game: Game, input: string): void {
-        if (input === 'r') {
-            game.getStateManager().setState('STARTING', game);
-        }
-    }
-}
-
-export class GameStateManager {
-    private currentState: GameState;
-    private states: Record<GameStateKey, GameState>;
-
-    constructor(private eventEmitter: EventEmitter<EventMap>) {
-        this.states = {
-            STARTING: new StartingState(),
-            PLAYING: new PlayingState(),
-            PAUSED: new PausedState(),
-            GAME_OVER: new GameOverState()
-        };
-        this.currentState = this.states.STARTING;
-    }
-
-    setState(newState: GameStateKey, game: Game): void {
-        this.currentState.exit(game);
-        this.currentState = this.states[newState];
-        this.currentState.enter(game);
-        this.eventEmitter.emit('stateChanged', newState);
-    }
-
-    update(game: Game): void {
-        this.currentState.update(game);
-    }
-
-    handleInput(game: Game, input: string): void {
-        this.currentState.handleInput(game, input);
-    }
-
-    isPlaying(): boolean {
-        return this.currentState === this.states.PLAYING;
-    }
-
-    getCurrentState(): GameStateKey {
-        return Object.keys(this.states).find(
-            key => this.states[key as GameStateKey] === this.currentState
-        ) as GameStateKey;
-    }
-}
+}> & GameCommandMap;
 </file>
 
 <file path="src/utils/MathUtils.ts">
@@ -2562,6 +2849,883 @@ Space Shooterは、TypeScriptとHTML5 Canvasを使用して開発された、宇
 MITライセンスの下で配布されています。詳細は`LICENSE`ファイルを参照してください。
 </file>
 
+<file path="TECH_DEBT_PLAN.md">
+# 技術的負債改善計画 - Space Shooter
+
+## 🎯 プロジェクト目標
+Space Shooterの技術的負債を段階的に解消し、機能拡張しやすいコードベースを構築する
+
+## 📊 現在の状況
+- ✅ 技術的負債の調査・分析完了
+- ⬜ 改善作業未着手
+- **現在のフェーズ**: フェーズ1（基盤安定化）
+- **次回開始タスク**: 1.1.1 依存関係の可視化
+
+---
+
+## 🚨 主要な技術的負債
+
+### 🔴 最優先（P0）
+1. **循環依存問題**: Game ⇔ Player, Game ⇔ Boss, Game ⇔ Enemy
+2. **God Object問題**: Game クラスが10以上の責務を持つ（500行超）
+3. **パフォーマンス問題**: O(n²) 衝突判定、SpatialHash未活用
+
+### 🟡 中優先（P1）
+4. **型安全性不足**: EventEmitterでany使用、エラーハンドリング不足
+5. **コード重複**: 描画・アニメーション・衝突判定ロジック
+6. **テスタビリティ**: 依存注入不足、モック困難
+
+### 🟢 低優先（P2）
+7. **設計パターン**: Strategy/Stateパターン不完全
+8. **保守性**: 長いメソッド、マジックナンバー、ドキュメント不足
+
+---
+
+## 🏗️ フェーズ1: 基盤安定化（3週間想定）
+
+### **Epic 1.1: 循環依存解消**
+
+#### **Task 1.1.1: 依存関係の可視化** 
+- **状況**: ⬜ 未着手
+- **ファイル**: `docs/dependency-analysis.md`
+- **コマンド**:
+  ```bash
+  find src -name "*.ts" -exec grep -l "import.*Game" {} \;
+  find src -name "*.ts" -exec grep -l "import.*Player\|Boss\|Enemy" {} \;
+  ```
+- **完了条件**: 循環依存3つが特定・文書化されている
+- **工数**: 2時間
+
+#### **Task 1.1.2: IGameEngine インターフェース作成**
+- **状況**: ⬜ 未着手
+- **新ファイル**: `src/interfaces/IGameEngine.ts`
+- **作業内容**:
+  1. `src/interfaces/` ディレクトリ作成
+  2. Game クラスの公開メソッドをインターフェース化
+  3. Player.ts の GameInterface を置換
+- **完了条件**: Player/Boss/Enemy が具象Gameクラスに直接依存しない
+- **工数**: 3時間
+
+#### **Task 1.1.3: イベント駆動通信への移行**
+- **状況**: ⬜ 未着手  
+- **新ファイル**: `src/events/GameCommands.ts`
+- **作業内容**:
+  1. 直接メソッド呼び出しをイベントに変換
+  2. EventType.ts にコマンドイベント追加
+  3. Game.ts でイベントハンドラー実装
+- **完了条件**: 循環依存が完全解消、npm run build エラーなし
+- **工数**: 4時間
+
+### **Epic 1.2: Game クラス分割**
+
+#### **Task 1.2.1: GameEngine 抽出**
+- **状況**: ⬜ 未着手
+- **新ファイル**: `src/core/GameEngine.ts`
+- **移動する責務**:
+  - `gameLoop()`, `start()`, `pause()`, `resume()`
+  - `deltaTime` 計算、`requestAnimationFrame` 管理
+- **完了条件**: ゲームループ処理がGame.tsから完全分離
+- **工数**: 4時間
+
+#### **Task 1.2.2: GameObjectManager 作成**
+- **状況**: ⬜ 未着手
+- **新ファイル**: `src/managers/GameObjectManager.ts`
+- **移動する責務**:
+  - `bullets`, `enemies`, `explosions` 等の配列管理
+  - `removeOffscreenObjects()`, `updateGameObjects()`
+  - オブジェクトプール管理
+- **完了条件**: オブジェクト管理ロジックが分離
+- **工数**: 5時間
+
+#### **Task 1.2.3: CollisionSystem 分離**
+- **状況**: ⬜ 未着手
+- **新ファイル**: `src/systems/CollisionSystem.ts`  
+- **移動する責務**:
+  - 全ての `check*Collision()` メソッド
+  - SpatialHash との統合準備
+- **完了条件**: Game.ts が200行以下、責務明確化
+- **工数**: 4時間
+
+---
+
+## ⚡ フェーズ2: パフォーマンス最適化（2週間想定）
+
+### **Epic 2.1: 衝突判定最適化**
+
+#### **Task 2.1.1: SpatialHash 統合**
+- **状況**: ⬜ 未着手
+- **対象**: `src/utils/SpatialHash.ts` → `src/systems/CollisionSystem.ts`
+- **ベンチマーク**: パフォーマンス測定コード実装
+- **完了条件**: 衝突判定処理時間30%削減
+- **工数**: 6時間
+
+### **Epic 2.2: 描画最適化**  
+
+#### **Task 2.2.1: 背景事前レンダリング**
+- **状況**: ⬜ 未着手
+- **新ファイル**: `src/rendering/BackgroundRenderer.ts`
+- **作業内容**: 星・惑星・星雲の事前描画キャッシュ
+- **完了条件**: 背景描画コスト50%削減
+- **工数**: 4時間
+
+---
+
+## 🧪 フェーズ3: テスト基盤（2週間想定）
+
+### **Epic 3.1: テスト環境構築**
+
+#### **Task 3.1.1: Jest セットアップ**
+- **状況**: ⬜ 未着手
+- **コマンド**: 
+  ```bash
+  npm install --save-dev jest @types/jest ts-jest @testing-library/jest-dom
+  npx ts-jest config:init
+  ```
+- **設定ファイル**: `jest.config.js`
+- **完了条件**: `npm test` でテスト実行可能
+
+#### **Task 3.1.2: コアクラステスト作成**
+- **状況**: ⬜ 未着手
+- **対象**: Player, ScoreManager, CollisionUtils
+- **完了条件**: テストカバレッジ50%以上
+
+---
+
+## 📝 セッション管理
+
+### **現在の進捗状況**
+```
+フェーズ1: 基盤安定化
+├── 1.1.1 依存関係可視化      [x] 100% ✅ 完了
+├── 1.1.2 IGameEngine作成     [x] 100% ✅ 完了
+├── 1.1.3 イベント駆動移行    [x] 100% ✅ 完了
+├── 1.2.1 GameEngine抽出      [x] 100% ✅ 完了  
+├── 1.2.2 GameObjectManager   [ ] 0%
+└── 1.2.3 CollisionSystem分離 [ ] 0%
+
+進捗: 4/6 タスク完了 (66%)
+```
+
+### **次回セッション開始時のチェックリスト**
+- [ ] このドキュメントの進捗状況を確認
+- [ ] `npm run build` && `npm run dev` で現状確認
+- [ ] 今回着手するタスクの完了条件を確認
+- [ ] 作業開始前にGitブランチ作成
+
+### **セッション終了時のチェックリスト**
+- [ ] 進捗状況を更新（上記の [ ] を [x] に）
+- [ ] 次回の開始タスクを明記
+- [ ] 発見した問題点や課題をメモ
+- [ ] `git add . && git commit -m "作業内容"` でコミット
+
+### **タスク完了の判断基準**
+
+#### **1.1.1 依存関係可視化**
+- [ ] `docs/dependency-analysis.md` が存在
+- [ ] 循環依存3つが図示されている
+- [ ] 各ファイルのimport関係が整理されている
+
+#### **1.1.2 IGameEngine作成**
+- [ ] `src/interfaces/IGameEngine.ts` が存在
+- [ ] Player.ts で IGameEngine を使用
+- [ ] Boss.ts, Enemy.ts で IGameEngine を使用
+- [ ] `npm run build` でエラーなし
+
+#### **1.1.3 イベント駆動移行**
+- [ ] `src/events/GameCommands.ts` が存在
+- [ ] 直接メソッド呼び出しが50%以上削減
+- [ ] 循環依存が完全解消
+- [ ] アプリケーションが正常動作
+
+### **緊急時の巻き戻し**
+```bash
+# 問題発生時の対処
+git stash                    # 現在の変更を退避
+git checkout main           # メインブランチに戻る
+git branch -D [問題ブランチ]  # 問題ブランチ削除
+```
+
+### **作業時間の目安**
+- **1セッション**: 2-4時間
+- **1タスク**: 2-6時間
+- **1エピック**: 8-15時間
+- **1フェーズ**: 20-30時間
+
+---
+
+## 🔄 継続開発のコツ
+
+### **セッション開始時**
+1. 前回の最終コミットをチェック
+2. `npm run dev` でアプリ動作確認
+3. このドキュメントで次タスクを確認
+4. 作業ブランチ作成: `git checkout -b task-1-1-1`
+
+### **セッション中**
+1. 小さなコミットを頻繁に実行
+2. 動作確認を随時実施
+3. 問題発見時はすぐにメモ
+
+### **セッション終了時**
+1. 進捗を正確に記録
+2. 次回の開始ポイントを明記
+3. 課題や気づきをドキュメント化
+
+---
+
+## 📚 参考情報
+
+### **関連ドキュメント**
+- `docs/dependency-analysis.md` - 依存関係分析
+- `docs/performance-benchmarks.md` - パフォーマンス測定結果
+- `docs/refactoring-notes.md` - リファクタリング時の課題・解決策
+
+### **重要なファイル**
+- `src/core/Game.ts` - メインのGameクラス（分割対象）
+- `src/entities/Player.ts` - 循環依存の主要原因
+- `src/utils/SpatialHash.ts` - 実装済みだが未使用の最適化
+- `src/events/EventType.ts` - イベント定義
+
+### **開発コマンド**
+```bash
+npm run dev      # 開発サーバー起動
+npm run build    # ビルド実行
+npm run preview  # ビルド結果確認
+npm test         # テスト実行（Jest導入後）
+```
+
+---
+
+**最終更新**: 2025/05/31  
+**次回開始タスク**: 1.1.1 依存関係の可視化  
+**推定完了日**: フェーズ1完了まで約3週間
+</file>
+
+<file path="src/entities/Boss.ts">
+import { IGameEngine } from "../interfaces/IGameEngine";
+import { Vector2D } from "../types";
+import { GAME_CONSTANTS } from "../constants/GameConstants";
+import { BossBullet } from "./BossBullet";
+import { GameObject } from "./GameObject";
+
+export class Boss extends GameObject {
+    private health: number;
+    private moveDirection: number = 1;
+    private lastFireTime: number = 0;
+    private game: IGameEngine;
+    private animationPhase: number = 0;
+    private corePulse: number = 0;
+
+    // プレイヤーと統一感のある洗練された要素
+    private engineGlow: { phase: number; intensity: number } = { phase: 0, intensity: 0 };
+    private shieldLayers: Array<{ radius: number; rotation: number; opacity: number; speed: number }> = [];
+    private geometricPanels: Array<{ x: number; y: number; size: number; rotation: number; glow: number }> = [];
+    private thrusterNodes: Array<{ x: number; y: number; size: number; pulse: number }> = [];
+    private energyBeams: Array<{ angle: number; length: number; intensity: number; rotation: number }> = [];
+
+    constructor(game: IGameEngine) {
+        super(
+            GAME_CONSTANTS.CANVAS.WIDTH / 2 - GAME_CONSTANTS.BOSS.WIDTH / 2,
+            -GAME_CONSTANTS.BOSS.HEIGHT,
+            GAME_CONSTANTS.BOSS.WIDTH,
+            GAME_CONSTANTS.BOSS.HEIGHT
+        );
+        this.health = GAME_CONSTANTS.BOSS.INITIAL_HEALTH;
+        this.game = game;
+
+        this.initializeRefinedStructure();
+    }
+
+    private initializeRefinedStructure(): void {
+        // プレイヤーのような多層シールド
+        const shieldCount = 4;
+        for (let i = 0; i < shieldCount; i++) {
+            this.shieldLayers.push({
+                radius: 40 + i * 25,
+                rotation: Math.random() * Math.PI * 2,
+                opacity: Math.random() * Math.PI * 2,
+                speed: 0.3 + i * 0.2
+            });
+        }
+
+        // 幾何学的パネル - プレイヤーの補助翼のような要素
+        const panelCount = 8;
+        for (let i = 0; i < panelCount; i++) {
+            this.geometricPanels.push({
+                x: (Math.random() - 0.5) * this.width * 0.7,
+                y: (Math.random() - 0.5) * this.height * 0.7,
+                size: 8 + Math.random() * 12,
+                rotation: Math.random() * Math.PI * 2,
+                glow: Math.random() * Math.PI * 2
+            });
+        }
+
+        // スラスターノード - プレイヤーのエンジンのような要素
+        const nodeCount = 6;
+        for (let i = 0; i < nodeCount; i++) {
+            this.thrusterNodes.push({
+                x: (Math.random() - 0.5) * this.width * 0.5,
+                y: (Math.random() - 0.5) * this.height * 0.5,
+                size: 6 + Math.random() * 8,
+                pulse: Math.random() * Math.PI * 2
+            });
+        }
+
+        // エネルギービーム
+        const beamCount = 12;
+        for (let i = 0; i < beamCount; i++) {
+            this.energyBeams.push({
+                angle: (i / beamCount) * Math.PI * 2,
+                length: 25 + Math.random() * 20,
+                intensity: Math.random() * Math.PI * 2,
+                rotation: (Math.random() - 0.5) * 0.02
+            });
+        }
+    }
+
+    public update(deltaTime: number): void {
+        if (this.y < 50) {
+            this.y += GAME_CONSTANTS.BOSS.INITIAL_SPEED * deltaTime;
+        } else {
+            const nextX = this.x + this.moveDirection * GAME_CONSTANTS.BOSS.MOVEMENT_SPEED * deltaTime;
+
+            if (nextX <= 0) {
+                this.x = 0;
+                this.moveDirection = 1;
+            } else if (nextX + this.width >= GAME_CONSTANTS.CANVAS.WIDTH) {
+                this.x = GAME_CONSTANTS.CANVAS.WIDTH - this.width;
+                this.moveDirection = -1;
+            } else {
+                this.x = nextX;
+            }
+        }
+
+        // プレイヤーのような洗練されたアニメーション
+        this.animationPhase += deltaTime * 1.5;
+        this.corePulse += deltaTime * 2.8;
+
+        // エンジンのグロー更新
+        this.engineGlow.phase += deltaTime * 8;
+        this.engineGlow.intensity += deltaTime * 3;
+
+        // シールドレイヤーの回転
+        this.shieldLayers.forEach((shield, index) => {
+            shield.rotation += deltaTime * shield.speed;
+            shield.opacity += deltaTime * (2 + index * 0.3);
+        });
+
+        // 幾何学的パネルの回転と発光
+        this.geometricPanels.forEach((panel, index) => {
+            panel.rotation += deltaTime * (0.6 + index * 0.1);
+            panel.glow += deltaTime * (2.5 + index * 0.2);
+        });
+
+        // スラスターノードの脈動
+        this.thrusterNodes.forEach((node, index) => {
+            node.pulse += deltaTime * (3 + index * 0.4);
+        });
+
+        // エネルギービームの回転
+        this.energyBeams.forEach((beam, index) => {
+            beam.angle += beam.rotation * deltaTime;
+            beam.intensity += deltaTime * (2.2 + index * 0.1);
+        });
+
+        const currentTime = Date.now();
+        if (currentTime - this.lastFireTime > GAME_CONSTANTS.BOSS.FIRE_RATE) {
+            this.shoot();
+            this.lastFireTime = currentTime;
+        }
+    }
+
+    private shoot(): void {
+        const angleSpread = Math.PI / 6;
+        for (let i = -2; i <= 2; i++) {
+            const angle = i * (angleSpread / 4);
+            const speedX = Math.sin(angle) * GAME_CONSTANTS.BOSS.BULLET_SPEED;
+            const speedY = Math.cos(angle) * GAME_CONSTANTS.BOSS.BULLET_SPEED;
+            this.game.addBossBullet(new BossBullet(
+                this.x + this.width / 2,
+                this.y + this.height,
+                speedX,
+                speedY
+            ));
+        }
+    }
+
+    public draw(ctx: CanvasRenderingContext2D): void {
+        ctx.save();
+        ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+
+        // プレイヤーと統一感のある描画順序
+        this.drawShieldLayers(ctx);
+        this.drawMainBody(ctx);
+        this.drawGeometricPanels(ctx);
+        this.drawThrusterNodes(ctx);
+        this.drawEnergyBeams(ctx);
+        this.drawCore(ctx);
+
+        ctx.restore();
+        this.drawHealthBar(ctx);
+    }
+
+    private drawMainBody(ctx: CanvasRenderingContext2D): void {
+        const baseRadius = this.width / 2.8;
+
+        // プレイヤーと同様の深い青系グラデーション
+        const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, baseRadius * 1.4);
+        gradient.addColorStop(0, GAME_CONSTANTS.PLAYER.COLORS.ACCENT); // シアン
+        gradient.addColorStop(0.4, GAME_CONSTANTS.PLAYER.COLORS.SECONDARY); // 紺碧
+        gradient.addColorStop(1, GAME_CONSTANTS.PLAYER.COLORS.PRIMARY); // 濃紺
+
+        ctx.fillStyle = gradient;
+        ctx.strokeStyle = GAME_CONSTANTS.PLAYER.COLORS.ACCENT;
+        ctx.lineWidth = 3;
+
+        // プレイヤーのような幾何学的形状（複雑な多角形）
+        const vertices = 16;
+        ctx.beginPath();
+        for (let i = 0; i < vertices; i++) {
+            const angle = (i / vertices) * Math.PI * 2;
+            const wave1 = Math.sin(this.animationPhase * 0.7 + angle * 3) * (baseRadius * 0.15);
+            const wave2 = Math.cos(this.animationPhase * 1.1 + angle * 5) * (baseRadius * 0.08);
+            const radius = baseRadius + wave1 + wave2;
+
+            const x = Math.cos(angle) * radius;
+            const y = Math.sin(angle) * radius * 0.9;
+
+            if (i === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    }
+
+    private drawShieldLayers(ctx: CanvasRenderingContext2D): void {
+        this.shieldLayers.forEach((shield, index) => {
+            const opacity = Math.sin(shield.opacity) * 0.3 + 0.4;
+            const alpha = Math.floor(opacity * 255).toString(16).padStart(2, '0');
+
+            // プレイヤーのシールドと同様の色
+            ctx.strokeStyle = `${GAME_CONSTANTS.PLAYER.COLORS.ACCENT}${alpha}`;
+            ctx.lineWidth = 2 - index * 0.3;
+
+            // 波打つシールドリング
+            ctx.beginPath();
+            const segments = 32;
+            for (let i = 0; i <= segments; i++) {
+                const angle = (i / segments) * Math.PI * 2 + shield.rotation;
+                const wave = Math.sin(angle * 4 + shield.opacity) * 6;
+                const radius = shield.radius + wave;
+
+                const x = Math.cos(angle) * radius;
+                const y = Math.sin(angle) * radius;
+
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+        });
+    }
+
+    private drawGeometricPanels(ctx: CanvasRenderingContext2D): void {
+        this.geometricPanels.forEach((panel) => {
+            ctx.save();
+            ctx.translate(panel.x, panel.y);
+            ctx.rotate(panel.rotation);
+
+            const glowIntensity = Math.sin(panel.glow) * 0.5 + 0.5;
+            const alpha = Math.floor(glowIntensity * 255).toString(16).padStart(2, '0');
+
+            // プレイヤーの補助翼のような幾何学的形状
+            ctx.fillStyle = `${GAME_CONSTANTS.PLAYER.COLORS.SECONDARY}${alpha}`;
+            ctx.strokeStyle = `${GAME_CONSTANTS.PLAYER.COLORS.ACCENT}${alpha}`;
+            ctx.lineWidth = 1.5;
+
+            const size = panel.size;
+            ctx.beginPath();
+            ctx.moveTo(0, -size);
+            ctx.lineTo(-size * 0.6, size * 0.4);
+            ctx.lineTo(0, size * 0.7);
+            ctx.lineTo(size * 0.6, size * 0.4);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // 内部の発光
+            ctx.fillStyle = `rgba(255, 255, 255, ${glowIntensity * 0.6})`;
+            ctx.beginPath();
+            ctx.arc(0, 0, size * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        });
+    }
+
+    private drawThrusterNodes(ctx: CanvasRenderingContext2D): void {
+        this.thrusterNodes.forEach((node) => {
+            const pulseSize = Math.sin(node.pulse) * 3;
+            const size = node.size + pulseSize;
+            const intensity = Math.sin(node.pulse * 1.5) * 0.4 + 0.6;
+
+            // プレイヤーのエンジンのようなグラデーション
+            const gradient = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, size * 3);
+            gradient.addColorStop(0, GAME_CONSTANTS.PLAYER.COLORS.ENGINE); // オレンジ
+            gradient.addColorStop(0.4, `${GAME_CONSTANTS.PLAYER.COLORS.ENGINE}80`);
+            gradient.addColorStop(1, `${GAME_CONSTANTS.PLAYER.COLORS.ENGINE}00`);
+
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, size * 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 中心の明るいコア
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.globalAlpha = intensity;
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        });
+    }
+
+    private drawEnergyBeams(ctx: CanvasRenderingContext2D): void {
+        this.energyBeams.forEach((beam) => {
+            const intensity = Math.sin(beam.intensity) * 0.5 + 0.5;
+            const alpha = Math.floor(intensity * 150).toString(16).padStart(2, '0');
+
+            ctx.strokeStyle = `${GAME_CONSTANTS.PLAYER.COLORS.ACCENT}${alpha}`;
+            ctx.lineWidth = 2;
+
+            const startRadius = this.width / 4;
+            const endRadius = startRadius + beam.length;
+
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(beam.angle) * startRadius, Math.sin(beam.angle) * startRadius);
+            ctx.lineTo(Math.cos(beam.angle) * endRadius, Math.sin(beam.angle) * endRadius);
+            ctx.stroke();
+
+            // ビームの先端の光点
+            const lightX = Math.cos(beam.angle) * endRadius;
+            const lightY = Math.sin(beam.angle) * endRadius;
+
+            ctx.fillStyle = `rgba(255, 255, 255, ${intensity * 0.9})`;
+            ctx.beginPath();
+            ctx.arc(lightX, lightY, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+        });
+    }
+
+    private drawCore(ctx: CanvasRenderingContext2D): void {
+        const coreSize = 15 + Math.sin(this.corePulse) * 5;
+        const engineGlowSize = 8 + Math.sin(this.engineGlow.phase) * 3;
+
+        // プレイヤーのコックピットのような中央コア
+        const coreGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, coreSize * 2);
+        coreGradient.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+        coreGradient.addColorStop(0.5, `${GAME_CONSTANTS.PLAYER.COLORS.ACCENT}CC`);
+        coreGradient.addColorStop(1, `${GAME_CONSTANTS.PLAYER.COLORS.PRIMARY}80`);
+
+        ctx.fillStyle = coreGradient;
+        ctx.beginPath();
+        ctx.arc(0, 0, coreSize * 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // メインコア
+        ctx.fillStyle = GAME_CONSTANTS.PLAYER.COLORS.ACCENT;
+        ctx.beginPath();
+        ctx.arc(0, 0, coreSize, 0, Math.PI * 2);
+        ctx.fill();
+
+        // プレイヤーのエンジンのような輝き
+        const engineGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, engineGlowSize);
+        engineGradient.addColorStop(0, GAME_CONSTANTS.PLAYER.COLORS.ENGINE);
+        engineGradient.addColorStop(0.5, `${GAME_CONSTANTS.PLAYER.COLORS.ENGINE}80`);
+        engineGradient.addColorStop(1, `${GAME_CONSTANTS.PLAYER.COLORS.ENGINE}00`);
+
+        ctx.fillStyle = engineGradient;
+        ctx.beginPath();
+        ctx.arc(0, 0, engineGlowSize, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 放射状のエネルギー線
+        ctx.strokeStyle = `rgba(255, 255, 255, 0.8)`;
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2 + this.corePulse * 0.4;
+            const innerLength = coreSize * 0.8;
+            const outerLength = coreSize + Math.sin(this.corePulse + i * 0.5) * 10;
+
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(angle) * innerLength, Math.sin(angle) * innerLength);
+            ctx.lineTo(Math.cos(angle) * outerLength, Math.sin(angle) * outerLength);
+            ctx.stroke();
+        }
+    }
+
+    private drawHealthBar(ctx: CanvasRenderingContext2D): void {
+        const healthPercentage = this.health / GAME_CONSTANTS.BOSS.INITIAL_HEALTH;
+        const barWidth = this.width + 20;
+        const barHeight = 8;
+
+        // 体力バーの背景
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        ctx.fillRect(this.x - 10, this.y - 35, barWidth, barHeight + 4);
+
+        // プレイヤーの色と統一感のあるグラデーション
+        const gradient = ctx.createLinearGradient(this.x - 8, 0, this.x - 8 + barWidth - 4, 0);
+        if (healthPercentage > 0.6) {
+            gradient.addColorStop(0, GAME_CONSTANTS.PLAYER.COLORS.ACCENT);
+            gradient.addColorStop(1, '#88ffff');
+        } else if (healthPercentage > 0.3) {
+            gradient.addColorStop(0, GAME_CONSTANTS.PLAYER.COLORS.ENGINE);
+            gradient.addColorStop(1, '#ffcc88');
+        } else {
+            gradient.addColorStop(0, '#ff4444');
+            gradient.addColorStop(1, '#ffaaaa');
+        }
+
+        ctx.fillStyle = gradient;
+        ctx.fillRect(this.x - 8, this.y - 33, (barWidth - 4) * healthPercentage, barHeight);
+
+        // 体力バーの枠
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(this.x - 8, this.y - 33, barWidth - 4, barHeight);
+
+        // 低体力時のフリッカーエフェクト
+        if (healthPercentage < 0.3) {
+            const flicker = Math.sin(this.animationPhase * 8) * 0.4 + 0.6;
+            ctx.globalAlpha = flicker;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.fillRect(this.x - 8, this.y - 33, (barWidth - 4) * healthPercentage, barHeight);
+            ctx.globalAlpha = 1;
+        }
+    }
+
+    public takeDamage(): boolean {
+        this.health--;
+        return this.health <= 0;
+    }
+
+    public getPosition(): Vector2D {
+        return { x: this.x, y: this.y };
+    }
+}
+</file>
+
+<file path="src/entities/Enemy.ts">
+import { IGameEngine } from "../interfaces/IGameEngine";
+import { EnemyType, MovementPattern, Vector2D } from "../types";
+import { GAME_CONSTANTS } from "../constants/GameConstants";
+import { GameObject } from "./GameObject";
+
+export class Enemy extends GameObject {
+    private health: number;
+    private speed: number;
+    private movementPattern: MovementPattern;
+    private enemyType: EnemyType;
+    private animationPhase: number = 0;
+
+    constructor(x: number, y: number, enemyType: EnemyType, game: IGameEngine) {
+        const config = GAME_CONSTANTS.ENEMY.TYPES[enemyType];
+        super(x, y, config.width, config.height);
+        
+        this.enemyType = enemyType;
+        this.health = config.health;
+        const speedMultiplier = 1 + game.getDifficultyFactor();
+        this.speed = config.speed * speedMultiplier;
+        // GameConstants.tsにmovementPatternがないため、enemyTypeから推定
+        this.movementPattern = this.getMovementPatternFromType(enemyType);
+    }
+
+    public update(deltaTime: number): void {
+        this.animationPhase += deltaTime * 2;
+        
+        switch (this.movementPattern) {
+            case 'straight':
+                this.y += this.speed * deltaTime;
+                break;
+            case 'zigzag':
+                this.y += this.speed * deltaTime;
+                this.x += Math.sin(this.y * 0.01) * 50 * deltaTime;
+                break;
+            case 'sine':
+                this.y += this.speed * deltaTime;
+                this.x += Math.sin(this.animationPhase) * 30 * deltaTime;
+                break;
+        }
+    }
+
+    public draw(ctx: CanvasRenderingContext2D): void {
+        const config = GAME_CONSTANTS.ENEMY.TYPES[this.enemyType];
+        
+        ctx.save();
+        ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+        
+        // エネミータイプに応じた描画
+        switch (this.enemyType) {
+            case 'SMALL':
+                this.drawBasicEnemy(ctx, config.color);
+                break;
+            case 'MEDIUM':
+                this.drawFastEnemy(ctx, config.color);
+                break;
+            case 'LARGE':
+                this.drawHeavyEnemy(ctx, config.color);
+                break;
+        }
+        
+        ctx.restore();
+    }
+
+    private drawBasicEnemy(ctx: CanvasRenderingContext2D, color: string): void {
+        const pulse = Math.sin(this.animationPhase * 2) * 0.1 + 0.9;
+        const size = Math.min(this.width, this.height) / 2 * pulse;
+        
+        // グラデーション
+        const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+        gradient.addColorStop(0.3, color);
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0.8)');
+        
+        ctx.fillStyle = gradient;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        
+        // 六角形
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2;
+            const x = Math.cos(angle) * size;
+            const y = Math.sin(angle) * size;
+            if (i === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    }
+
+    private drawFastEnemy(ctx: CanvasRenderingContext2D, color: string): void {
+        const streak = Math.sin(this.animationPhase * 4) * 0.2 + 0.8;
+        const size = Math.min(this.width, this.height) / 2;
+        
+        // スピード感のあるストリーク
+        ctx.fillStyle = color;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.lineWidth = 1;
+        
+        // 三角形（尖った形状）
+        ctx.beginPath();
+        ctx.moveTo(0, -size);
+        ctx.lineTo(-size * 0.6, size * 0.8);
+        ctx.lineTo(size * 0.6, size * 0.8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        
+        // トレイル効果
+        ctx.globalAlpha = streak * 0.5;
+        for (let i = 1; i <= 3; i++) {
+            ctx.beginPath();
+            ctx.moveTo(0, -size + i * 8);
+            ctx.lineTo(-size * 0.4, size * 0.6 + i * 8);
+            ctx.lineTo(size * 0.4, size * 0.6 + i * 8);
+            ctx.closePath();
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    private drawHeavyEnemy(ctx: CanvasRenderingContext2D, color: string): void {
+        const armor = Math.sin(this.animationPhase) * 0.05 + 0.95;
+        const size = Math.min(this.width, this.height) / 2 * armor;
+        
+        // 重装甲の質感
+        const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 1.2);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.6)');
+        gradient.addColorStop(0.5, color);
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0.9)');
+        
+        ctx.fillStyle = gradient;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.lineWidth = 3;
+        
+        // 八角形（重厚感）
+        ctx.beginPath();
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const x = Math.cos(angle) * size;
+            const y = Math.sin(angle) * size;
+            if (i === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        
+        // 装甲パネル
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        for (let i = 0; i < 4; i++) {
+            const angle = (i / 4) * Math.PI * 2;
+            const x = Math.cos(angle) * size * 0.6;
+            const y = Math.sin(angle) * size * 0.6;
+            ctx.beginPath();
+            ctx.arc(x, y, size * 0.2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    public takeDamage(): boolean {
+        this.health--;
+        return this.health <= 0;
+    }
+
+    public isOnScreen(): boolean {
+        return this.y < GAME_CONSTANTS.CANVAS.HEIGHT + 50;
+    }
+
+    public getScore(): number {
+        return GAME_CONSTANTS.ENEMY.TYPES[this.enemyType].score;
+    }
+
+    public getPosition(): Vector2D {
+        return { x: this.x, y: this.y };
+    }
+
+    public getEnemyType(): EnemyType {
+        return this.enemyType;
+    }
+
+    private getMovementPatternFromType(enemyType: EnemyType): MovementPattern {
+        switch (enemyType) {
+            case 'SMALL':
+                return 'zigzag'; // 小さい敵は素早くジグザグ移動
+            case 'MEDIUM':
+                return 'sine'; // 中型敵はサイン波移動
+            case 'LARGE':
+                return 'straight'; // 大型敵は直進
+            default:
+                return 'straight';
+        }
+    }
+}
+</file>
+
 <file path="src/entities/Player.ts">
 import { PowerUpType, Vector2D } from "../types";
 import { GAME_CONSTANTS } from "../constants/GameConstants";
@@ -2569,11 +3733,7 @@ import { EventEmitter } from "../events/EventEmitter";
 import { Bullet } from "./Bullet";
 import { GameObject } from "./GameObject";
 import { EventMap } from "../events/EventType";
-
-// Game クラスの前方宣言（循環依存回避）
-interface GameInterface {
-    createBullet(x: number, y: number, speed?: number, color?: string): Bullet | null;
-}
+import { IGameEngine } from "../interfaces/IGameEngine";
 
 export class Player extends GameObject {
     private velocity: Vector2D = { x: 0, y: 0 };
@@ -2592,7 +3752,7 @@ export class Player extends GameObject {
 
     constructor(
         private eventEmitter: EventEmitter<EventMap>,
-        private game?: GameInterface
+        private game?: IGameEngine
     ) {
         super(
             GAME_CONSTANTS.CANVAS.WIDTH / 2 - GAME_CONSTANTS.PLAYER.WIDTH / 2,
@@ -2931,613 +4091,155 @@ export class Player extends GameObject {
     /**
      * 後からGameインスタンスを設定（循環依存回避のため）
      */
-    public setGame(game: GameInterface): void {
+    public setGame(game: IGameEngine): void {
         this.game = game;
     }
 }
 </file>
 
-<file path="src/core/Game.ts">
-import { GAME_CONSTANTS } from '../constants/GameConstants';
-import { Aurora } from '../entities/Aurora';
-import { Boss } from '../entities/Boss';
-import { BossBullet } from '../entities/BossBullet';
-import { Bullet } from '../entities/Bullet';
-import { Enemy } from '../entities/Enemy';
-import { Explosion } from '../entities/Explosion';
-import { GameObject } from '../entities/GameObject';
-import { Nebula } from '../entities/Nebula';
-import { Planet } from '../entities/Planet';
-import { Player } from '../entities/Player';
-import { PowerUp } from '../entities/PowerUp';
-import { Star } from '../entities/Star';
-import { EventEmitter } from '../events/EventEmitter';
-import { EventMap } from '../events/EventType';
-import { GameObjectFactory } from '../factories/GameObjectFactory';
-import { GameStateManager } from '../managers/GameStateManager';
-import { ScoreManager } from '../managers/ScoreManager';
-import { WaveManager } from '../managers/WaveManager';
-import { EnemyType } from '../types';
-import { checkCollision } from '../utils/CollisionUtils';
-import { ObjectPool, PoolManager } from '../utils/ObjectPool';
-import { CollisionOptimizer } from '../utils/SpatialHash';
+<file path="src/managers/GameStateManager.ts">
+import { Game } from "../core/Game";
+import { EventEmitter } from "../events/EventEmitter";
+import { EventMap } from "../events/EventType";
 
-export class Game {
-    private ctx: CanvasRenderingContext2D;
-    private bullets: Bullet[] = [];
-    private enemies: Enemy[] = [];
-    private stars: Star[] = [];
-    private explosions: Explosion[] = [];
-    private planets: Planet[] = [];
-    private nebulas: Nebula[] = [];
-    private auroras: Aurora[] = [];
-    private powerups: PowerUp[] = [];
-    private boss: Boss | null = null;
-    private bossBullets: BossBullet[] = [];
-    private level = 1;
-    private bossSpawnScore: number = 1000;
-    private currentScore: number = 0;
-    private lastTime = 0;
-    private deltaTime = 0;
-    private difficultyFactor: number = 0;
-    private currentBossHealth: number = GAME_CONSTANTS.BOSS.INITIAL_HEALTH;
-    private gameLoopId: number | null = null;
-    private poolManager!: PoolManager;
-    private collisionOptimizer!: CollisionOptimizer;
-    private waveManager!: WaveManager;
+export type GameStateKey = 'STARTING' | 'PLAYING' | 'PAUSED' | 'GAME_OVER';
 
-    constructor(
-        private canvas: HTMLCanvasElement,
-        private eventEmitter: EventEmitter<EventMap>,
-        private scoreManager: ScoreManager,
-        private player: Player,
-        private gameObjectFactory: GameObjectFactory,
-        private stateManager: GameStateManager
-    ) {
-        this.ctx = this.canvas.getContext('2d') as CanvasRenderingContext2D;
-        this.canvas.width = GAME_CONSTANTS.CANVAS.WIDTH;
-        this.canvas.height = GAME_CONSTANTS.CANVAS.HEIGHT;
-        this.initializeGameObjects();
-        this.initializeOptimizationSystems();
-        this.setupEventListeners();
+export interface GameState {
+    enter(game: Game): void;
+    update(game: Game): void;
+    exit(game: Game): void;
+    handleInput(game: Game, input: string): void;
+}
 
-        // PlayerにGameインスタンスを設定（循環依存回避）
-        this.player.setGame(this);
-
-        // WaveManagerを初期化
-        this.waveManager = new WaveManager(this.eventEmitter, this.gameObjectFactory, this);
-
-        this.stateManager.setState('STARTING', this);
+class StartingState implements GameState {
+    enter(game: Game): void {
+        console.log("Entering Starting state");
+        game.resetGame();
+        game.showMessage("Press SPACE to start the game");
     }
 
-    private initializeGameObjects(): void {
-        this.stars = Array.from({ length: GAME_CONSTANTS.BACKGROUND.STAR_COUNT }, () => this.gameObjectFactory.createStar());
-        this.planets = Array.from({ length: GAME_CONSTANTS.BACKGROUND.PLANET_COUNT }, () => this.gameObjectFactory.createPlanet());
-        this.nebulas = Array.from({ length: GAME_CONSTANTS.BACKGROUND.NEBULA_COUNT }, () => this.gameObjectFactory.createNebula());
-        this.auroras = Array.from({ length: 2 }, () => this.gameObjectFactory.createAurora());
+    update(_game: Game): void {
+        // Starting state doesn't need update logic
     }
 
-    /**
-     * オブジェクトプールと衝突最適化システムを初期化
-     */
-    private initializeOptimizationSystems(): void {
-        this.poolManager = new PoolManager();
-        this.collisionOptimizer = new CollisionOptimizer(64);
-
-        // Bulletプール
-        const bulletPool = new ObjectPool<Bullet>(
-            () => new Bullet(),
-            (bullet) => bullet.reset(),
-            20, // 初期サイズ
-            50  // 最大サイズ
-        );
-        this.poolManager.register('bullet', bulletPool);
-
-        // Explosionプール
-        const explosionPool = new ObjectPool<Explosion>(
-            () => new Explosion(),
-            (explosion) => explosion.reset(),
-            10, // 初期サイズ
-            30  // 最大サイズ
-        );
-        this.poolManager.register('explosion', explosionPool);
+    exit(game: Game): void {
+        console.log("Exiting Starting state");
+        game.hideMessage();
     }
 
-    private setupEventListeners(): void {
-        document.addEventListener('keydown', this.handleKeyDown);
-        document.addEventListener('keyup', this.handleKeyUp);
-        const restartButton = document.getElementById('restartButton');
-        if (restartButton) {
-            restartButton.addEventListener('click', this.restartGame);
+    handleInput(game: Game, input: string): void {
+        if (input === ' ') {
+            game.getStateManager().setState('PLAYING', game);
         }
-        this.eventEmitter.on('enemyDestroyed', this.handleEnemyDestroyed);
-        this.eventEmitter.on('playerShot', this.handlePlayerShot);
-        this.eventEmitter.on('playerDamaged', this.handlePlayerDamaged);
-        this.eventEmitter.on('bossDamaged', this.handleBossDamaged);
-        this.eventEmitter.on('bossDefeated', this.handleBossDefeated);
-        this.eventEmitter.on('powerUpCollected', this.handlePowerUpCollected);
-        this.eventEmitter.on('waveCompleted', this.handleWaveCompleted);
-        document.addEventListener('keydown', (e: KeyboardEvent) => {
-            this.handleInput(e.key);
-        });
+    }
+}
+
+class PlayingState implements GameState {
+    enter(game: Game): void {
+        console.log("Entering Playing state");
+        game.resumeGameLoop();
+        game.startWaveSystem();
     }
 
-    private handleKeyDown = (e: KeyboardEvent): void => {
-        this.player.setKeyState(e.key, true);
+    update(game: Game): void {
+        // ゲームオブジェクトの更新はGameEngineで行われるため、ここではUI更新のみ
+        game.updateUI();
     }
 
-    private handleKeyUp = (e: KeyboardEvent): void => {
-        this.player.setKeyState(e.key, false);
+    exit(_game: Game): void {
+        console.log("Exiting Playing state");
     }
 
-    private handleEnemyDestroyed = (enemy: Enemy): void => {
-        const enemyPosition = enemy.getPosition();
-        const explosionPosition = {
-            x: enemyPosition.x + enemy.getWidth() / 2,
-            y: enemyPosition.y + enemy.getHeight() / 2
+    handleInput(game: Game, input: string): void {
+        if (input === 'Escape') {
+            game.getStateManager().setState('PAUSED', game);
+        }
+    }
+}
+
+class PausedState implements GameState {
+    enter(game: Game): void {
+        console.log("Entering Paused state");
+        game.pauseGameLoop();
+        game.showMessage("Game Paused. Press SPACE to resume");
+    }
+
+    update(_game: Game): void {
+        // Paused state doesn't need update logic
+    }
+
+    exit(game: Game): void {
+        console.log("Exiting Paused state");
+        game.hideMessage();
+    }
+
+    handleInput(game: Game, input: string): void {
+        if (input === ' ') {
+            game.getStateManager().setState('PLAYING', game);
+        }
+    }
+}
+
+class GameOverState implements GameState {
+    enter(game: Game): void {
+        console.log("Entering Game Over state");
+        game.pauseGameLoop();
+        game.showGameOverScreen();
+    }
+
+    update(_game: Game): void {
+        // Game Over state doesn't need update logic
+    }
+
+    exit(game: Game): void {
+        console.log("Exiting Game Over state");
+        game.hideGameOverScreen();
+    }
+
+    handleInput(game: Game, input: string): void {
+        if (input === 'r') {
+            game.getStateManager().setState('STARTING', game);
+        }
+    }
+}
+
+export class GameStateManager {
+    private currentState: GameState;
+    private states: Record<GameStateKey, GameState>;
+
+    constructor(private eventEmitter: EventEmitter<EventMap>) {
+        this.states = {
+            STARTING: new StartingState(),
+            PLAYING: new PlayingState(),
+            PAUSED: new PausedState(),
+            GAME_OVER: new GameOverState()
         };
-        const explosionPool = this.poolManager.getPool<Explosion>('explosion');
-        if (explosionPool) {
-            const explosion = explosionPool.get();
-            explosion.initialize(explosionPosition);
-            this.explosions.push(explosion);
-        }
-        this.scoreManager.addScore(enemy.getScore());
+        this.currentState = this.states.STARTING;
     }
 
-    private handlePlayerShot = (bullet: Bullet): void => {
-        this.bullets.push(bullet);
+    setState(newState: GameStateKey, game: Game): void {
+        this.currentState.exit(game);
+        this.currentState = this.states[newState];
+        this.currentState.enter(game);
+        this.eventEmitter.emit('stateChanged', newState);
     }
 
-    private handlePlayerDamaged = (damage: number): void => {
-        this.player.takeDamage(damage);
-        if (this.player.getHealth() <= 0) {
-            this.gameOver();
-        }
+    update(game: Game): void {
+        this.currentState.update(game);
     }
 
-    private handleBossDamaged = (): void => {
-        if (this.boss && this.boss.takeDamage()) {
-            this.eventEmitter.emit('bossDefeated');
-        }
+    handleInput(game: Game, input: string): void {
+        this.currentState.handleInput(game, input);
     }
 
-    private handleBossDefeated = (): void => {
-        if (this.boss) {
-            const explosionPool = this.poolManager.getPool<Explosion>('explosion');
-            if (explosionPool) {
-                const explosion = explosionPool.get();
-                explosion.initialize(this.boss.getPosition(), 2); // ボス爆発は大きく
-                this.explosions.push(explosion);
-            }
-            this.boss = null;
-            this.handleBossDefeat();
-        }
+    isPlaying(): boolean {
+        return this.currentState === this.states.PLAYING;
     }
 
-    private handlePowerUpCollected = (powerUp: PowerUp): void => {
-        this.player.activatePowerup(powerUp.getType());
-    }
-
-    private handleWaveCompleted = (_waveNumber: number, bonusScore: number): void => {
-        this.scoreManager.addScore(bonusScore);
-    }
-
-    public start(): void {
-        this.eventEmitter.emit('gameStarted');
-        this.gameLoop(0);
-        setInterval(this.spawnEnemy, GAME_CONSTANTS.ENEMY.SPAWN_INTERVAL);
-    }
-
-    private gameLoop = (currentTime: number): void => {
-        this.deltaTime = (currentTime - this.lastTime) / 1000;
-        this.lastTime = currentTime;
-
-        this.update();
-        this.draw();
-
-        this.gameLoopId = requestAnimationFrame(this.gameLoop);
-    }
-
-    private update(): void {
-        this.stateManager.update(this);
-    }
-
-    public updateGameObjects(): void {
-        this.player.update(this.deltaTime);
-        this.bullets.forEach(bullet => bullet.update(this.deltaTime));
-        this.enemies.forEach(enemy => enemy.update(this.deltaTime));
-        this.powerups.forEach(powerup => powerup.update(this.deltaTime));
-        this.explosions.forEach(explosion => explosion.update(this.deltaTime));
-        this.stars.forEach(star => star.update(this.deltaTime));
-        this.planets.forEach(planet => planet.update(this.deltaTime));
-        this.auroras.forEach(aurora => aurora.update(this.deltaTime));
-        this.bossBullets.forEach(bossBullet => bossBullet.update(this.deltaTime));
-
-        if (this.boss) {
-            this.boss.update(this.deltaTime);
-        }
-
-        // ウェーブシステムのアップデート
-        if (GAME_CONSTANTS.WAVE.SYSTEM_ENABLED) {
-            this.waveManager.update();
-        }
-
-        this.currentScore = this.scoreManager.getScore();
-        if (this.currentScore >= this.bossSpawnScore && !this.boss) {
-            this.spawnBoss();
-        }
-    }
-
-    private spawnBoss(): void {
-        this.boss = new Boss(this);
-        this.eventEmitter.emit('bossSpawned');
-        this.showMessage("ボスが出現しました！");
-    }
-
-    public checkCollisions(): void {
-        // 空間分割を更新
-        const allObjects = [
-            ...this.bullets,
-            ...this.enemies,
-            ...this.powerups,
-            this.player,
-            ...(this.boss ? [this.boss] : []),
-            ...this.bossBullets
-        ];
-        this.collisionOptimizer.updateSpatialHash(allObjects);
-
-        this.checkBulletEnemyCollisions();
-        this.checkPlayerEnemyCollisions();
-        this.checkPlayerPowerupCollisions();
-        if (this.boss) {
-            this.checkBossBattleCollisions();
-        }
-    }
-
-    private checkBulletEnemyCollisions(): void {
-        for (let i = this.bullets.length - 1; i >= 0; i--) {
-            for (let j = this.enemies.length - 1; j >= 0; j--) {
-                if (this.checkCollision(this.bullets[i], this.enemies[j])) {
-                    this.bullets.splice(i, 1);
-                    if (this.enemies[j].takeDamage()) {
-                        this.eventEmitter.emit('enemyDestroyed', this.enemies[j])
-                        this.enemies.splice(j, 1);
-                    }
-                    break;
-                }
-            }
-        }
-    }
-
-    private checkPlayerEnemyCollisions(): void {
-        for (let i = this.enemies.length - 1; i >= 0; i--) {
-            if (this.checkCollision(this.player, this.enemies[i])) {
-                this.eventEmitter.emit('playerDamaged', 20);
-                this.eventEmitter.emit('enemyDestroyed', this.enemies[i]);
-                this.enemies.splice(i, 1);
-            }
-        }
-    }
-
-    private checkPlayerPowerupCollisions(): void {
-        for (let i = this.powerups.length - 1; i >= 0; i--) {
-            if (this.checkCollision(this.player, this.powerups[i])) {
-                this.eventEmitter.emit('powerUpCollected', this.powerups[i]);
-                this.powerups.splice(i, 1);
-            }
-        }
-    }
-
-    private checkBossBattleCollisions(): void {
-        if (this.boss && this.checkCollision(this.player, this.boss)) {
-            this.eventEmitter.emit('playerDamaged', 20);
-        }
-
-        for (let i = this.bullets.length - 1; i >= 0; i--) {
-            if (this.boss && this.checkCollision(this.bullets[i], this.boss)) {
-                this.bullets.splice(i, 1);
-                this.eventEmitter.emit('bossDamaged');
-            }
-        }
-
-        for (let i = this.bossBullets.length - 1; i >= 0; i--) {
-            if (this.checkCollision(this.player, this.bossBullets[i])) {
-                this.eventEmitter.emit('playerDamaged', 20);
-                this.bossBullets.splice(i, 1);
-            }
-        }
-    }
-
-    public removeOffscreenObjects(): void {
-        // 弾丸をプールに戻す
-        const bulletPool = this.poolManager.getPool<Bullet>('bullet');
-        this.bullets = this.bullets.filter(bullet => {
-            if (!bullet.isOnScreen() || !bullet.isActive()) {
-                if (bulletPool) {
-                    bulletPool.release(bullet);
-                }
-                return false;
-            }
-            return true;
-        });
-
-        // 爆発エフェクトをプールに戻す
-        const explosionPool = this.poolManager.getPool<Explosion>('explosion');
-        this.explosions = this.explosions.filter(explosion => {
-            if (explosion.isFinished()) {
-                if (explosionPool) {
-                    explosionPool.release(explosion);
-                }
-                return false;
-            }
-            return true;
-        });
-
-        // その他のオブジェクト（プール未対応）
-        this.enemies = this.enemies.filter(enemy => enemy.isOnScreen());
-        this.powerups = this.powerups.filter(powerup => powerup.isOnScreen());
-        this.bossBullets = this.bossBullets.filter(bullet => bullet.isOnScreen());
-    }
-
-    private drawBackground(): void {
-        const gradient = this.ctx.createLinearGradient(0, 0, 0, GAME_CONSTANTS.CANVAS.HEIGHT);
-        gradient.addColorStop(0, 'rgba(10, 10, 35, 1)');
-        gradient.addColorStop(0.5, 'rgba(20, 20, 50, 1)');
-        gradient.addColorStop(1, 'rgba(30, 30, 70, 1)');
-        this.ctx.fillStyle = gradient;
-        this.ctx.fillRect(0, 0, GAME_CONSTANTS.CANVAS.WIDTH, GAME_CONSTANTS.CANVAS.HEIGHT);
-
-        this.nebulas.forEach(nebula => nebula.draw(this.ctx));
-        this.planets.forEach(planet => planet.draw(this.ctx));
-        this.stars.forEach(star => star.draw(this.ctx));
-        this.auroras.forEach(aurora => aurora.draw(this.ctx));
-    }
-
-    private draw(): void {
-        this.drawBackground();
-        this.player.draw(this.ctx);
-        this.bullets.forEach(bullet => bullet.draw(this.ctx));
-        this.enemies.forEach(enemy => enemy.draw(this.ctx));
-        this.powerups.forEach(powerup => powerup.draw(this.ctx));
-        this.explosions.forEach(explosion => explosion.draw(this.ctx));
-        if (this.boss) {
-            this.boss.draw(this.ctx);
-            this.bossBullets.forEach(bullet => bullet.draw(this.ctx));
-        }
-    }
-
-    private spawnEnemy = (): void => {
-        if (this.stateManager.isPlaying() && !this.boss) {
-            const enemyTypes = Object.keys(GAME_CONSTANTS.ENEMY.TYPES) as EnemyType[];
-            const randomType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
-            this.enemies.push(this.gameObjectFactory.createEnemy(randomType, this));
-
-            if (Math.random() < GAME_CONSTANTS.POWERUP.SPAWN_CHANCE) {
-                this.powerups.push(this.gameObjectFactory.createPowerUp());
-            }
-        }
-    }
-
-    private checkCollision(obj1: GameObject, obj2: GameObject): boolean {
-        return checkCollision(obj1, obj2);
-    }
-
-    public gameOver(): void {
-        this.stateManager.setState('GAME_OVER', this);
-    }
-
-    private restartGame = (): void => {
-        this.resetGame();
-        this.stateManager.setState('PLAYING', this);
-    }
-
-    public resetGame(): void {
-        this.player = new Player(this.eventEmitter, this);
-        this.bullets = [];
-        this.enemies = [];
-        this.powerups = [];
-        this.explosions = [];
-        this.boss = null;
-        this.bossBullets = [];
-        this.level = 1;
-        this.bossSpawnScore = 1000;
-        this.scoreManager = new ScoreManager(this.eventEmitter);
-        this.difficultyFactor = 0;
-        this.currentBossHealth = GAME_CONSTANTS.BOSS.INITIAL_HEALTH;
-    }
-
-    private handleBossDefeat(): void {
-        this.scoreManager.addScore(500);
-
-        this.showMessage(`レベル ${this.level} クリア！次のレベルが始まります。`);
-
-        this.level++;
-        this.eventEmitter.emit('levelUpdated', this.level);
-
-        setTimeout(() => {
-            this.startNextLevel();
-        }, 3000);
-        this.bossSpawnScore = this.currentScore + 1000;
-    }
-
-    private startNextLevel(): void {
-        this.enemies = [];
-        this.bossBullets = [];
-        this.powerups = [];
-
-        this.difficultyFactor = this.level * 0.1;
-
-        this.currentBossHealth = GAME_CONSTANTS.BOSS.INITIAL_HEALTH + (this.level - 1) * 10;
-
-        this.bossSpawnScore = this.scoreManager.getScore() + 1000;
-
-        this.eventEmitter.emit('levelStarted', this.level);
-        this.showMessage(`レベル ${this.level} 開始！`);
-    }
-
-    public showMessage(text: string): void {
-        const messageElement = document.createElement('div');
-        messageElement.textContent = text;
-        
-        // 基本的な位置設定
-        messageElement.style.position = 'absolute';
-        messageElement.style.top = '50%';
-        messageElement.style.left = '50%';
-        messageElement.style.transform = 'translate(-50%, -50%)';
-        messageElement.style.textAlign = 'center';
-        messageElement.style.zIndex = '1000';
-        
-        // フォントスタイリング
-        messageElement.style.color = '#ffffff';
-        messageElement.style.fontSize = '32px';
-        messageElement.style.fontWeight = 'bold';
-        messageElement.style.fontFamily = 'Arial, sans-serif';
-        
-        // テキストエフェクト（視認性向上）
-        messageElement.style.textShadow = `
-            0 0 10px #00ffff,
-            0 0 20px #00ffff,
-            0 0 30px #00ffff,
-            2px 2px 4px rgba(0, 0, 0, 0.8)
-        `;
-        
-        // 背景スタイリング
-        messageElement.style.backgroundColor = 'rgba(0, 20, 40, 0.9)';
-        messageElement.style.padding = '20px 40px';
-        messageElement.style.borderRadius = '15px';
-        messageElement.style.border = '2px solid #00ffff';
-        messageElement.style.boxShadow = `
-            0 0 20px rgba(0, 255, 255, 0.5),
-            inset 0 0 20px rgba(0, 255, 255, 0.1)
-        `;
-        
-        // アニメーション設定
-        messageElement.style.opacity = '0';
-        messageElement.style.transform = 'translate(-50%, -50%) scale(0.5)';
-        messageElement.style.transition = 'all 0.3s ease-out';
-        
-        document.body.appendChild(messageElement);
-        
-        // フェードイン効果
-        requestAnimationFrame(() => {
-            messageElement.style.opacity = '1';
-            messageElement.style.transform = 'translate(-50%, -50%) scale(1)';
-        });
-
-        // フェードアウトして削除
-        setTimeout(() => {
-            messageElement.style.transition = 'all 0.5s ease-in';
-            messageElement.style.opacity = '0';
-            messageElement.style.transform = 'translate(-50%, -50%) scale(0.8)';
-            
-            setTimeout(() => {
-                if (document.body.contains(messageElement)) {
-                    document.body.removeChild(messageElement);
-                }
-            }, 500);
-        }, 2500);
-    }
-
-    public hideMessage(): void {
-        // メッセージ要素を探して削除
-        const messageElement = document.querySelector('div[style*="position: absolute"]');
-        if (messageElement) {
-            document.body.removeChild(messageElement);
-        }
-    }
-
-    public addBossBullet(bullet: BossBullet): void {
-        this.bossBullets.push(bullet);
-    }
-
-    public resumeGameLoop(): void {
-        if (!this.gameLoopId) {
-            this.gameLoop(0);
-        }
-    }
-
-    public pauseGameLoop(): void {
-        if (this.gameLoopId) {
-            cancelAnimationFrame(this.gameLoopId);
-            this.gameLoopId = null;
-        }
-    }
-
-    public showGameOverScreen(): void {
-        const gameOverElement = document.getElementById('gameOver');
-        if (gameOverElement) {
-            gameOverElement.classList.remove('hidden');
-        }
-        const finalScoreElement = document.getElementById('finalScore');
-        if (finalScoreElement) {
-            finalScoreElement.textContent = this.scoreManager.getScore().toString();
-        }
-    }
-
-    public hideGameOverScreen(): void {
-        const gameOverElement = document.getElementById('gameOver');
-        if (gameOverElement) {
-            gameOverElement.classList.add('hidden');
-        }
-    }
-
-    public getStateManager(): GameStateManager {
-        return this.stateManager;
-    }
-
-    public handleInput(input: string): void {
-        this.stateManager.handleInput(this, input);
-    }
-
-    public updateUI(): void {
-        this.eventEmitter.emit('healthChanged', this.player.getHealth());
-        this.eventEmitter.emit('levelUpdated', this.level);
-        this.eventEmitter.emit('scoreUpdated', this.scoreManager.getScore());
-    }
-
-    public getDifficultyFactor(): number {
-        return this.difficultyFactor;
-    }
-
-    public getCurrentBossHealth(): number {
-        return this.currentBossHealth;
-    }
-
-    /**
-     * プールから弾丸を取得して初期化
-     */
-    public createBullet(x: number, y: number, speed?: number, color?: string): Bullet | null {
-        const bulletPool = this.poolManager.getPool<Bullet>('bullet');
-        if (bulletPool) {
-            const bullet = bulletPool.get();
-            bullet.initialize(x, y, speed, color);
-            return bullet;
-        }
-        return null;
-    }
-
-    /**
-     * プールの統計情報を取得（デバッグ用）
-     */
-    public getPoolStats(): { [key: string]: number } {
-        return this.poolManager.getStats();
-    }
-
-    /**
-     * 敵をゲームに追加（WaveManager用）
-     */
-    public addEnemy(enemy: Enemy): void {
-        this.enemies.push(enemy);
-    }
-
-    /**
-     * ゲームの開始時にウェーブシステムを開始
-     */
-    public startWaveSystem(): void {
-        if (GAME_CONSTANTS.WAVE.SYSTEM_ENABLED && this.waveManager) {
-            this.waveManager.startNextWave();
-        }
+    getCurrentState(): GameStateKey {
+        return Object.keys(this.states).find(
+            key => this.states[key as GameStateKey] === this.currentState
+        ) as GameStateKey;
     }
 }
 </file>
@@ -3942,8 +4644,539 @@ export const GAME_CONSTANTS: GameConstants = {
 };
 </file>
 
+<file path="src/core/Game.ts">
+import { GAME_CONSTANTS } from '../constants/GameConstants';
+import { Boss } from '../entities/Boss';
+import { BossBullet } from '../entities/BossBullet';
+import { Bullet } from '../entities/Bullet';
+import { Enemy } from '../entities/Enemy';
+import { GameObject } from '../entities/GameObject';
+import { Player } from '../entities/Player';
+import { PowerUp } from '../entities/PowerUp';
+import { EventEmitter } from '../events/EventEmitter';
+import { EventMap } from '../events/EventType';
+import { GameObjectFactory } from '../factories/GameObjectFactory';
+import { GameObjectManager } from '../managers/GameObjectManager';
+import { GameStateManager } from '../managers/GameStateManager';
+import { ScoreManager } from '../managers/ScoreManager';
+import { WaveManager } from '../managers/WaveManager';
+import { EnemyType } from '../types';
+import { checkCollision } from '../utils/CollisionUtils';
+import { CollisionOptimizer } from '../utils/SpatialHash';
+import { IGameEngine } from '../interfaces/IGameEngine';
+import { GameEngine } from './GameEngine';
+
+export class Game implements IGameEngine {
+    private ctx: CanvasRenderingContext2D;
+    private level = 1;
+    private bossSpawnScore: number = 1000;
+    private currentScore: number = 0;
+    private difficultyFactor: number = 0;
+    private currentBossHealth: number = GAME_CONSTANTS.BOSS.INITIAL_HEALTH;
+    private gameEngine!: GameEngine;
+    private gameObjectManager!: GameObjectManager;
+    private collisionOptimizer!: CollisionOptimizer;
+    private waveManager!: WaveManager;
+
+    constructor(
+        private canvas: HTMLCanvasElement,
+        private eventEmitter: EventEmitter<EventMap>,
+        private scoreManager: ScoreManager,
+        private player: Player,
+        private gameObjectFactory: GameObjectFactory,
+        private stateManager: GameStateManager
+    ) {
+        this.ctx = this.canvas.getContext('2d') as CanvasRenderingContext2D;
+        this.canvas.width = GAME_CONSTANTS.CANVAS.WIDTH;
+        this.canvas.height = GAME_CONSTANTS.CANVAS.HEIGHT;
+        this.initializeGameObjects();
+        this.initializeOptimizationSystems();
+        this.setupEventListeners();
+
+        // PlayerにGameインスタンスを設定（循環依存回避）
+        this.player.setGame(this);
+
+        // WaveManagerを初期化
+        this.waveManager = new WaveManager(this.eventEmitter, this.gameObjectFactory, this);
+
+        // GameEngineを初期化
+        this.gameEngine = new GameEngine(
+            (deltaTime: number) => this.updateWithDeltaTime(deltaTime),
+            () => this.draw()
+        );
+
+        this.stateManager.setState('STARTING', this);
+    }
+
+    private initializeGameObjects(): void {
+        // GameObjectManagerを初期化
+        this.gameObjectManager = new GameObjectManager(this.eventEmitter);
+
+        // 背景オブジェクトを作成してGameObjectManagerに設定
+        const stars = Array.from({ length: GAME_CONSTANTS.BACKGROUND.STAR_COUNT }, () => this.gameObjectFactory.createStar());
+        const planets = Array.from({ length: GAME_CONSTANTS.BACKGROUND.PLANET_COUNT }, () => this.gameObjectFactory.createPlanet());
+        const nebulas = Array.from({ length: GAME_CONSTANTS.BACKGROUND.NEBULA_COUNT }, () => this.gameObjectFactory.createNebula());
+        const auroras = Array.from({ length: 2 }, () => this.gameObjectFactory.createAurora());
+
+        this.gameObjectManager.setBackgroundObjects(stars, planets, nebulas, auroras);
+    }
+
+    /**
+     * 衝突最適化システムを初期化
+     */
+    private initializeOptimizationSystems(): void {
+        this.collisionOptimizer = new CollisionOptimizer(64);
+    }
+
+    private setupEventListeners(): void {
+        document.addEventListener('keydown', this.handleKeyDown);
+        document.addEventListener('keyup', this.handleKeyUp);
+        const restartButton = document.getElementById('restartButton');
+        if (restartButton) {
+            restartButton.addEventListener('click', this.restartGame);
+        }
+        this.eventEmitter.on('enemyDestroyed', this.handleEnemyDestroyed);
+        this.eventEmitter.on('playerShot', this.handlePlayerShot);
+        this.eventEmitter.on('playerDamaged', this.handlePlayerDamaged);
+        this.eventEmitter.on('bossDamaged', this.handleBossDamaged);
+        this.eventEmitter.on('bossDefeated', this.handleBossDefeated);
+        this.eventEmitter.on('powerUpCollected', this.handlePowerUpCollected);
+        this.eventEmitter.on('waveCompleted', this.handleWaveCompleted);
+        document.addEventListener('keydown', (e: KeyboardEvent) => {
+            this.handleInput(e.key);
+        });
+    }
+
+    private handleKeyDown = (e: KeyboardEvent): void => {
+        this.player.setKeyState(e.key, true);
+    }
+
+    private handleKeyUp = (e: KeyboardEvent): void => {
+        this.player.setKeyState(e.key, false);
+    }
+
+    private handleEnemyDestroyed = (enemy: Enemy): void => {
+        this.scoreManager.addScore(enemy.getScore());
+    }
+
+    private handlePlayerShot = (_bullet: Bullet): void => {
+        // GameObjectManagerは内部でイベントを処理
+    }
+
+    private handlePlayerDamaged = (damage: number): void => {
+        this.player.takeDamage(damage);
+        if (this.player.getHealth() <= 0) {
+            this.gameOver();
+        }
+    }
+
+    private handleBossDamaged = (): void => {
+        const boss = this.gameObjectManager.getBoss();
+        if (boss && boss.takeDamage()) {
+            this.eventEmitter.emit('bossDefeated');
+        }
+    }
+
+    private handleBossDefeated = (): void => {
+        const boss = this.gameObjectManager.getBoss();
+        if (boss) {
+            this.gameObjectManager.createExplosion(
+                boss.getPosition().x + boss.getWidth() / 2,
+                boss.getPosition().y + boss.getHeight() / 2,
+                2 // ボス爆発は大きく
+            );
+            this.gameObjectManager.setBoss(null);
+            this.handleBossDefeat();
+        }
+    }
+
+    private handlePowerUpCollected = (powerUp: PowerUp): void => {
+        this.player.activatePowerup(powerUp.getType());
+    }
+
+    private handleWaveCompleted = (_waveNumber: number, bonusScore: number): void => {
+        this.scoreManager.addScore(bonusScore);
+    }
+
+    public start(): void {
+        this.eventEmitter.emit('gameStarted');
+        this.gameEngine.start();
+        setInterval(this.spawnEnemy, GAME_CONSTANTS.ENEMY.SPAWN_INTERVAL);
+    }
+
+    /**
+     * GameEngineから呼び出される更新メソッド
+     */
+    private updateWithDeltaTime(deltaTime: number): void {
+        this.stateManager.update(this);
+
+        // ゲームがプレイ中の場合のみオブジェクトを更新
+        if (this.stateManager.isPlaying()) {
+            this.updateGameObjects(deltaTime);
+            this.checkCollisions();
+            this.gameObjectManager.removeOffscreenObjects();
+        }
+    }
+
+    public updateGameObjects(deltaTime: number): void {
+        this.player.update(deltaTime);
+        this.gameObjectManager.updateAllObjects(deltaTime);
+
+        // ウェーブシステムのアップデート
+        if (GAME_CONSTANTS.WAVE.SYSTEM_ENABLED) {
+            this.waveManager.update();
+        }
+
+        this.currentScore = this.scoreManager.getScore();
+        if (this.currentScore >= this.bossSpawnScore && !this.gameObjectManager.getBoss()) {
+            this.spawnBoss();
+        }
+    }
+
+    private spawnBoss(): void {
+        const boss = new Boss(this);
+        this.gameObjectManager.setBoss(boss);
+        this.eventEmitter.emit('bossSpawned');
+        this.showMessage("ボスが出現しました！");
+    }
+
+    public checkCollisions(): void {
+        // GameObjectManagerから衝突可能オブジェクトを取得
+        const allObjects = this.gameObjectManager.getAllCollidableObjects();
+        allObjects.push(this.player);
+
+        this.collisionOptimizer.updateSpatialHash(allObjects);
+
+        this.checkBulletEnemyCollisions();
+        this.checkPlayerEnemyCollisions();
+        this.checkPlayerPowerupCollisions();
+        if (this.gameObjectManager.getBoss()) {
+            this.checkBossBattleCollisions();
+        }
+    }
+
+    private checkBulletEnemyCollisions(): void {
+        const bullets = this.gameObjectManager.getBullets();
+        const enemies = this.gameObjectManager.getEnemies();
+
+        for (let i = bullets.length - 1; i >= 0; i--) {
+            for (let j = enemies.length - 1; j >= 0; j--) {
+                if (this.checkCollision(bullets[i], enemies[j])) {
+                    bullets[i].deactivate();
+                    if (enemies[j].takeDamage()) {
+                        this.eventEmitter.emit('enemyDestroyed', enemies[j]);
+                        this.gameObjectManager.removeEnemy(enemies[j]);
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    private checkPlayerEnemyCollisions(): void {
+        const enemies = this.gameObjectManager.getEnemies();
+
+        for (let i = enemies.length - 1; i >= 0; i--) {
+            if (this.checkCollision(this.player, enemies[i])) {
+                this.eventEmitter.emit('playerDamaged', 20);
+                this.eventEmitter.emit('enemyDestroyed', enemies[i]);
+                this.gameObjectManager.removeEnemy(enemies[i]);
+            }
+        }
+    }
+
+    private checkPlayerPowerupCollisions(): void {
+        const powerups = this.gameObjectManager.getPowerups();
+
+        for (let i = powerups.length - 1; i >= 0; i--) {
+            if (this.checkCollision(this.player, powerups[i])) {
+                this.eventEmitter.emit('powerUpCollected', powerups[i]);
+                this.gameObjectManager.removePowerUp(powerups[i]);
+            }
+        }
+    }
+
+    private checkBossBattleCollisions(): void {
+        const boss = this.gameObjectManager.getBoss();
+        const bullets = this.gameObjectManager.getBullets();
+        const bossBullets = this.gameObjectManager.getBossBullets();
+
+        if (boss && this.checkCollision(this.player, boss)) {
+            this.eventEmitter.emit('playerDamaged', 20);
+        }
+
+        for (let i = bullets.length - 1; i >= 0; i--) {
+            if (boss && this.checkCollision(bullets[i], boss)) {
+                bullets[i].deactivate();
+                this.eventEmitter.emit('bossDamaged');
+            }
+        }
+
+        for (let i = bossBullets.length - 1; i >= 0; i--) {
+            if (this.checkCollision(this.player, bossBullets[i])) {
+                this.eventEmitter.emit('playerDamaged', 20);
+                // ボス弾は一度当たったら消える
+                bossBullets.splice(i, 1);
+            }
+        }
+    }
+
+    private drawBackground(): void {
+        const gradient = this.ctx.createLinearGradient(0, 0, 0, GAME_CONSTANTS.CANVAS.HEIGHT);
+        gradient.addColorStop(0, 'rgba(10, 10, 35, 1)');
+        gradient.addColorStop(0.5, 'rgba(20, 20, 50, 1)');
+        gradient.addColorStop(1, 'rgba(30, 30, 70, 1)');
+        this.ctx.fillStyle = gradient;
+        this.ctx.fillRect(0, 0, GAME_CONSTANTS.CANVAS.WIDTH, GAME_CONSTANTS.CANVAS.HEIGHT);
+
+        // GameObjectManagerから背景オブジェクトを取得して描画
+        this.gameObjectManager.getNebulas().forEach(nebula => nebula.draw(this.ctx));
+        this.gameObjectManager.getPlanets().forEach(planet => planet.draw(this.ctx));
+        this.gameObjectManager.getStars().forEach(star => star.draw(this.ctx));
+        this.gameObjectManager.getAuroras().forEach(aurora => aurora.draw(this.ctx));
+    }
+
+    private draw(): void {
+        this.drawBackground();
+        this.player.draw(this.ctx);
+
+        // GameObjectManagerから各オブジェクトを取得して描画
+        this.gameObjectManager.getBullets().forEach(bullet => bullet.draw(this.ctx));
+        this.gameObjectManager.getEnemies().forEach(enemy => enemy.draw(this.ctx));
+        this.gameObjectManager.getPowerups().forEach(powerup => powerup.draw(this.ctx));
+        this.gameObjectManager.getExplosions().forEach(explosion => explosion.draw(this.ctx));
+
+        const boss = this.gameObjectManager.getBoss();
+        if (boss) {
+            boss.draw(this.ctx);
+            this.gameObjectManager.getBossBullets().forEach(bullet => bullet.draw(this.ctx));
+        }
+    }
+
+    private spawnEnemy = (): void => {
+        if (this.stateManager.isPlaying() && !this.gameObjectManager.getBoss()) {
+            const enemyTypes = Object.keys(GAME_CONSTANTS.ENEMY.TYPES) as EnemyType[];
+            const randomType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+            const enemy = this.gameObjectFactory.createEnemy(randomType, this);
+            this.gameObjectManager.addEnemy(enemy);
+
+            if (Math.random() < GAME_CONSTANTS.POWERUP.SPAWN_CHANCE) {
+                const powerup = this.gameObjectFactory.createPowerUp();
+                this.gameObjectManager.addPowerUp(powerup);
+            }
+        }
+    }
+
+    private checkCollision(obj1: GameObject, obj2: GameObject): boolean {
+        return checkCollision(obj1, obj2);
+    }
+
+    public gameOver(): void {
+        this.stateManager.setState('GAME_OVER', this);
+    }
+
+    private restartGame = (): void => {
+        this.resetGame();
+        this.stateManager.setState('PLAYING', this);
+    }
+
+    public resetGame(): void {
+        this.player = new Player(this.eventEmitter, this);
+        this.gameObjectManager.reset();
+        this.level = 1;
+        this.bossSpawnScore = 1000;
+        this.scoreManager = new ScoreManager(this.eventEmitter);
+        this.difficultyFactor = 0;
+        this.currentBossHealth = GAME_CONSTANTS.BOSS.INITIAL_HEALTH;
+    }
+
+    private handleBossDefeat(): void {
+        this.scoreManager.addScore(500);
+
+        this.showMessage(`レベル ${this.level} クリア！次のレベルが始まります。`);
+
+        this.level++;
+        this.eventEmitter.emit('levelUpdated', this.level);
+
+        setTimeout(() => {
+            this.startNextLevel();
+        }, 3000);
+        this.bossSpawnScore = this.currentScore + 1000;
+    }
+
+    private startNextLevel(): void {
+        // GameObjectManagerを使用してオブジェクトをクリア
+        this.gameObjectManager.getEnemies().length = 0;
+        this.gameObjectManager.getBossBullets().length = 0;
+        this.gameObjectManager.getPowerups().length = 0;
+
+        this.difficultyFactor = this.level * 0.1;
+
+        this.currentBossHealth = GAME_CONSTANTS.BOSS.INITIAL_HEALTH + (this.level - 1) * 10;
+
+        this.bossSpawnScore = this.scoreManager.getScore() + 1000;
+
+        this.eventEmitter.emit('levelStarted', this.level);
+        this.showMessage(`レベル ${this.level} 開始！`);
+    }
+
+    public showMessage(text: string): void {
+        const messageElement = document.createElement('div');
+        messageElement.textContent = text;
+
+        // 基本的な位置設定
+        messageElement.style.position = 'absolute';
+        messageElement.style.top = '50%';
+        messageElement.style.left = '50%';
+        messageElement.style.transform = 'translate(-50%, -50%)';
+        messageElement.style.textAlign = 'center';
+        messageElement.style.zIndex = '1000';
+
+        // フォントスタイリング
+        messageElement.style.color = '#ffffff';
+        messageElement.style.fontSize = '32px';
+        messageElement.style.fontWeight = 'bold';
+        messageElement.style.fontFamily = 'Arial, sans-serif';
+
+        // テキストエフェクト（視認性向上）
+        messageElement.style.textShadow = `
+            0 0 10px #00ffff,
+            0 0 20px #00ffff,
+            0 0 30px #00ffff,
+            2px 2px 4px rgba(0, 0, 0, 0.8)
+        `;
+
+        // 背景スタイリング
+        messageElement.style.backgroundColor = 'rgba(0, 20, 40, 0.9)';
+        messageElement.style.padding = '20px 40px';
+        messageElement.style.borderRadius = '15px';
+        messageElement.style.border = '2px solid #00ffff';
+        messageElement.style.boxShadow = `
+            0 0 20px rgba(0, 255, 255, 0.5),
+            inset 0 0 20px rgba(0, 255, 255, 0.1)
+        `;
+
+        // アニメーション設定
+        messageElement.style.opacity = '0';
+        messageElement.style.transform = 'translate(-50%, -50%) scale(0.5)';
+        messageElement.style.transition = 'all 0.3s ease-out';
+
+        document.body.appendChild(messageElement);
+
+        // フェードイン効果
+        requestAnimationFrame(() => {
+            messageElement.style.opacity = '1';
+            messageElement.style.transform = 'translate(-50%, -50%) scale(1)';
+        });
+
+        // フェードアウトして削除
+        setTimeout(() => {
+            messageElement.style.transition = 'all 0.5s ease-in';
+            messageElement.style.opacity = '0';
+            messageElement.style.transform = 'translate(-50%, -50%) scale(0.8)';
+
+            setTimeout(() => {
+                if (document.body.contains(messageElement)) {
+                    document.body.removeChild(messageElement);
+                }
+            }, 500);
+        }, 2500);
+    }
+
+    public hideMessage(): void {
+        // メッセージ要素を探して削除
+        const messageElement = document.querySelector('div[style*="position: absolute"]');
+        if (messageElement) {
+            document.body.removeChild(messageElement);
+        }
+    }
+
+    public addBossBullet(bullet: BossBullet): void {
+        this.gameObjectManager.addBossBullet(bullet);
+    }
+
+    public resumeGameLoop(): void {
+        this.gameEngine.resume();
+    }
+
+    public pauseGameLoop(): void {
+        this.gameEngine.pause();
+    }
+
+    public showGameOverScreen(): void {
+        const gameOverElement = document.getElementById('gameOver');
+        if (gameOverElement) {
+            gameOverElement.classList.remove('hidden');
+        }
+        const finalScoreElement = document.getElementById('finalScore');
+        if (finalScoreElement) {
+            finalScoreElement.textContent = this.scoreManager.getScore().toString();
+        }
+    }
+
+    public hideGameOverScreen(): void {
+        const gameOverElement = document.getElementById('gameOver');
+        if (gameOverElement) {
+            gameOverElement.classList.add('hidden');
+        }
+    }
+
+    public getStateManager(): GameStateManager {
+        return this.stateManager;
+    }
+
+    public handleInput(input: string): void {
+        this.stateManager.handleInput(this, input);
+    }
+
+    public updateUI(): void {
+        this.eventEmitter.emit('healthChanged', this.player.getHealth());
+        this.eventEmitter.emit('levelUpdated', this.level);
+        this.eventEmitter.emit('scoreUpdated', this.scoreManager.getScore());
+    }
+
+    public getDifficultyFactor(): number {
+        return this.difficultyFactor;
+    }
+
+    public getCurrentBossHealth(): number {
+        return this.currentBossHealth;
+    }
+
+    /**
+     * GameObjectManagerを通して弾丸を取得して初期化
+     */
+    public createBullet(x: number, y: number, speed?: number, color?: string): Bullet | null {
+        return this.gameObjectManager.createBullet(x, y, speed, color);
+    }
+
+    /**
+     * プールの統計情報を取得（デバッグ用）
+     */
+    public getPoolStats(): { [key: string]: number } {
+        return this.gameObjectManager.getPoolStats();
+    }
+
+    /**
+     * 敵をゲームに追加（WaveManager用）
+     */
+    public addEnemy(enemy: Enemy): void {
+        this.gameObjectManager.addEnemy(enemy);
+    }
+
+    /**
+     * ゲームの開始時にウェーブシステムを開始
+     */
+    public startWaveSystem(): void {
+        if (GAME_CONSTANTS.WAVE.SYSTEM_ENABLED && this.waveManager) {
+            this.waveManager.startNextWave();
+        }
+    }
+}
+</file>
+
 <file path="src/factories/GameObjectFactory.ts">
-import { Game } from "../core/Game";
+import { IGameEngine } from "../interfaces/IGameEngine";
 import { Aurora } from "../entities/Aurora";
 import { Enemy } from "../entities/Enemy";
 import { Nebula } from "../entities/Nebula";
@@ -3971,14 +5204,14 @@ export class GameObjectFactory {
         return new Aurora();
     }
 
-    createEnemy(type: EnemyType, game: Game): Enemy {
+    createEnemy(type: EnemyType, game: IGameEngine): Enemy {
         const enemyData = GAME_CONSTANTS.ENEMY.TYPES[type];
         const x = randomRange(0, GAME_CONSTANTS.CANVAS.WIDTH - enemyData.width);
-        return new Enemy(type, x, -enemyData.height, game);
+        return new Enemy(x, -enemyData.height, type, game);
     }
 
-    createEnemyAtPosition(type: EnemyType, x: number, y: number, game: Game): Enemy {
-        return new Enemy(type, x, y, game);
+    createEnemyAtPosition(type: EnemyType, x: number, y: number, game: IGameEngine): Enemy {
+        return new Enemy(x, y, type, game);
     }
 
     createPowerUp(): PowerUp {

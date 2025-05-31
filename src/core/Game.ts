@@ -1,47 +1,33 @@
 import { GAME_CONSTANTS } from '../constants/GameConstants';
-import { Aurora } from '../entities/Aurora';
 import { Boss } from '../entities/Boss';
 import { BossBullet } from '../entities/BossBullet';
 import { Bullet } from '../entities/Bullet';
 import { Enemy } from '../entities/Enemy';
-import { Explosion } from '../entities/Explosion';
 import { GameObject } from '../entities/GameObject';
-import { Nebula } from '../entities/Nebula';
-import { Planet } from '../entities/Planet';
 import { Player } from '../entities/Player';
 import { PowerUp } from '../entities/PowerUp';
-import { Star } from '../entities/Star';
 import { EventEmitter } from '../events/EventEmitter';
 import { EventMap } from '../events/EventType';
 import { GameObjectFactory } from '../factories/GameObjectFactory';
+import { GameObjectManager } from '../managers/GameObjectManager';
 import { GameStateManager } from '../managers/GameStateManager';
 import { ScoreManager } from '../managers/ScoreManager';
 import { WaveManager } from '../managers/WaveManager';
 import { EnemyType } from '../types';
 import { checkCollision } from '../utils/CollisionUtils';
-import { ObjectPool, PoolManager } from '../utils/ObjectPool';
 import { CollisionOptimizer } from '../utils/SpatialHash';
 import { IGameEngine } from '../interfaces/IGameEngine';
 import { GameEngine } from './GameEngine';
+
 export class Game implements IGameEngine {
     private ctx: CanvasRenderingContext2D;
-    private bullets: Bullet[] = [];
-    private enemies: Enemy[] = [];
-    private stars: Star[] = [];
-    private explosions: Explosion[] = [];
-    private planets: Planet[] = [];
-    private nebulas: Nebula[] = [];
-    private auroras: Aurora[] = [];
-    private powerups: PowerUp[] = [];
-    private boss: Boss | null = null;
-    private bossBullets: BossBullet[] = [];
     private level = 1;
     private bossSpawnScore: number = 1000;
     private currentScore: number = 0;
     private difficultyFactor: number = 0;
     private currentBossHealth: number = GAME_CONSTANTS.BOSS.INITIAL_HEALTH;
     private gameEngine!: GameEngine;
-    private poolManager!: PoolManager;
+    private gameObjectManager!: GameObjectManager;
     private collisionOptimizer!: CollisionOptimizer;
     private waveManager!: WaveManager;
 
@@ -76,36 +62,23 @@ export class Game implements IGameEngine {
     }
 
     private initializeGameObjects(): void {
-        this.stars = Array.from({ length: GAME_CONSTANTS.BACKGROUND.STAR_COUNT }, () => this.gameObjectFactory.createStar());
-        this.planets = Array.from({ length: GAME_CONSTANTS.BACKGROUND.PLANET_COUNT }, () => this.gameObjectFactory.createPlanet());
-        this.nebulas = Array.from({ length: GAME_CONSTANTS.BACKGROUND.NEBULA_COUNT }, () => this.gameObjectFactory.createNebula());
-        this.auroras = Array.from({ length: 2 }, () => this.gameObjectFactory.createAurora());
+        // GameObjectManagerを初期化
+        this.gameObjectManager = new GameObjectManager(this.eventEmitter);
+
+        // 背景オブジェクトを作成してGameObjectManagerに設定
+        const stars = Array.from({ length: GAME_CONSTANTS.BACKGROUND.STAR_COUNT }, () => this.gameObjectFactory.createStar());
+        const planets = Array.from({ length: GAME_CONSTANTS.BACKGROUND.PLANET_COUNT }, () => this.gameObjectFactory.createPlanet());
+        const nebulas = Array.from({ length: GAME_CONSTANTS.BACKGROUND.NEBULA_COUNT }, () => this.gameObjectFactory.createNebula());
+        const auroras = Array.from({ length: 2 }, () => this.gameObjectFactory.createAurora());
+
+        this.gameObjectManager.setBackgroundObjects(stars, planets, nebulas, auroras);
     }
 
     /**
-     * オブジェクトプールと衝突最適化システムを初期化
+     * 衝突最適化システムを初期化
      */
     private initializeOptimizationSystems(): void {
-        this.poolManager = new PoolManager();
         this.collisionOptimizer = new CollisionOptimizer(64);
-
-        // Bulletプール
-        const bulletPool = new ObjectPool<Bullet>(
-            () => new Bullet(),
-            (bullet) => bullet.reset(),
-            20, // 初期サイズ
-            50  // 最大サイズ
-        );
-        this.poolManager.register('bullet', bulletPool);
-
-        // Explosionプール
-        const explosionPool = new ObjectPool<Explosion>(
-            () => new Explosion(),
-            (explosion) => explosion.reset(),
-            10, // 初期サイズ
-            30  // 最大サイズ
-        );
-        this.poolManager.register('explosion', explosionPool);
     }
 
     private setupEventListeners(): void {
@@ -136,22 +109,11 @@ export class Game implements IGameEngine {
     }
 
     private handleEnemyDestroyed = (enemy: Enemy): void => {
-        const enemyPosition = enemy.getPosition();
-        const explosionPosition = {
-            x: enemyPosition.x + enemy.getWidth() / 2,
-            y: enemyPosition.y + enemy.getHeight() / 2
-        };
-        const explosionPool = this.poolManager.getPool<Explosion>('explosion');
-        if (explosionPool) {
-            const explosion = explosionPool.get();
-            explosion.initialize(explosionPosition);
-            this.explosions.push(explosion);
-        }
         this.scoreManager.addScore(enemy.getScore());
     }
 
-    private handlePlayerShot = (bullet: Bullet): void => {
-        this.bullets.push(bullet);
+    private handlePlayerShot = (_bullet: Bullet): void => {
+        // GameObjectManagerは内部でイベントを処理
     }
 
     private handlePlayerDamaged = (damage: number): void => {
@@ -162,20 +124,21 @@ export class Game implements IGameEngine {
     }
 
     private handleBossDamaged = (): void => {
-        if (this.boss && this.boss.takeDamage()) {
+        const boss = this.gameObjectManager.getBoss();
+        if (boss && boss.takeDamage()) {
             this.eventEmitter.emit('bossDefeated');
         }
     }
 
     private handleBossDefeated = (): void => {
-        if (this.boss) {
-            const explosionPool = this.poolManager.getPool<Explosion>('explosion');
-            if (explosionPool) {
-                const explosion = explosionPool.get();
-                explosion.initialize(this.boss.getPosition(), 2); // ボス爆発は大きく
-                this.explosions.push(explosion);
-            }
-            this.boss = null;
+        const boss = this.gameObjectManager.getBoss();
+        if (boss) {
+            this.gameObjectManager.createExplosion(
+                boss.getPosition().x + boss.getWidth() / 2,
+                boss.getPosition().y + boss.getHeight() / 2,
+                2 // ボス爆発は大きく
+            );
+            this.gameObjectManager.setBoss(null);
             this.handleBossDefeat();
         }
     }
@@ -199,31 +162,18 @@ export class Game implements IGameEngine {
      */
     private updateWithDeltaTime(deltaTime: number): void {
         this.stateManager.update(this);
-        
+
         // ゲームがプレイ中の場合のみオブジェクトを更新
         if (this.stateManager.isPlaying()) {
             this.updateGameObjects(deltaTime);
             this.checkCollisions();
-            this.removeOffscreenObjects();
+            this.gameObjectManager.removeOffscreenObjects();
         }
     }
 
-
-
     public updateGameObjects(deltaTime: number): void {
         this.player.update(deltaTime);
-        this.bullets.forEach(bullet => bullet.update(deltaTime));
-        this.enemies.forEach(enemy => enemy.update(deltaTime));
-        this.powerups.forEach(powerup => powerup.update(deltaTime));
-        this.explosions.forEach(explosion => explosion.update(deltaTime));
-        this.stars.forEach(star => star.update(deltaTime));
-        this.planets.forEach(planet => planet.update(deltaTime));
-        this.auroras.forEach(aurora => aurora.update(deltaTime));
-        this.bossBullets.forEach(bossBullet => bossBullet.update(deltaTime));
-
-        if (this.boss) {
-            this.boss.update(deltaTime);
-        }
+        this.gameObjectManager.updateAllObjects(deltaTime);
 
         // ウェーブシステムのアップデート
         if (GAME_CONSTANTS.WAVE.SYSTEM_ENABLED) {
@@ -231,45 +181,44 @@ export class Game implements IGameEngine {
         }
 
         this.currentScore = this.scoreManager.getScore();
-        if (this.currentScore >= this.bossSpawnScore && !this.boss) {
+        if (this.currentScore >= this.bossSpawnScore && !this.gameObjectManager.getBoss()) {
             this.spawnBoss();
         }
     }
 
     private spawnBoss(): void {
-        this.boss = new Boss(this);
+        const boss = new Boss(this);
+        this.gameObjectManager.setBoss(boss);
         this.eventEmitter.emit('bossSpawned');
         this.showMessage("ボスが出現しました！");
     }
 
     public checkCollisions(): void {
-        // 空間分割を更新
-        const allObjects = [
-            ...this.bullets,
-            ...this.enemies,
-            ...this.powerups,
-            this.player,
-            ...(this.boss ? [this.boss] : []),
-            ...this.bossBullets
-        ];
+        // GameObjectManagerから衝突可能オブジェクトを取得
+        const allObjects = this.gameObjectManager.getAllCollidableObjects();
+        allObjects.push(this.player);
+
         this.collisionOptimizer.updateSpatialHash(allObjects);
 
         this.checkBulletEnemyCollisions();
         this.checkPlayerEnemyCollisions();
         this.checkPlayerPowerupCollisions();
-        if (this.boss) {
+        if (this.gameObjectManager.getBoss()) {
             this.checkBossBattleCollisions();
         }
     }
 
     private checkBulletEnemyCollisions(): void {
-        for (let i = this.bullets.length - 1; i >= 0; i--) {
-            for (let j = this.enemies.length - 1; j >= 0; j--) {
-                if (this.checkCollision(this.bullets[i], this.enemies[j])) {
-                    this.bullets.splice(i, 1);
-                    if (this.enemies[j].takeDamage()) {
-                        this.eventEmitter.emit('enemyDestroyed', this.enemies[j])
-                        this.enemies.splice(j, 1);
+        const bullets = this.gameObjectManager.getBullets();
+        const enemies = this.gameObjectManager.getEnemies();
+
+        for (let i = bullets.length - 1; i >= 0; i--) {
+            for (let j = enemies.length - 1; j >= 0; j--) {
+                if (this.checkCollision(bullets[i], enemies[j])) {
+                    bullets[i].deactivate();
+                    if (enemies[j].takeDamage()) {
+                        this.eventEmitter.emit('enemyDestroyed', enemies[j]);
+                        this.gameObjectManager.removeEnemy(enemies[j]);
                     }
                     break;
                 }
@@ -278,73 +227,51 @@ export class Game implements IGameEngine {
     }
 
     private checkPlayerEnemyCollisions(): void {
-        for (let i = this.enemies.length - 1; i >= 0; i--) {
-            if (this.checkCollision(this.player, this.enemies[i])) {
+        const enemies = this.gameObjectManager.getEnemies();
+
+        for (let i = enemies.length - 1; i >= 0; i--) {
+            if (this.checkCollision(this.player, enemies[i])) {
                 this.eventEmitter.emit('playerDamaged', 20);
-                this.eventEmitter.emit('enemyDestroyed', this.enemies[i]);
-                this.enemies.splice(i, 1);
+                this.eventEmitter.emit('enemyDestroyed', enemies[i]);
+                this.gameObjectManager.removeEnemy(enemies[i]);
             }
         }
     }
 
     private checkPlayerPowerupCollisions(): void {
-        for (let i = this.powerups.length - 1; i >= 0; i--) {
-            if (this.checkCollision(this.player, this.powerups[i])) {
-                this.eventEmitter.emit('powerUpCollected', this.powerups[i]);
-                this.powerups.splice(i, 1);
+        const powerups = this.gameObjectManager.getPowerups();
+
+        for (let i = powerups.length - 1; i >= 0; i--) {
+            if (this.checkCollision(this.player, powerups[i])) {
+                this.eventEmitter.emit('powerUpCollected', powerups[i]);
+                this.gameObjectManager.removePowerUp(powerups[i]);
             }
         }
     }
 
     private checkBossBattleCollisions(): void {
-        if (this.boss && this.checkCollision(this.player, this.boss)) {
+        const boss = this.gameObjectManager.getBoss();
+        const bullets = this.gameObjectManager.getBullets();
+        const bossBullets = this.gameObjectManager.getBossBullets();
+
+        if (boss && this.checkCollision(this.player, boss)) {
             this.eventEmitter.emit('playerDamaged', 20);
         }
 
-        for (let i = this.bullets.length - 1; i >= 0; i--) {
-            if (this.boss && this.checkCollision(this.bullets[i], this.boss)) {
-                this.bullets.splice(i, 1);
+        for (let i = bullets.length - 1; i >= 0; i--) {
+            if (boss && this.checkCollision(bullets[i], boss)) {
+                bullets[i].deactivate();
                 this.eventEmitter.emit('bossDamaged');
             }
         }
 
-        for (let i = this.bossBullets.length - 1; i >= 0; i--) {
-            if (this.checkCollision(this.player, this.bossBullets[i])) {
+        for (let i = bossBullets.length - 1; i >= 0; i--) {
+            if (this.checkCollision(this.player, bossBullets[i])) {
                 this.eventEmitter.emit('playerDamaged', 20);
-                this.bossBullets.splice(i, 1);
+                // ボス弾は一度当たったら消える
+                bossBullets.splice(i, 1);
             }
         }
-    }
-
-    public removeOffscreenObjects(): void {
-        // 弾丸をプールに戻す
-        const bulletPool = this.poolManager.getPool<Bullet>('bullet');
-        this.bullets = this.bullets.filter(bullet => {
-            if (!bullet.isOnScreen() || !bullet.isActive()) {
-                if (bulletPool) {
-                    bulletPool.release(bullet);
-                }
-                return false;
-            }
-            return true;
-        });
-
-        // 爆発エフェクトをプールに戻す
-        const explosionPool = this.poolManager.getPool<Explosion>('explosion');
-        this.explosions = this.explosions.filter(explosion => {
-            if (explosion.isFinished()) {
-                if (explosionPool) {
-                    explosionPool.release(explosion);
-                }
-                return false;
-            }
-            return true;
-        });
-
-        // その他のオブジェクト（プール未対応）
-        this.enemies = this.enemies.filter(enemy => enemy.isOnScreen());
-        this.powerups = this.powerups.filter(powerup => powerup.isOnScreen());
-        this.bossBullets = this.bossBullets.filter(bullet => bullet.isOnScreen());
     }
 
     private drawBackground(): void {
@@ -355,33 +282,40 @@ export class Game implements IGameEngine {
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(0, 0, GAME_CONSTANTS.CANVAS.WIDTH, GAME_CONSTANTS.CANVAS.HEIGHT);
 
-        this.nebulas.forEach(nebula => nebula.draw(this.ctx));
-        this.planets.forEach(planet => planet.draw(this.ctx));
-        this.stars.forEach(star => star.draw(this.ctx));
-        this.auroras.forEach(aurora => aurora.draw(this.ctx));
+        // GameObjectManagerから背景オブジェクトを取得して描画
+        this.gameObjectManager.getNebulas().forEach(nebula => nebula.draw(this.ctx));
+        this.gameObjectManager.getPlanets().forEach(planet => planet.draw(this.ctx));
+        this.gameObjectManager.getStars().forEach(star => star.draw(this.ctx));
+        this.gameObjectManager.getAuroras().forEach(aurora => aurora.draw(this.ctx));
     }
 
     private draw(): void {
         this.drawBackground();
         this.player.draw(this.ctx);
-        this.bullets.forEach(bullet => bullet.draw(this.ctx));
-        this.enemies.forEach(enemy => enemy.draw(this.ctx));
-        this.powerups.forEach(powerup => powerup.draw(this.ctx));
-        this.explosions.forEach(explosion => explosion.draw(this.ctx));
-        if (this.boss) {
-            this.boss.draw(this.ctx);
-            this.bossBullets.forEach(bullet => bullet.draw(this.ctx));
+
+        // GameObjectManagerから各オブジェクトを取得して描画
+        this.gameObjectManager.getBullets().forEach(bullet => bullet.draw(this.ctx));
+        this.gameObjectManager.getEnemies().forEach(enemy => enemy.draw(this.ctx));
+        this.gameObjectManager.getPowerups().forEach(powerup => powerup.draw(this.ctx));
+        this.gameObjectManager.getExplosions().forEach(explosion => explosion.draw(this.ctx));
+
+        const boss = this.gameObjectManager.getBoss();
+        if (boss) {
+            boss.draw(this.ctx);
+            this.gameObjectManager.getBossBullets().forEach(bullet => bullet.draw(this.ctx));
         }
     }
 
     private spawnEnemy = (): void => {
-        if (this.stateManager.isPlaying() && !this.boss) {
+        if (this.stateManager.isPlaying() && !this.gameObjectManager.getBoss()) {
             const enemyTypes = Object.keys(GAME_CONSTANTS.ENEMY.TYPES) as EnemyType[];
             const randomType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
-            this.enemies.push(this.gameObjectFactory.createEnemy(randomType, this));
+            const enemy = this.gameObjectFactory.createEnemy(randomType, this);
+            this.gameObjectManager.addEnemy(enemy);
 
             if (Math.random() < GAME_CONSTANTS.POWERUP.SPAWN_CHANCE) {
-                this.powerups.push(this.gameObjectFactory.createPowerUp());
+                const powerup = this.gameObjectFactory.createPowerUp();
+                this.gameObjectManager.addPowerUp(powerup);
             }
         }
     }
@@ -401,12 +335,7 @@ export class Game implements IGameEngine {
 
     public resetGame(): void {
         this.player = new Player(this.eventEmitter, this);
-        this.bullets = [];
-        this.enemies = [];
-        this.powerups = [];
-        this.explosions = [];
-        this.boss = null;
-        this.bossBullets = [];
+        this.gameObjectManager.reset();
         this.level = 1;
         this.bossSpawnScore = 1000;
         this.scoreManager = new ScoreManager(this.eventEmitter);
@@ -429,9 +358,10 @@ export class Game implements IGameEngine {
     }
 
     private startNextLevel(): void {
-        this.enemies = [];
-        this.bossBullets = [];
-        this.powerups = [];
+        // GameObjectManagerを使用してオブジェクトをクリア
+        this.gameObjectManager.getEnemies().length = 0;
+        this.gameObjectManager.getBossBullets().length = 0;
+        this.gameObjectManager.getPowerups().length = 0;
 
         this.difficultyFactor = this.level * 0.1;
 
@@ -515,7 +445,7 @@ export class Game implements IGameEngine {
     }
 
     public addBossBullet(bullet: BossBullet): void {
-        this.bossBullets.push(bullet);
+        this.gameObjectManager.addBossBullet(bullet);
     }
 
     public resumeGameLoop(): void {
@@ -567,30 +497,24 @@ export class Game implements IGameEngine {
     }
 
     /**
-     * プールから弾丸を取得して初期化
+     * GameObjectManagerを通して弾丸を取得して初期化
      */
     public createBullet(x: number, y: number, speed?: number, color?: string): Bullet | null {
-        const bulletPool = this.poolManager.getPool<Bullet>('bullet');
-        if (bulletPool) {
-            const bullet = bulletPool.get();
-            bullet.initialize(x, y, speed, color);
-            return bullet;
-        }
-        return null;
+        return this.gameObjectManager.createBullet(x, y, speed, color);
     }
 
     /**
      * プールの統計情報を取得（デバッグ用）
      */
     public getPoolStats(): { [key: string]: number } {
-        return this.poolManager.getStats();
+        return this.gameObjectManager.getPoolStats();
     }
 
     /**
      * 敵をゲームに追加（WaveManager用）
      */
     public addEnemy(enemy: Enemy): void {
-        this.enemies.push(enemy);
+        this.gameObjectManager.addEnemy(enemy);
     }
 
     /**
