@@ -1,4 +1,4 @@
-import { Game } from "../core/Game";
+import { IGameEngine } from "../interfaces/IGameEngine";
 import { Aurora } from "../entities/Aurora";
 import { Enemy } from "../entities/Enemy";
 import { Nebula } from "../entities/Nebula";
@@ -26,14 +26,14 @@ export class GameObjectFactory {
         return new Aurora();
     }
 
-    createEnemy(type: EnemyType, game: Game): Enemy {
+    createEnemy(type: EnemyType, game: IGameEngine): Enemy {
         const enemyData = GAME_CONSTANTS.ENEMY.TYPES[type];
         const x = randomRange(0, GAME_CONSTANTS.CANVAS.WIDTH - enemyData.width);
-        return new Enemy(type, x, -enemyData.height, game);
+        return new Enemy(x, -enemyData.height, type, game);
     }
 
-    createEnemyAtPosition(type: EnemyType, x: number, y: number, game: Game): Enemy {
-        return new Enemy(type, x, y, game);
+    createEnemyAtPosition(type: EnemyType, x: number, y: number, game: IGameEngine): Enemy {
+        return new Enemy(x, y, type, game);
     }
 
     createPowerUp(): PowerUp {
