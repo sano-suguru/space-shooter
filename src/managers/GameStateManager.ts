@@ -42,9 +42,7 @@ class PlayingState implements GameState {
     }
 
     update(game: Game): void {
-        game.updateGameObjects();
-        game.checkCollisions();
-        game.removeOffscreenObjects();
+        // ゲームオブジェクトの更新はGameEngineで行われるため、ここではUI更新のみ
         game.updateUI();
     }
 
