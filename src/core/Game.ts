@@ -16,6 +16,7 @@ import { EnemyType } from '../types';
 import { CollisionSystem } from '../systems/CollisionSystem';
 import { IGameEngine } from '../interfaces/IGameEngine';
 import { GameEngine } from './GameEngine';
+import { BackgroundRenderer } from '../rendering/BackgroundRenderer';
 
 export class Game implements IGameEngine {
     private ctx: CanvasRenderingContext2D;
@@ -28,6 +29,10 @@ export class Game implements IGameEngine {
     private gameObjectManager!: GameObjectManager;
     private collisionSystem!: CollisionSystem;
     private waveManager!: WaveManager;
+    private backgroundRenderer!: BackgroundRenderer;
+
+    // 背景レンダリング最適化フラグ
+    private useOptimizedBackground = true;
 
     constructor(
         private canvas: HTMLCanvasElement,
@@ -49,6 +54,9 @@ export class Game implements IGameEngine {
 
         // WaveManagerを初期化
         this.waveManager = new WaveManager(this.eventEmitter, this.gameObjectFactory, this);
+
+        // BackgroundRendererを初期化
+        this.backgroundRenderer = new BackgroundRenderer();
 
         // GameEngineを初期化
         this.gameEngine = new GameEngine(
@@ -198,19 +206,34 @@ export class Game implements IGameEngine {
         this.collisionSystem.checkAllCollisions(this.player);
     }
 
+    /**
+     * 最適化された背景描画
+     */
     private drawBackground(): void {
-        const gradient = this.ctx.createLinearGradient(0, 0, 0, GAME_CONSTANTS.CANVAS.HEIGHT);
-        gradient.addColorStop(0, 'rgba(10, 10, 35, 1)');
-        gradient.addColorStop(0.5, 'rgba(20, 20, 50, 1)');
-        gradient.addColorStop(1, 'rgba(30, 30, 70, 1)');
-        this.ctx.fillStyle = gradient;
-        this.ctx.fillRect(0, 0, GAME_CONSTANTS.CANVAS.WIDTH, GAME_CONSTANTS.CANVAS.HEIGHT);
+        const stars = this.gameObjectManager.getStars();
+        const planets = this.gameObjectManager.getPlanets();
+        const nebulas = this.gameObjectManager.getNebulas();
+        const auroras = this.gameObjectManager.getAuroras();
 
-        // GameObjectManagerから背景オブジェクトを取得して描画
-        this.gameObjectManager.getNebulas().forEach(nebula => nebula.draw(this.ctx));
-        this.gameObjectManager.getPlanets().forEach(planet => planet.draw(this.ctx));
-        this.gameObjectManager.getStars().forEach(star => star.draw(this.ctx));
-        this.gameObjectManager.getAuroras().forEach(aurora => aurora.draw(this.ctx));
+        if (this.useOptimizedBackground) {
+            // 最適化された背景描画を使用
+            this.backgroundRenderer.drawOptimizedBackground(
+                this.ctx,
+                stars,
+                planets,
+                nebulas,
+                auroras
+            );
+        } else {
+            // 従来の背景描画を使用（比較・デバッグ用）
+            this.backgroundRenderer.drawTraditionalBackground(
+                this.ctx,
+                stars,
+                planets,
+                nebulas,
+                auroras
+            );
+        }
     }
 
     private draw(): void {
@@ -443,6 +466,37 @@ export class Game implements IGameEngine {
     public startWaveSystem(): void {
         if (GAME_CONSTANTS.WAVE.SYSTEM_ENABLED && this.waveManager) {
             this.waveManager.startNextWave();
+        }
+    }
+
+    /**
+     * 背景レンダリング最適化の切り替え
+     */
+    public toggleBackgroundOptimization(): void {
+        this.useOptimizedBackground = !this.useOptimizedBackground;
+        console.log(`Background optimization: ${this.useOptimizedBackground ? 'ON' : 'OFF'}`);
+    }
+
+    /**
+     * 背景レンダリングパフォーマンス統計を取得
+     */
+    public getBackgroundPerformanceStats() {
+        return this.backgroundRenderer.getPerformanceStats();
+    }
+
+    /**
+     * 背景レンダリングパフォーマンス情報をコンソールに出力
+     */
+    public logBackgroundPerformance(): void {
+        this.backgroundRenderer.logPerformanceInfo();
+    }
+
+    /**
+     * リソースクリーンアップ
+     */
+    public dispose(): void {
+        if (this.backgroundRenderer) {
+            this.backgroundRenderer.dispose();
         }
     }
 }

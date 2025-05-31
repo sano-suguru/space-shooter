@@ -77,6 +77,8 @@ src/
     ScoreManager.ts
     UIManager.ts
     WaveManager.ts
+  rendering/
+    BackgroundRenderer.ts
   systems/
     CollisionSystem.ts
   types/
@@ -106,6 +108,281 @@ vite.config.js
 
 <files>
 This section contains the contents of the repository's files.
+
+<file path="src/rendering/BackgroundRenderer.ts">
+import { GAME_CONSTANTS } from '../constants/GameConstants';
+import { Star } from '../entities/Star';
+import { Planet } from '../entities/Planet';
+import { Nebula } from '../entities/Nebula';
+import { Aurora } from '../entities/Aurora';
+
+/**
+ * 背景レンダリング最適化クラス
+ * - 事前レンダリングによる描画コスト削減
+ * - レイヤー別キャッシング戦略
+ * - パフォーマンス測定機能
+ */
+export class BackgroundRenderer {
+    // キャッシュ用オフスクリーンキャンバス
+    private backgroundCache!: HTMLCanvasElement;
+    private backgroundCacheCtx!: CanvasRenderingContext2D;
+
+    private nebulaCache!: HTMLCanvasElement;
+    private nebulaCacheCtx!: CanvasRenderingContext2D;
+
+    private planetCache!: HTMLCanvasElement;
+    private planetCacheCtx!: CanvasRenderingContext2D;
+
+    // キャッシュ状態管理
+    private backgroundCacheValid = false;
+    private nebulaCacheValid = false;
+    private planetCacheValid = false;
+
+    // パフォーマンス測定
+    private renderTimes: number[] = [];
+    private maxRenderTimeHistory = 100;
+
+    // 惑星キャッシュ更新間隔（回転アニメーション用）
+    private planetCacheUpdateInterval = 16; // ~60FPS時に16フレームごと
+    private planetCacheFrameCounter = 0;
+
+    constructor() {
+        this.initializeCaches();
+    }
+
+    /**
+     * キャッシュ用オフスクリーンキャンバスを初期化
+     */
+    private initializeCaches(): void {
+        const width = GAME_CONSTANTS.CANVAS.WIDTH;
+        const height = GAME_CONSTANTS.CANVAS.HEIGHT;
+
+        // 背景グラデーション用キャッシュ
+        this.backgroundCache = document.createElement('canvas');
+        this.backgroundCache.width = width;
+        this.backgroundCache.height = height;
+        this.backgroundCacheCtx = this.backgroundCache.getContext('2d')!;
+
+        // 星雲用キャッシュ
+        this.nebulaCache = document.createElement('canvas');
+        this.nebulaCache.width = width;
+        this.nebulaCache.height = height;
+        this.nebulaCacheCtx = this.nebulaCache.getContext('2d')!;
+
+        // 惑星用キャッシュ
+        this.planetCache = document.createElement('canvas');
+        this.planetCache.width = width;
+        this.planetCache.height = height;
+        this.planetCacheCtx = this.planetCache.getContext('2d')!;
+    }
+
+    /**
+     * 背景グラデーションを事前レンダリング
+     */
+    private renderBackgroundToCache(): void {
+        const ctx = this.backgroundCacheCtx;
+        const gradient = ctx.createLinearGradient(0, 0, 0, GAME_CONSTANTS.CANVAS.HEIGHT);
+        gradient.addColorStop(0, 'rgba(10, 10, 35, 1)');
+        gradient.addColorStop(0.5, 'rgba(20, 20, 50, 1)');
+        gradient.addColorStop(1, 'rgba(30, 30, 70, 1)');
+
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, GAME_CONSTANTS.CANVAS.WIDTH, GAME_CONSTANTS.CANVAS.HEIGHT);
+
+        this.backgroundCacheValid = true;
+    }
+
+    /**
+     * 星雲を事前レンダリング
+     */
+    private renderNebulaToCache(nebulas: Nebula[]): void {
+        const ctx = this.nebulaCacheCtx;
+        ctx.clearRect(0, 0, GAME_CONSTANTS.CANVAS.WIDTH, GAME_CONSTANTS.CANVAS.HEIGHT);
+
+        nebulas.forEach(nebula => {
+            nebula.draw(ctx);
+        });
+
+        this.nebulaCacheValid = true;
+    }
+
+    /**
+     * 惑星を事前レンダリング（定期的に更新）
+     */
+    private renderPlanetsToCache(planets: Planet[]): void {
+        const ctx = this.planetCacheCtx;
+        ctx.clearRect(0, 0, GAME_CONSTANTS.CANVAS.WIDTH, GAME_CONSTANTS.CANVAS.HEIGHT);
+
+        planets.forEach(planet => {
+            planet.draw(ctx);
+        });
+
+        this.planetCacheValid = true;
+        this.planetCacheFrameCounter = 0;
+    }
+
+    /**
+     * 最適化された背景描画
+     * @param ctx メインキャンバスのコンテキスト
+     * @param stars 星の配列
+     * @param planets 惑星の配列
+     * @param nebulas 星雲の配列
+     * @param auroras オーロラの配列
+     */
+    public drawOptimizedBackground(
+        ctx: CanvasRenderingContext2D,
+        stars: Star[],
+        planets: Planet[],
+        nebulas: Nebula[],
+        auroras: Aurora[]
+    ): void {
+        const startTime = performance.now();
+
+        // 1. 背景グラデーション（キャッシュ使用）
+        if (!this.backgroundCacheValid) {
+            this.renderBackgroundToCache();
+        }
+        ctx.drawImage(this.backgroundCache, 0, 0);
+
+        // 2. 星雲（キャッシュ使用 - 完全静的）
+        if (!this.nebulaCacheValid) {
+            this.renderNebulaToCache(nebulas);
+        }
+        ctx.drawImage(this.nebulaCache, 0, 0);
+
+        // 3. 惑星（定期更新キャッシュ使用）
+        this.planetCacheFrameCounter++;
+        if (!this.planetCacheValid || this.planetCacheFrameCounter >= this.planetCacheUpdateInterval) {
+            this.renderPlanetsToCache(planets);
+        }
+        ctx.drawImage(this.planetCache, 0, 0);
+
+        // 4. 星（毎フレーム描画 - アニメーション有り）
+        stars.forEach(star => star.draw(ctx));
+
+        // 5. オーロラ（毎フレーム描画 - アニメーション有り）
+        auroras.forEach(aurora => aurora.draw(ctx));
+
+        // パフォーマンス測定
+        const endTime = performance.now();
+        this.recordRenderTime(endTime - startTime);
+    }
+
+    /**
+     * 従来の描画方法（比較用）
+     */
+    public drawTraditionalBackground(
+        ctx: CanvasRenderingContext2D,
+        stars: Star[],
+        planets: Planet[],
+        nebulas: Nebula[],
+        auroras: Aurora[]
+    ): void {
+        const startTime = performance.now();
+
+        // 背景グラデーション
+        const gradient = ctx.createLinearGradient(0, 0, 0, GAME_CONSTANTS.CANVAS.HEIGHT);
+        gradient.addColorStop(0, 'rgba(10, 10, 35, 1)');
+        gradient.addColorStop(0.5, 'rgba(20, 20, 50, 1)');
+        gradient.addColorStop(1, 'rgba(30, 30, 70, 1)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, GAME_CONSTANTS.CANVAS.WIDTH, GAME_CONSTANTS.CANVAS.HEIGHT);
+
+        // 全要素を毎フレーム描画
+        nebulas.forEach(nebula => nebula.draw(ctx));
+        planets.forEach(planet => planet.draw(ctx));
+        stars.forEach(star => star.draw(ctx));
+        auroras.forEach(aurora => aurora.draw(ctx));
+
+        // パフォーマンス測定
+        const endTime = performance.now();
+        this.recordRenderTime(endTime - startTime);
+    }
+
+    /**
+     * 描画時間を記録
+     */
+    private recordRenderTime(time: number): void {
+        this.renderTimes.push(time);
+        if (this.renderTimes.length > this.maxRenderTimeHistory) {
+            this.renderTimes.shift();
+        }
+    }
+
+    /**
+     * パフォーマンス統計を取得
+     */
+    public getPerformanceStats(): {
+        averageRenderTime: number;
+        minRenderTime: number;
+        maxRenderTime: number;
+        sampleCount: number;
+        cacheUtilization: {
+            background: boolean;
+            nebula: boolean;
+            planet: boolean;
+        };
+    } {
+        if (this.renderTimes.length === 0) {
+            return {
+                averageRenderTime: 0,
+                minRenderTime: 0,
+                maxRenderTime: 0,
+                sampleCount: 0,
+                cacheUtilization: {
+                    background: this.backgroundCacheValid,
+                    nebula: this.nebulaCacheValid,
+                    planet: this.planetCacheValid
+                }
+            };
+        }
+
+        const sum = this.renderTimes.reduce((a, b) => a + b, 0);
+        return {
+            averageRenderTime: sum / this.renderTimes.length,
+            minRenderTime: Math.min(...this.renderTimes),
+            maxRenderTime: Math.max(...this.renderTimes),
+            sampleCount: this.renderTimes.length,
+            cacheUtilization: {
+                background: this.backgroundCacheValid,
+                nebula: this.nebulaCacheValid,
+                planet: this.planetCacheValid
+            }
+        };
+    }
+
+    /**
+     * キャッシュを無効化（画面サイズ変更時など）
+     */
+    public invalidateCache(): void {
+        this.backgroundCacheValid = false;
+        this.nebulaCacheValid = false;
+        this.planetCacheValid = false;
+        this.planetCacheFrameCounter = 0;
+    }
+
+    /**
+     * リソースクリーンアップ
+     */
+    public dispose(): void {
+        this.renderTimes.length = 0;
+        this.invalidateCache();
+    }
+
+    /**
+     * デバッグ情報を表示
+     */
+    public logPerformanceInfo(): void {
+        const stats = this.getPerformanceStats();
+        console.log('Background Renderer Performance:', {
+            'Average Render Time': `${stats.averageRenderTime.toFixed(2)}ms`,
+            'Min/Max Render Time': `${stats.minRenderTime.toFixed(2)}ms / ${stats.maxRenderTime.toFixed(2)}ms`,
+            'Sample Count': stats.sampleCount,
+            'Cache Status': stats.cacheUtilization
+        });
+    }
+}
+</file>
 
 <file path="docs/dependency-analysis.md">
 # 依存関係分析レポート
@@ -313,221 +590,6 @@ import { GameObject } from "./GameObject";
 **分析開始日**: 2025/5/31 午後4:16  
 **分析完了日**: 2025/5/31 午後4:20  
 **次回アクション**: Task 1.1.2 IGameEngine インターフェース作成
-</file>
-
-<file path="docs/performance-benchmarks.md">
-# パフォーマンス測定結果
-
-## 📊 概要
-技術的負債改善前後のパフォーマンス比較とベンチマーク結果
-
----
-
-## 🎯 測定対象
-
-### **1. 衝突判定処理時間**
-- **対象**: `checkCollisions()` メソッド
-- **測定単位**: ミリ秒 (ms)
-- **測定条件**: オブジェクト数別（10, 50, 100, 200）
-
-### **2. 描画処理時間**
-- **対象**: `draw()` メソッド全体
-- **測定単位**: ミリ秒 (ms)
-- **測定条件**: 背景要素数別
-
-### **3. フレームレート**
-- **対象**: ゲーム全体のFPS
-- **測定単位**: FPS (frames per second)
-- **測定条件**: 通常プレイ、高負荷状態
-
-### **4. メモリ使用量**
-- **対象**: ヒープメモリ使用量
-- **測定単位**: MB
-- **測定条件**: 10分間プレイ後
-
----
-
-## 📈 Phase 2完了後の成果（2025/05/31）
-
-### **🚀 SpatialHash最適化実装完了**
-
-#### **アルゴリズム改善**
-| 対象 | 改善前 | 改善後 | 改善内容 |
-|-----|--------|--------|----------|
-| 弾丸vs敵衝突判定 | O(n²) 総当たり | O(n) 空間分割 | ✅ 実装完了 |
-| プレイヤーvs敵衝突判定 | O(n) 線形探索 | O(1) 近隣検索 | ✅ 実装完了 |
-| プレイヤーvsパワーアップ | O(n) 線形探索 | O(1) 近隣検索 | ✅ 実装完了 |
-
-#### **コード品質向上**
-- **技術的負債解消**: 循環依存完全解消 ✅
-- **アーキテクチャ改善**: 責務分離によるクリーンコード ✅
-- **型安全性**: TypeScript型システム活用 ✅
-- **パフォーマンス監視**: 測定機能実装 ✅
-
-#### **期待される効果**
-| 指標 | 目標 | 予想結果 | 備考 |
-|------|------|----------|------|
-| 衝突判定処理時間 | 30%削減 | 実測待ち | オブジェクト数に比例して効果増大 |
-| フレームレート安定性 | 60FPS維持 | 実測待ち | 高負荷時のパフォーマンス向上 |
-| CPU使用率 | 20%削減 | 実測待ち | 無駄な計算処理の削減 |
-
----
-
-## 📈 改善前ベースライン（2025/05/31以前）
-
-### **衝突判定性能**
-| オブジェクト数 | 処理時間 (ms) | アルゴリズム |
-|-------------|-------------|------------|
-| 10          | 未測定        | O(n²)      |
-| 50          | 未測定        | O(n²)      |
-| 100         | 未測定        | O(n²)      |
-| 200         | 未測定        | O(n²)      |
-
-### **描画性能**
-| 背景要素数 | 処理時間 (ms) | 最適化状況 |
-|----------|-------------|-----------|
-| 星100個   | 未測定        | 毎フレーム再描画 |
-| 惑星2個   | 未測定        | 毎フレーム再描画 |
-| 星雲1個   | 未測定        | 毎フレーム再描画 |
-
----
-
-## 🚀 改善後結果（SpatialHash統合完了）
-
-### **Phase 2完了後 (2025/05/31)**
-| オブジェクト数 | 改善前 (ms) | 改善後 (ms) | 改善率 | 状況 |
-|-------------|-----------|-----------|-------|------|
-| 10          | 実測待ち    | 実測待ち    | 実測待ち | SpatialHash統合完了 |
-| 50          | 実測待ち    | 実測待ち    | 実測待ち | 効果測定準備完了 |
-| 100         | 実測待ち    | 実測待ち    | 実測待ち | 高負荷テスト準備完了 |
-| 200         | 実測待ち    | 実測待ち    | 実測待ち | 最大効果測定準備完了 |
-
-**実装済み最適化技術:**
-- ✅ **SpatialHash (64x64セル)**: 空間分割による近隣検索
-- ✅ **早期リターン**: 空配列チェックによる無駄な処理削減
-- ✅ **型安全な最適化**: TypeScript型システム活用
-- ✅ **デバッグ機能**: パフォーマンス測定とコンソールログ
-
----
-
-## 🔧 測定方法
-
-### **衝突判定の測定**
-```typescript
-// CollisionSystem.ts に実装済み
-public measureCollisionPerformance(player: Player): number {
-  const startTime = performance.now();
-  this.checkAllCollisions(player);
-  const endTime = performance.now();
-  const duration = endTime - startTime;
-  
-  console.log(`Collision Detection Performance: ${duration.toFixed(3)}ms`);
-  return duration;
-}
-```
-
-### **空間分割統計の取得**
-```typescript
-// 実装済み統計情報
-public getOptimizationStats(): { 
-  cellCount: number; 
-  objectCount: number; 
-  avgObjectsPerCell: number 
-} {
-  return this.collisionOptimizer.getSpatialHash().getDebugInfo();
-}
-```
-
----
-
-## 📊 測定環境
-
-### **ハードウェア環境**
-- **CPU**: 未記録
-- **メモリ**: 未記録
-- **GPU**: 未記録
-
-### **ソフトウェア環境**
-- **OS**: macOS
-- **ブラウザ**: Chrome/Safari (推定)
-- **Node.js**: LTS版
-- **TypeScript**: 5.5.3
-- **Vite**: 5.4.2
-
-### **測定条件**
-- **画面サイズ**: 400x600 (ゲームキャンバス)
-- **測定回数**: 各条件10回の平均値（予定）
-- **ウォームアップ**: 各測定前に5秒間の準備時間
-
----
-
-## 🎯 性能目標と達成状況
-
-### **Phase 2完了時の目標**
-- ✅ **衝突判定**: 30%以上の処理時間削減 → **SpatialHash統合完了**
-- ⬜ **描画処理**: 50%以上の処理時間削減 → **次回実装予定**
-- ⬜ **フレームレート**: 60FPS安定維持 → **測定準備完了**
-- ⬜ **メモリ使用量**: 10分プレイでリーク0MB → **測定準備完了**
-
-### **最終目標（全フェーズ完了時）**
-- ⬜ **衝突判定**: 200オブジェクト時でも2ms以内
-- ⬜ **描画処理**: 背景描画1ms以内
-- ⬜ **フレームレート**: 高負荷時でも45FPS以上維持
-- ⬜ **メモリ効率**: 30分プレイでメモリ増加10MB以内
-
----
-
-## 📝 測定ログ
-
-### **2025/05/31 - SpatialHash最適化完了**
-- **実装状況**: ✅ CollisionSystem最適化完了
-- **技術的改善**:
-  - O(n²) → O(n)アルゴリズム改善
-  - 型安全性を保った最適化実装
-  - パフォーマンス測定機能追加
-  - デバッグ統計情報取得機能
-- **品質確認**: TypeScriptビルドエラーなし、アプリケーション正常動作
-- **次回アクション**: 実際の測定実行、背景描画最適化への移行
-
-### **測定実行予定**
-- ⬜ **実装直後**: SpatialHash効果の基礎測定
-- ⬜ **高負荷テスト**: 大量オブジェクト時のパフォーマンス
-- ⬜ **継続測定**: 長時間プレイでのメモリリーク確認
-
----
-
-## 🚨 発見された最適化ポイント
-
-### **実装完了**
-- ✅ **SpatialHash統合**: 空間分割による衝突判定最適化完了
-- ✅ **早期リターン**: 無駄な処理の削減完了
-- ✅ **型安全性**: TypeScript活用による品質向上完了
-
-### **次期実装予定**
-- ⬜ **背景描画最適化**: 静的要素の事前レンダリング
-- ⬜ **オブジェクトプール拡張**: より多くのエンティティでの活用
-- ⬜ **フレームレート制御**: 負荷に応じた動的調整
-
----
-
-## 📚 参考情報
-
-### **実装済み最適化技術**
-- **SpatialHash**: 64x64セルによる空間分割
-- **CollisionOptimizer**: 衝突判定効率化クラス
-- **パフォーマンス測定**: `performance.now()`による高精度計測
-- **デバッグ統計**: セル数、オブジェクト数、平均密度の監視
-
-### **使用ツール**
-- `performance.now()` - 高精度時間測定 ✅
-- `performance.memory` - メモリ使用量（Chrome限定）
-- Chrome DevTools - プロファイリング準備完了
-
----
-
-**最終更新**: 2025/05/31 22:52  
-**実装ステータス**: SpatialHash最適化完了  
-**次回タスク**: 背景描画最適化 (Task 2.2.1)
 </file>
 
 <file path="docs/refactoring-notes.md">
@@ -1997,201 +2059,6 @@ export class WaveManager {
 }
 </file>
 
-<file path="src/systems/CollisionSystem.ts">
-import { GameObject } from '../entities/GameObject';
-import { Player } from '../entities/Player';
-import { Boss } from '../entities/Boss';
-import { EventEmitter } from '../events/EventEmitter';
-import { EventMap } from '../events/EventType';
-import { GameObjectManager } from '../managers/GameObjectManager';
-import { CollisionOptimizer } from '../utils/SpatialHash';
-import { checkCollision } from '../utils/CollisionUtils';
-
-/**
- * 衝突判定システム - SpatialHash最適化版
- * 全ての衝突判定処理を統合管理し、SpatialHashによるO(n)最適化を適用
- */
-export class CollisionSystem {
-    private collisionOptimizer: CollisionOptimizer;
-
-    constructor(
-        private eventEmitter: EventEmitter<EventMap>,
-        private gameObjectManager: GameObjectManager
-    ) {
-        this.collisionOptimizer = new CollisionOptimizer(64);
-    }
-
-    /**
-     * メインの衝突判定処理
-     * 全ての衝突判定を統合的に実行
-     */
-    public checkAllCollisions(player: Player): void {
-        // 衝突可能な全オブジェクトを取得
-        const allObjects = this.gameObjectManager.getAllCollidableObjects();
-        allObjects.push(player);
-
-        // 空間分割による最適化を適用
-        this.collisionOptimizer.updateSpatialHash(allObjects);
-
-        // 各種衝突判定を実行（SpatialHash最適化版）
-        this.checkBulletEnemyCollisions();
-        this.checkPlayerEnemyCollisions(player);
-        this.checkPlayerPowerupCollisions(player);
-        
-        const boss = this.gameObjectManager.getBoss();
-        if (boss) {
-            this.checkBossBattleCollisions(player, boss);
-        }
-    }
-
-    /**
-     * 弾丸と敵の衝突判定（SpatialHash最適化版）
-     * O(n²) → O(n) に最適化
-     */
-    private checkBulletEnemyCollisions(): void {
-        const bullets = this.gameObjectManager.getBullets();
-        const enemies = this.gameObjectManager.getEnemies();
-
-        if (bullets.length === 0 || enemies.length === 0) return;
-
-        // SpatialHashを使用した最適化衝突判定
-        bullets.forEach(bullet => {
-            if (!bullet.isActive()) return;
-            
-            const nearbyObjects = this.collisionOptimizer.getSpatialHash().getNearby(bullet);
-            for (const nearbyObj of nearbyObjects) {
-                // 型安全性を保ちつつ敵オブジェクトかチェック
-                if (enemies.includes(nearbyObj as any)) {
-                    const enemy = nearbyObj as any;
-                    if (this.checkCollision(bullet, enemy)) {
-                        bullet.deactivate();
-                        if (enemy.takeDamage()) {
-                            this.eventEmitter.emit('enemyDestroyed', enemy);
-                            this.gameObjectManager.removeEnemy(enemy);
-                        }
-                        break; // 弾丸は一度の衝突で無効化
-                    }
-                }
-            }
-        });
-    }
-
-    /**
-     * プレイヤーと敵の衝突判定（SpatialHash最適化版）
-     */
-    private checkPlayerEnemyCollisions(player: Player): void {
-        const enemies = this.gameObjectManager.getEnemies();
-        if (enemies.length === 0) return;
-
-        const nearbyObjects = this.collisionOptimizer.getSpatialHash().getNearby(player);
-        for (const nearbyObj of nearbyObjects) {
-            if (enemies.includes(nearbyObj as any)) {
-                const enemy = nearbyObj as any;
-                if (this.checkCollision(player, enemy)) {
-                    this.eventEmitter.emit('playerDamaged', 20);
-                    this.eventEmitter.emit('enemyDestroyed', enemy);
-                    this.gameObjectManager.removeEnemy(enemy);
-                }
-            }
-        }
-    }
-
-    /**
-     * プレイヤーとパワーアップの衝突判定（SpatialHash最適化版）
-     */
-    private checkPlayerPowerupCollisions(player: Player): void {
-        const powerups = this.gameObjectManager.getPowerups();
-        if (powerups.length === 0) return;
-
-        const nearbyObjects = this.collisionOptimizer.getSpatialHash().getNearby(player);
-        for (const nearbyObj of nearbyObjects) {
-            if (powerups.includes(nearbyObj as any)) {
-                const powerup = nearbyObj as any;
-                if (this.checkCollision(player, powerup)) {
-                    this.eventEmitter.emit('powerUpCollected', powerup);
-                    this.gameObjectManager.removePowerUp(powerup);
-                }
-            }
-        }
-    }
-
-    /**
-     * ボス戦の衝突判定（部分的SpatialHash最適化）
-     */
-    private checkBossBattleCollisions(player: Player, boss: Boss): void {
-        const bullets = this.gameObjectManager.getBullets();
-        const bossBullets = this.gameObjectManager.getBossBullets();
-
-        // プレイヤーとボスの衝突（単体なので従来通り）
-        if (this.checkCollision(player, boss)) {
-            this.eventEmitter.emit('playerDamaged', 20);
-        }
-
-        // プレイヤーの弾丸とボスの衝突（弾丸側を最適化）
-        bullets.forEach(bullet => {
-            if (!bullet.isActive()) return;
-            
-            if (this.checkCollision(bullet, boss)) {
-                bullet.deactivate();
-                this.eventEmitter.emit('bossDamaged');
-            }
-        });
-
-        // プレイヤーとボス弾の衝突（ボス弾側を最適化）
-        if (bossBullets.length > 0) {
-            const nearbyObjects = this.collisionOptimizer.getSpatialHash().getNearby(player);
-            bossBullets.forEach((bossBullet, index) => {
-                if (nearbyObjects.has(bossBullet)) {
-                    if (this.checkCollision(player, bossBullet)) {
-                        this.eventEmitter.emit('playerDamaged', 20);
-                        // ボス弾は一度当たったら消える
-                        bossBullets.splice(index, 1);
-                    }
-                }
-            });
-        }
-    }
-
-    /**
-     * 基本的な衝突判定ヘルパーメソッド
-     */
-    private checkCollision(obj1: GameObject, obj2: GameObject): boolean {
-        return checkCollision(obj1, obj2);
-    }
-
-    /**
-     * 最適化された衝突チェック（外部API）
-     */
-    public checkOptimizedCollisions<T extends GameObject, U extends GameObject>(
-        sourceObjects: T[],
-        targetObjects: U[],
-        collisionCallback: (source: T, target: U) => void
-    ): void {
-        this.collisionOptimizer.checkCollisions(sourceObjects, targetObjects, collisionCallback);
-    }
-
-    /**
-     * 衝突最適化システムの統計情報を取得（デバッグ用）
-     */
-    public getOptimizationStats(): { cellCount: number; objectCount: number; avgObjectsPerCell: number } {
-        return this.collisionOptimizer.getSpatialHash().getDebugInfo();
-    }
-
-    /**
-     * パフォーマンス測定用：処理時間を測定
-     */
-    public measureCollisionPerformance(player: Player): number {
-        const startTime = performance.now();
-        this.checkAllCollisions(player);
-        const endTime = performance.now();
-        const duration = endTime - startTime;
-        
-        console.log(`Collision Detection Performance: ${duration.toFixed(3)}ms`);
-        return duration;
-    }
-}
-</file>
-
 <file path="src/types/Drawable.ts">
 export interface Drawable {
     draw(ctx: CanvasRenderingContext2D): void;
@@ -2628,6 +2495,221 @@ export default defineConfig({
 })
 </file>
 
+<file path="docs/performance-benchmarks.md">
+# パフォーマンス測定結果
+
+## 📊 概要
+技術的負債改善前後のパフォーマンス比較とベンチマーク結果
+
+---
+
+## 🎯 測定対象
+
+### **1. 衝突判定処理時間**
+- **対象**: `checkCollisions()` メソッド
+- **測定単位**: ミリ秒 (ms)
+- **測定条件**: オブジェクト数別（10, 50, 100, 200）
+
+### **2. 描画処理時間**
+- **対象**: `draw()` メソッド全体
+- **測定単位**: ミリ秒 (ms)
+- **測定条件**: 背景要素数別
+
+### **3. フレームレート**
+- **対象**: ゲーム全体のFPS
+- **測定単位**: FPS (frames per second)
+- **測定条件**: 通常プレイ、高負荷状態
+
+### **4. メモリ使用量**
+- **対象**: ヒープメモリ使用量
+- **測定単位**: MB
+- **測定条件**: 10分間プレイ後
+
+---
+
+## 📈 Phase 2完了後の成果（2025/05/31）
+
+### **🚀 SpatialHash最適化実装完了**
+
+#### **アルゴリズム改善**
+| 対象 | 改善前 | 改善後 | 改善内容 |
+|-----|--------|--------|----------|
+| 弾丸vs敵衝突判定 | O(n²) 総当たり | O(n) 空間分割 | ✅ 実装完了 |
+| プレイヤーvs敵衝突判定 | O(n) 線形探索 | O(1) 近隣検索 | ✅ 実装完了 |
+| プレイヤーvsパワーアップ | O(n) 線形探索 | O(1) 近隣検索 | ✅ 実装完了 |
+
+#### **コード品質向上**
+- **技術的負債解消**: 循環依存完全解消 ✅
+- **アーキテクチャ改善**: 責務分離によるクリーンコード ✅
+- **型安全性**: TypeScript型システム活用 ✅
+- **パフォーマンス監視**: 測定機能実装 ✅
+
+#### **期待される効果**
+| 指標 | 目標 | 予想結果 | 備考 |
+|------|------|----------|------|
+| 衝突判定処理時間 | 30%削減 | 実測待ち | オブジェクト数に比例して効果増大 |
+| フレームレート安定性 | 60FPS維持 | 実測待ち | 高負荷時のパフォーマンス向上 |
+| CPU使用率 | 20%削減 | 実測待ち | 無駄な計算処理の削減 |
+
+---
+
+## 📈 改善前ベースライン（2025/05/31以前）
+
+### **衝突判定性能**
+| オブジェクト数 | 処理時間 (ms) | アルゴリズム |
+|-------------|-------------|------------|
+| 10          | 未測定        | O(n²)      |
+| 50          | 未測定        | O(n²)      |
+| 100         | 未測定        | O(n²)      |
+| 200         | 未測定        | O(n²)      |
+
+### **描画性能**
+| 背景要素数 | 処理時間 (ms) | 最適化状況 |
+|----------|-------------|-----------|
+| 星100個   | 未測定        | 毎フレーム再描画 |
+| 惑星2個   | 未測定        | 毎フレーム再描画 |
+| 星雲1個   | 未測定        | 毎フレーム再描画 |
+
+---
+
+## 🚀 改善後結果（SpatialHash統合完了）
+
+### **Phase 2完了後 (2025/05/31)**
+| オブジェクト数 | 改善前 (ms) | 改善後 (ms) | 改善率 | 状況 |
+|-------------|-----------|-----------|-------|------|
+| 10          | 実測待ち    | 実測待ち    | 実測待ち | SpatialHash統合完了 |
+| 50          | 実測待ち    | 実測待ち    | 実測待ち | 効果測定準備完了 |
+| 100         | 実測待ち    | 実測待ち    | 実測待ち | 高負荷テスト準備完了 |
+| 200         | 実測待ち    | 実測待ち    | 実測待ち | 最大効果測定準備完了 |
+
+**実装済み最適化技術:**
+- ✅ **SpatialHash (64x64セル)**: 空間分割による近隣検索
+- ✅ **早期リターン**: 空配列チェックによる無駄な処理削減
+- ✅ **型安全な最適化**: TypeScript型システム活用
+- ✅ **デバッグ機能**: パフォーマンス測定とコンソールログ
+
+---
+
+## 🔧 測定方法
+
+### **衝突判定の測定**
+```typescript
+// CollisionSystem.ts に実装済み
+public measureCollisionPerformance(player: Player): number {
+  const startTime = performance.now();
+  this.checkAllCollisions(player);
+  const endTime = performance.now();
+  const duration = endTime - startTime;
+  
+  console.log(`Collision Detection Performance: ${duration.toFixed(3)}ms`);
+  return duration;
+}
+```
+
+### **空間分割統計の取得**
+```typescript
+// 実装済み統計情報
+public getOptimizationStats(): { 
+  cellCount: number; 
+  objectCount: number; 
+  avgObjectsPerCell: number 
+} {
+  return this.collisionOptimizer.getSpatialHash().getDebugInfo();
+}
+```
+
+---
+
+## 📊 測定環境
+
+### **ハードウェア環境**
+- **CPU**: 未記録
+- **メモリ**: 未記録
+- **GPU**: 未記録
+
+### **ソフトウェア環境**
+- **OS**: macOS
+- **ブラウザ**: Chrome/Safari (推定)
+- **Node.js**: LTS版
+- **TypeScript**: 5.5.3
+- **Vite**: 5.4.2
+
+### **測定条件**
+- **画面サイズ**: 400x600 (ゲームキャンバス)
+- **測定回数**: 各条件10回の平均値（予定）
+- **ウォームアップ**: 各測定前に5秒間の準備時間
+
+---
+
+## 🎯 性能目標と達成状況
+
+### **Phase 2完了時の目標**
+- ✅ **衝突判定**: 30%以上の処理時間削減 → **SpatialHash統合完了**
+- ⬜ **描画処理**: 50%以上の処理時間削減 → **次回実装予定**
+- ⬜ **フレームレート**: 60FPS安定維持 → **測定準備完了**
+- ⬜ **メモリ使用量**: 10分プレイでリーク0MB → **測定準備完了**
+
+### **最終目標（全フェーズ完了時）**
+- ⬜ **衝突判定**: 200オブジェクト時でも2ms以内
+- ⬜ **描画処理**: 背景描画1ms以内
+- ⬜ **フレームレート**: 高負荷時でも45FPS以上維持
+- ⬜ **メモリ効率**: 30分プレイでメモリ増加10MB以内
+
+---
+
+## 📝 測定ログ
+
+### **2025/05/31 - SpatialHash最適化完了**
+- **実装状況**: ✅ CollisionSystem最適化完了
+- **技術的改善**:
+  - O(n²) → O(n)アルゴリズム改善
+  - 型安全性を保った最適化実装
+  - パフォーマンス測定機能追加
+  - デバッグ統計情報取得機能
+- **品質確認**: TypeScriptビルドエラーなし、アプリケーション正常動作
+- **次回アクション**: 実際の測定実行、背景描画最適化への移行
+
+### **測定実行予定**
+- ⬜ **実装直後**: SpatialHash効果の基礎測定
+- ⬜ **高負荷テスト**: 大量オブジェクト時のパフォーマンス
+- ⬜ **継続測定**: 長時間プレイでのメモリリーク確認
+
+---
+
+## 🚨 発見された最適化ポイント
+
+### **実装完了**
+- ✅ **SpatialHash統合**: 空間分割による衝突判定最適化完了
+- ✅ **早期リターン**: 無駄な処理の削減完了
+- ✅ **型安全性**: TypeScript活用による品質向上完了
+
+### **次期実装予定**
+- ⬜ **背景描画最適化**: 静的要素の事前レンダリング
+- ⬜ **オブジェクトプール拡張**: より多くのエンティティでの活用
+- ⬜ **フレームレート制御**: 負荷に応じた動的調整
+
+---
+
+## 📚 参考情報
+
+### **実装済み最適化技術**
+- **SpatialHash**: 64x64セルによる空間分割
+- **CollisionOptimizer**: 衝突判定効率化クラス
+- **パフォーマンス測定**: `performance.now()`による高精度計測
+- **デバッグ統計**: セル数、オブジェクト数、平均密度の監視
+
+### **使用ツール**
+- `performance.now()` - 高精度時間測定 ✅
+- `performance.memory` - メモリ使用量（Chrome限定）
+- Chrome DevTools - プロファイリング準備完了
+
+---
+
+**最終更新**: 2025/05/31 22:52  
+**実装ステータス**: SpatialHash最適化完了  
+**次回タスク**: 背景描画最適化 (Task 2.2.1)
+</file>
+
 <file path="src/entities/Bullet.ts">
 import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { GameObject } from "./GameObject";
@@ -2853,6 +2935,201 @@ export interface IGameEngine {
    * オブジェクトプールを使用した弾丸の効率的な管理
    */
   createBullet(x: number, y: number, speed?: number, color?: string): Bullet | null;
+}
+</file>
+
+<file path="src/systems/CollisionSystem.ts">
+import { GameObject } from '../entities/GameObject';
+import { Player } from '../entities/Player';
+import { Boss } from '../entities/Boss';
+import { EventEmitter } from '../events/EventEmitter';
+import { EventMap } from '../events/EventType';
+import { GameObjectManager } from '../managers/GameObjectManager';
+import { CollisionOptimizer } from '../utils/SpatialHash';
+import { checkCollision } from '../utils/CollisionUtils';
+
+/**
+ * 衝突判定システム - SpatialHash最適化版
+ * 全ての衝突判定処理を統合管理し、SpatialHashによるO(n)最適化を適用
+ */
+export class CollisionSystem {
+    private collisionOptimizer: CollisionOptimizer;
+
+    constructor(
+        private eventEmitter: EventEmitter<EventMap>,
+        private gameObjectManager: GameObjectManager
+    ) {
+        this.collisionOptimizer = new CollisionOptimizer(64);
+    }
+
+    /**
+     * メインの衝突判定処理
+     * 全ての衝突判定を統合的に実行
+     */
+    public checkAllCollisions(player: Player): void {
+        // 衝突可能な全オブジェクトを取得
+        const allObjects = this.gameObjectManager.getAllCollidableObjects();
+        allObjects.push(player);
+
+        // 空間分割による最適化を適用
+        this.collisionOptimizer.updateSpatialHash(allObjects);
+
+        // 各種衝突判定を実行（SpatialHash最適化版）
+        this.checkBulletEnemyCollisions();
+        this.checkPlayerEnemyCollisions(player);
+        this.checkPlayerPowerupCollisions(player);
+        
+        const boss = this.gameObjectManager.getBoss();
+        if (boss) {
+            this.checkBossBattleCollisions(player, boss);
+        }
+    }
+
+    /**
+     * 弾丸と敵の衝突判定（SpatialHash最適化版）
+     * O(n²) → O(n) に最適化
+     */
+    private checkBulletEnemyCollisions(): void {
+        const bullets = this.gameObjectManager.getBullets();
+        const enemies = this.gameObjectManager.getEnemies();
+
+        if (bullets.length === 0 || enemies.length === 0) return;
+
+        // SpatialHashを使用した最適化衝突判定
+        bullets.forEach(bullet => {
+            if (!bullet.isActive()) return;
+            
+            const nearbyObjects = this.collisionOptimizer.getSpatialHash().getNearby(bullet);
+            for (const nearbyObj of nearbyObjects) {
+                // 型安全性を保ちつつ敵オブジェクトかチェック
+                if (enemies.includes(nearbyObj as any)) {
+                    const enemy = nearbyObj as any;
+                    if (this.checkCollision(bullet, enemy)) {
+                        bullet.deactivate();
+                        if (enemy.takeDamage()) {
+                            this.eventEmitter.emit('enemyDestroyed', enemy);
+                            this.gameObjectManager.removeEnemy(enemy);
+                        }
+                        break; // 弾丸は一度の衝突で無効化
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * プレイヤーと敵の衝突判定（SpatialHash最適化版）
+     */
+    private checkPlayerEnemyCollisions(player: Player): void {
+        const enemies = this.gameObjectManager.getEnemies();
+        if (enemies.length === 0) return;
+
+        const nearbyObjects = this.collisionOptimizer.getSpatialHash().getNearby(player);
+        for (const nearbyObj of nearbyObjects) {
+            if (enemies.includes(nearbyObj as any)) {
+                const enemy = nearbyObj as any;
+                if (this.checkCollision(player, enemy)) {
+                    this.eventEmitter.emit('playerDamaged', 20);
+                    this.eventEmitter.emit('enemyDestroyed', enemy);
+                    this.gameObjectManager.removeEnemy(enemy);
+                }
+            }
+        }
+    }
+
+    /**
+     * プレイヤーとパワーアップの衝突判定（SpatialHash最適化版）
+     */
+    private checkPlayerPowerupCollisions(player: Player): void {
+        const powerups = this.gameObjectManager.getPowerups();
+        if (powerups.length === 0) return;
+
+        const nearbyObjects = this.collisionOptimizer.getSpatialHash().getNearby(player);
+        for (const nearbyObj of nearbyObjects) {
+            if (powerups.includes(nearbyObj as any)) {
+                const powerup = nearbyObj as any;
+                if (this.checkCollision(player, powerup)) {
+                    this.eventEmitter.emit('powerUpCollected', powerup);
+                    this.gameObjectManager.removePowerUp(powerup);
+                }
+            }
+        }
+    }
+
+    /**
+     * ボス戦の衝突判定（部分的SpatialHash最適化）
+     */
+    private checkBossBattleCollisions(player: Player, boss: Boss): void {
+        const bullets = this.gameObjectManager.getBullets();
+        const bossBullets = this.gameObjectManager.getBossBullets();
+
+        // プレイヤーとボスの衝突（単体なので従来通り）
+        if (this.checkCollision(player, boss)) {
+            this.eventEmitter.emit('playerDamaged', 20);
+        }
+
+        // プレイヤーの弾丸とボスの衝突（弾丸側を最適化）
+        bullets.forEach(bullet => {
+            if (!bullet.isActive()) return;
+            
+            if (this.checkCollision(bullet, boss)) {
+                bullet.deactivate();
+                this.eventEmitter.emit('bossDamaged');
+            }
+        });
+
+        // プレイヤーとボス弾の衝突（ボス弾側を最適化）
+        if (bossBullets.length > 0) {
+            const nearbyObjects = this.collisionOptimizer.getSpatialHash().getNearby(player);
+            bossBullets.forEach((bossBullet, index) => {
+                if (nearbyObjects.has(bossBullet)) {
+                    if (this.checkCollision(player, bossBullet)) {
+                        this.eventEmitter.emit('playerDamaged', 20);
+                        // ボス弾は一度当たったら消える
+                        bossBullets.splice(index, 1);
+                    }
+                }
+            });
+        }
+    }
+
+    /**
+     * 基本的な衝突判定ヘルパーメソッド
+     */
+    private checkCollision(obj1: GameObject, obj2: GameObject): boolean {
+        return checkCollision(obj1, obj2);
+    }
+
+    /**
+     * 最適化された衝突チェック（外部API）
+     */
+    public checkOptimizedCollisions<T extends GameObject, U extends GameObject>(
+        sourceObjects: T[],
+        targetObjects: U[],
+        collisionCallback: (source: T, target: U) => void
+    ): void {
+        this.collisionOptimizer.checkCollisions(sourceObjects, targetObjects, collisionCallback);
+    }
+
+    /**
+     * 衝突最適化システムの統計情報を取得（デバッグ用）
+     */
+    public getOptimizationStats(): { cellCount: number; objectCount: number; avgObjectsPerCell: number } {
+        return this.collisionOptimizer.getSpatialHash().getDebugInfo();
+    }
+
+    /**
+     * パフォーマンス測定用：処理時間を測定
+     */
+    public measureCollisionPerformance(player: Player): number {
+        const startTime = performance.now();
+        this.checkAllCollisions(player);
+        const endTime = performance.now();
+        const duration = endTime - startTime;
+        
+        console.log(`Collision Detection Performance: ${duration.toFixed(3)}ms`);
+        return duration;
+    }
 }
 </file>
 
@@ -4451,6 +4728,92 @@ body {
 }
 </file>
 
+<file path="src/constants/GameConstants.ts">
+import { Player } from "../entities/Player";
+import { GameConstants } from "../types";
+
+export const GAME_CONSTANTS: GameConstants = {
+    CANVAS: {
+        WIDTH: 400,
+        HEIGHT: 600
+    },
+    PLAYER: {
+        WIDTH: 50,
+        HEIGHT: 50,
+        MAX_SPEED: 8,
+        ACCELERATION: 1.2,
+        DECELERATION: 0.6,
+        MAX_HEALTH: 100,
+        INVINCIBILITY_TIME: 1000,
+        FIRE_RATE: 200,
+        COLORS: {
+            PRIMARY: '#1a237e', // 濃紺
+            SECONDARY: '#3f51b5', // 紺碧
+            ACCENT: '#00bcd4', // シアン
+            ENGINE: '#ff9800', // オレンジ
+        }
+    },
+    BULLET: {
+        WIDTH: 5,
+        HEIGHT: 15,
+        SPEED: 600
+    },
+    ENEMY: {
+        SPAWN_INTERVAL: 1000,
+        TYPES: {
+            SMALL: { width: 30, height: 30, speed: 180, health: 1, score: 10, color: '#7c4dff' }, // 洗練された紫
+            MEDIUM: { width: 50, height: 50, speed: 120, health: 2, score: 20, color: '#26c6da' }, // 洗練されたシアン
+            LARGE: { width: 70, height: 70, speed: 60, health: 3, score: 30, color: '#66bb6a' }  // 洗練されたグリーン
+        }
+    },
+    BOSS: {
+        WIDTH: 150,
+        HEIGHT: 150,
+        BULLET_SPEED: 200,
+        FIRE_RATE: 1000,
+        INITIAL_HEALTH: 50,
+        INITIAL_SPEED: 50,
+        MOVEMENT_SPEED: 50
+    },
+    POWERUP: {
+        WIDTH: 30,
+        HEIGHT: 30,
+        SPEED: 100,
+        DURATION: 10000,
+        SPAWN_CHANCE: 0.05,
+        TYPES: {
+            RAPID_FIRE: {
+                color: '#66bb6a', // 洗練されたグリーン
+                effect: (player: Player) => { player.setFireRate(GAME_CONSTANTS.PLAYER.FIRE_RATE / 2); }
+            },
+            TRIPLE_SHOT: {
+                color: '#7c4dff', // 洗練された紫
+                effect: (player: Player) => { player.setBulletType('triple'); }
+            },
+            SHIELD: {
+                color: '#26c6da', // 洗練されたシアン
+                effect: (player: Player) => { player.activateShield(); }
+            }
+        }
+    },
+    EXPLOSION: {
+        DURATION: 30
+    },
+    BACKGROUND: {
+        STAR_COUNT: 100,
+        PLANET_COUNT: 2,
+        NEBULA_COUNT: 1
+    },
+    WAVE: {
+        SYSTEM_ENABLED: true,
+        CLEAR_BONUS_MULTIPLIER: 2,
+        FORMATION_SPACING: 40,
+        SPAWN_DELAY_BASE: 200,
+        WAVE_CLEAR_DELAY: 2000
+    }
+};
+</file>
+
 <file path="package.json">
 {
   "name": "space-shooter",
@@ -4726,92 +5089,6 @@ npm test         # テスト実行（Jest導入後）
 **推定完了日**: フェーズ1完了まで約3週間
 </file>
 
-<file path="src/constants/GameConstants.ts">
-import { Player } from "../entities/Player";
-import { GameConstants } from "../types";
-
-export const GAME_CONSTANTS: GameConstants = {
-    CANVAS: {
-        WIDTH: 400,
-        HEIGHT: 600
-    },
-    PLAYER: {
-        WIDTH: 50,
-        HEIGHT: 50,
-        MAX_SPEED: 8,
-        ACCELERATION: 1.2,
-        DECELERATION: 0.6,
-        MAX_HEALTH: 100,
-        INVINCIBILITY_TIME: 1000,
-        FIRE_RATE: 200,
-        COLORS: {
-            PRIMARY: '#1a237e', // 濃紺
-            SECONDARY: '#3f51b5', // 紺碧
-            ACCENT: '#00bcd4', // シアン
-            ENGINE: '#ff9800', // オレンジ
-        }
-    },
-    BULLET: {
-        WIDTH: 5,
-        HEIGHT: 15,
-        SPEED: 600
-    },
-    ENEMY: {
-        SPAWN_INTERVAL: 1000,
-        TYPES: {
-            SMALL: { width: 30, height: 30, speed: 180, health: 1, score: 10, color: '#7c4dff' }, // 洗練された紫
-            MEDIUM: { width: 50, height: 50, speed: 120, health: 2, score: 20, color: '#26c6da' }, // 洗練されたシアン
-            LARGE: { width: 70, height: 70, speed: 60, health: 3, score: 30, color: '#66bb6a' }  // 洗練されたグリーン
-        }
-    },
-    BOSS: {
-        WIDTH: 150,
-        HEIGHT: 150,
-        BULLET_SPEED: 200,
-        FIRE_RATE: 1000,
-        INITIAL_HEALTH: 50,
-        INITIAL_SPEED: 50,
-        MOVEMENT_SPEED: 50
-    },
-    POWERUP: {
-        WIDTH: 30,
-        HEIGHT: 30,
-        SPEED: 100,
-        DURATION: 10000,
-        SPAWN_CHANCE: 0.05,
-        TYPES: {
-            RAPID_FIRE: {
-                color: '#66bb6a', // 洗練されたグリーン
-                effect: (player: Player) => { player.setFireRate(GAME_CONSTANTS.PLAYER.FIRE_RATE / 2); }
-            },
-            TRIPLE_SHOT: {
-                color: '#7c4dff', // 洗練された紫
-                effect: (player: Player) => { player.setBulletType('triple'); }
-            },
-            SHIELD: {
-                color: '#26c6da', // 洗練されたシアン
-                effect: (player: Player) => { player.activateShield(); }
-            }
-        }
-    },
-    EXPLOSION: {
-        DURATION: 30
-    },
-    BACKGROUND: {
-        STAR_COUNT: 100,
-        PLANET_COUNT: 2,
-        NEBULA_COUNT: 1
-    },
-    WAVE: {
-        SYSTEM_ENABLED: true,
-        CLEAR_BONUS_MULTIPLIER: 2,
-        FORMATION_SPACING: 40,
-        SPAWN_DELAY_BASE: 200,
-        WAVE_CLEAR_DELAY: 2000
-    }
-};
-</file>
-
 <file path="src/factories/GameObjectFactory.ts">
 import { IGameEngine } from "../interfaces/IGameEngine";
 import { Aurora } from "../entities/Aurora";
@@ -4962,6 +5239,7 @@ import { EnemyType } from '../types';
 import { CollisionSystem } from '../systems/CollisionSystem';
 import { IGameEngine } from '../interfaces/IGameEngine';
 import { GameEngine } from './GameEngine';
+import { BackgroundRenderer } from '../rendering/BackgroundRenderer';
 
 export class Game implements IGameEngine {
     private ctx: CanvasRenderingContext2D;
@@ -4974,6 +5252,10 @@ export class Game implements IGameEngine {
     private gameObjectManager!: GameObjectManager;
     private collisionSystem!: CollisionSystem;
     private waveManager!: WaveManager;
+    private backgroundRenderer!: BackgroundRenderer;
+
+    // 背景レンダリング最適化フラグ
+    private useOptimizedBackground = true;
 
     constructor(
         private canvas: HTMLCanvasElement,
@@ -4995,6 +5277,9 @@ export class Game implements IGameEngine {
 
         // WaveManagerを初期化
         this.waveManager = new WaveManager(this.eventEmitter, this.gameObjectFactory, this);
+
+        // BackgroundRendererを初期化
+        this.backgroundRenderer = new BackgroundRenderer();
 
         // GameEngineを初期化
         this.gameEngine = new GameEngine(
@@ -5144,19 +5429,34 @@ export class Game implements IGameEngine {
         this.collisionSystem.checkAllCollisions(this.player);
     }
 
+    /**
+     * 最適化された背景描画
+     */
     private drawBackground(): void {
-        const gradient = this.ctx.createLinearGradient(0, 0, 0, GAME_CONSTANTS.CANVAS.HEIGHT);
-        gradient.addColorStop(0, 'rgba(10, 10, 35, 1)');
-        gradient.addColorStop(0.5, 'rgba(20, 20, 50, 1)');
-        gradient.addColorStop(1, 'rgba(30, 30, 70, 1)');
-        this.ctx.fillStyle = gradient;
-        this.ctx.fillRect(0, 0, GAME_CONSTANTS.CANVAS.WIDTH, GAME_CONSTANTS.CANVAS.HEIGHT);
+        const stars = this.gameObjectManager.getStars();
+        const planets = this.gameObjectManager.getPlanets();
+        const nebulas = this.gameObjectManager.getNebulas();
+        const auroras = this.gameObjectManager.getAuroras();
 
-        // GameObjectManagerから背景オブジェクトを取得して描画
-        this.gameObjectManager.getNebulas().forEach(nebula => nebula.draw(this.ctx));
-        this.gameObjectManager.getPlanets().forEach(planet => planet.draw(this.ctx));
-        this.gameObjectManager.getStars().forEach(star => star.draw(this.ctx));
-        this.gameObjectManager.getAuroras().forEach(aurora => aurora.draw(this.ctx));
+        if (this.useOptimizedBackground) {
+            // 最適化された背景描画を使用
+            this.backgroundRenderer.drawOptimizedBackground(
+                this.ctx,
+                stars,
+                planets,
+                nebulas,
+                auroras
+            );
+        } else {
+            // 従来の背景描画を使用（比較・デバッグ用）
+            this.backgroundRenderer.drawTraditionalBackground(
+                this.ctx,
+                stars,
+                planets,
+                nebulas,
+                auroras
+            );
+        }
     }
 
     private draw(): void {
@@ -5389,6 +5689,37 @@ export class Game implements IGameEngine {
     public startWaveSystem(): void {
         if (GAME_CONSTANTS.WAVE.SYSTEM_ENABLED && this.waveManager) {
             this.waveManager.startNextWave();
+        }
+    }
+
+    /**
+     * 背景レンダリング最適化の切り替え
+     */
+    public toggleBackgroundOptimization(): void {
+        this.useOptimizedBackground = !this.useOptimizedBackground;
+        console.log(`Background optimization: ${this.useOptimizedBackground ? 'ON' : 'OFF'}`);
+    }
+
+    /**
+     * 背景レンダリングパフォーマンス統計を取得
+     */
+    public getBackgroundPerformanceStats() {
+        return this.backgroundRenderer.getPerformanceStats();
+    }
+
+    /**
+     * 背景レンダリングパフォーマンス情報をコンソールに出力
+     */
+    public logBackgroundPerformance(): void {
+        this.backgroundRenderer.logPerformanceInfo();
+    }
+
+    /**
+     * リソースクリーンアップ
+     */
+    public dispose(): void {
+        if (this.backgroundRenderer) {
+            this.backgroundRenderer.dispose();
         }
     }
 }
