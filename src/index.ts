@@ -6,12 +6,14 @@ import { UIManager } from './managers/UIManager';
 import { Player } from './entities/Player';
 import { EventEmitter } from './events/EventEmitter';
 import { getElementOrThrow } from './utils/DOMUtils';
+import { RealRandomProvider } from './providers';
 
 function initGame(): void {
     const canvas = getElementOrThrow<HTMLCanvasElement>('gameCanvas');
     const eventEmitter = new EventEmitter();
     const player = new Player(eventEmitter);
-    const gameObjectFactory = new GameObjectFactory();
+    const randomProvider = new RealRandomProvider();
+    const gameObjectFactory = new GameObjectFactory(randomProvider);
     const scoreManager = new ScoreManager(eventEmitter);
     const stateManager = new GameStateManager(eventEmitter);
 

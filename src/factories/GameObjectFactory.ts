@@ -8,10 +8,17 @@ import { Star } from "../entities/Star";
 import { EnemyType } from "../types";
 import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { randomRange } from "../utils/RandomUtils";
+import { IRandomProvider } from "../providers";
 
 export class GameObjectFactory {
+    private randomProvider: IRandomProvider;
+
+    constructor(randomProvider: IRandomProvider) {
+        this.randomProvider = randomProvider;
+    }
+
     createStar(): Star {
-        return new Star();
+        return new Star(this.randomProvider);
     }
 
     createPlanet(): Planet {

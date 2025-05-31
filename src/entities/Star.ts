@@ -1,4 +1,5 @@
 import { GAME_CONSTANTS } from "../constants/GameConstants";
+import { IRandomProvider } from "../providers";
 
 export class Star {
     private x: number;
@@ -7,21 +8,23 @@ export class Star {
     private speed: number;
     private twinkleSpeed: number;
     private twinkleOffset: number;
+    private randomProvider: IRandomProvider;
 
-    constructor() {
-        this.x = Math.random() * GAME_CONSTANTS.CANVAS.WIDTH;
-        this.y = Math.random() * GAME_CONSTANTS.CANVAS.HEIGHT;
-        this.size = Math.random() * 2 + 1;
-        this.speed = Math.random() * 10 + 5;
-        this.twinkleSpeed = Math.random() * 0.05 + 0.01;
-        this.twinkleOffset = Math.random() * Math.PI * 2;
+    constructor(randomProvider: IRandomProvider) {
+        this.randomProvider = randomProvider;
+        this.x = this.randomProvider.random() * GAME_CONSTANTS.CANVAS.WIDTH;
+        this.y = this.randomProvider.random() * GAME_CONSTANTS.CANVAS.HEIGHT;
+        this.size = this.randomProvider.random() * 2 + 1;
+        this.speed = this.randomProvider.random() * 10 + 5;
+        this.twinkleSpeed = this.randomProvider.random() * 0.05 + 0.01;
+        this.twinkleOffset = this.randomProvider.random() * Math.PI * 2;
     }
 
     public update(deltaTime: number): void {
         this.y += this.speed * deltaTime;
         if (this.y > GAME_CONSTANTS.CANVAS.HEIGHT) {
             this.y = 0;
-            this.x = Math.random() * GAME_CONSTANTS.CANVAS.WIDTH;
+            this.x = this.randomProvider.random() * GAME_CONSTANTS.CANVAS.WIDTH;
         }
         this.twinkleOffset += this.twinkleSpeed;
     }
