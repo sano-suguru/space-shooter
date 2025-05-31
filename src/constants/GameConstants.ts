@@ -9,9 +9,9 @@ export const GAME_CONSTANTS: GameConstants = {
     PLAYER: {
         WIDTH: 50,
         HEIGHT: 50,
-        MAX_SPEED: 6,
-        ACCELERATION: 0.8,
-        DECELERATION: 0.3,
+        MAX_SPEED: 8,
+        ACCELERATION: 1.2,
+        DECELERATION: 0.6,
         MAX_HEALTH: 100,
         INVINCIBILITY_TIME: 1000,
         FIRE_RATE: 200,

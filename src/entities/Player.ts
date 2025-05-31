@@ -52,12 +52,11 @@ export class Player extends GameObject {
     }
 
     private updateMovement(): void {
-        const { CANVAS } = GAME_CONSTANTS;
-
         this.updateVelocity();
 
         this.x += this.velocity.x;
-        this.clampPosition(0, CANVAS.WIDTH - this.width);
+        this.y += this.velocity.y;
+        this.clampPosition();
 
         this.generateThrusterParticles();
     }
@@ -65,16 +64,26 @@ export class Player extends GameObject {
     private updateVelocity(): void {
         const { ACCELERATION, MAX_SPEED } = GAME_CONSTANTS.PLAYER;
 
+        // X軸移動
         if (this.keys['ArrowLeft']) {
             this.velocity.x = Math.max(this.velocity.x - ACCELERATION, -MAX_SPEED);
         } else if (this.keys['ArrowRight']) {
             this.velocity.x = Math.min(this.velocity.x + ACCELERATION, MAX_SPEED);
         } else {
-            this.applyDeceleration();
+            this.applyDecelerationX();
+        }
+
+        // Y軸移動
+        if (this.keys['ArrowUp']) {
+            this.velocity.y = Math.max(this.velocity.y - ACCELERATION, -MAX_SPEED);
+        } else if (this.keys['ArrowDown']) {
+            this.velocity.y = Math.min(this.velocity.y + ACCELERATION, MAX_SPEED);
+        } else {
+            this.applyDecelerationY();
         }
     }
 
-    private applyDeceleration(): void {
+    private applyDecelerationX(): void {
         const { DECELERATION } = GAME_CONSTANTS.PLAYER;
 
         if (this.velocity.x > 0) {
@@ -84,13 +93,35 @@ export class Player extends GameObject {
         }
     }
 
-    private clampPosition(min: number, max: number): void {
-        if (this.x < min) {
-            this.x = min;
+    private applyDecelerationY(): void {
+        const { DECELERATION } = GAME_CONSTANTS.PLAYER;
+
+        if (this.velocity.y > 0) {
+            this.velocity.y = Math.max(0, this.velocity.y - DECELERATION);
+        } else if (this.velocity.y < 0) {
+            this.velocity.y = Math.min(0, this.velocity.y + DECELERATION);
+        }
+    }
+
+    private clampPosition(): void {
+        const { CANVAS } = GAME_CONSTANTS;
+
+        // X軸の制限
+        if (this.x < 0) {
+            this.x = 0;
             this.velocity.x = 0;
-        } else if (this.x > max) {
-            this.x = max;
+        } else if (this.x > CANVAS.WIDTH - this.width) {
+            this.x = CANVAS.WIDTH - this.width;
             this.velocity.x = 0;
+        }
+
+        // Y軸の制限
+        if (this.y < 0) {
+            this.y = 0;
+            this.velocity.y = 0;
+        } else if (this.y > CANVAS.HEIGHT - this.height) {
+            this.y = CANVAS.HEIGHT - this.height;
+            this.velocity.y = 0;
         }
     }
 
@@ -102,7 +133,7 @@ export class Player extends GameObject {
         const currentTime = Date.now();
         if (currentTime - this.lastFireTime >= this.fireRate) {
             const centerX = this.x + this.width / 2 - GAME_CONSTANTS.BULLET.WIDTH / 2;
-            
+
             if (this.bulletType === 'single') {
                 const bullet = this.createBullet(centerX, this.y);
                 if (bullet) {
@@ -114,13 +145,13 @@ export class Player extends GameObject {
                 if (centerBullet) {
                     this.eventEmitter.emit('playerShot', centerBullet);
                 }
-                
+
                 // 左の弾丸
                 const leftBullet = this.createBullet(centerX - 20, this.y + 10);
                 if (leftBullet) {
                     this.eventEmitter.emit('playerShot', leftBullet);
                 }
-                
+
                 // 右の弾丸
                 const rightBullet = this.createBullet(centerX + 20, this.y + 10);
                 if (rightBullet) {
