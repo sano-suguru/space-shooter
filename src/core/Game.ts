@@ -22,6 +22,7 @@ import { checkCollision } from '../utils/CollisionUtils';
 import { ObjectPool, PoolManager } from '../utils/ObjectPool';
 import { CollisionOptimizer } from '../utils/SpatialHash';
 import { IGameEngine } from '../interfaces/IGameEngine';
+import { GameEngine } from './GameEngine';
 export class Game implements IGameEngine {
     private ctx: CanvasRenderingContext2D;
     private bullets: Bullet[] = [];
@@ -37,11 +38,9 @@ export class Game implements IGameEngine {
     private level = 1;
     private bossSpawnScore: number = 1000;
     private currentScore: number = 0;
-    private lastTime = 0;
-    private deltaTime = 0;
     private difficultyFactor: number = 0;
     private currentBossHealth: number = GAME_CONSTANTS.BOSS.INITIAL_HEALTH;
-    private gameLoopId: number | null = null;
+    private gameEngine!: GameEngine;
     private poolManager!: PoolManager;
     private collisionOptimizer!: CollisionOptimizer;
     private waveManager!: WaveManager;
@@ -66,6 +65,12 @@ export class Game implements IGameEngine {
 
         // WaveManagerを初期化
         this.waveManager = new WaveManager(this.eventEmitter, this.gameObjectFactory, this);
+
+        // GameEngineを初期化
+        this.gameEngine = new GameEngine(
+            (deltaTime: number) => this.updateWithDeltaTime(deltaTime),
+            () => this.draw()
+        );
 
         this.stateManager.setState('STARTING', this);
     }
@@ -185,37 +190,39 @@ export class Game implements IGameEngine {
 
     public start(): void {
         this.eventEmitter.emit('gameStarted');
-        this.gameLoop(0);
+        this.gameEngine.start();
         setInterval(this.spawnEnemy, GAME_CONSTANTS.ENEMY.SPAWN_INTERVAL);
     }
 
-    private gameLoop = (currentTime: number): void => {
-        this.deltaTime = (currentTime - this.lastTime) / 1000;
-        this.lastTime = currentTime;
-
-        this.update();
-        this.draw();
-
-        this.gameLoopId = requestAnimationFrame(this.gameLoop);
-    }
-
-    private update(): void {
+    /**
+     * GameEngineから呼び出される更新メソッド
+     */
+    private updateWithDeltaTime(deltaTime: number): void {
         this.stateManager.update(this);
+        
+        // ゲームがプレイ中の場合のみオブジェクトを更新
+        if (this.stateManager.isPlaying()) {
+            this.updateGameObjects(deltaTime);
+            this.checkCollisions();
+            this.removeOffscreenObjects();
+        }
     }
 
-    public updateGameObjects(): void {
-        this.player.update(this.deltaTime);
-        this.bullets.forEach(bullet => bullet.update(this.deltaTime));
-        this.enemies.forEach(enemy => enemy.update(this.deltaTime));
-        this.powerups.forEach(powerup => powerup.update(this.deltaTime));
-        this.explosions.forEach(explosion => explosion.update(this.deltaTime));
-        this.stars.forEach(star => star.update(this.deltaTime));
-        this.planets.forEach(planet => planet.update(this.deltaTime));
-        this.auroras.forEach(aurora => aurora.update(this.deltaTime));
-        this.bossBullets.forEach(bossBullet => bossBullet.update(this.deltaTime));
+
+
+    public updateGameObjects(deltaTime: number): void {
+        this.player.update(deltaTime);
+        this.bullets.forEach(bullet => bullet.update(deltaTime));
+        this.enemies.forEach(enemy => enemy.update(deltaTime));
+        this.powerups.forEach(powerup => powerup.update(deltaTime));
+        this.explosions.forEach(explosion => explosion.update(deltaTime));
+        this.stars.forEach(star => star.update(deltaTime));
+        this.planets.forEach(planet => planet.update(deltaTime));
+        this.auroras.forEach(aurora => aurora.update(deltaTime));
+        this.bossBullets.forEach(bossBullet => bossBullet.update(deltaTime));
 
         if (this.boss) {
-            this.boss.update(this.deltaTime);
+            this.boss.update(deltaTime);
         }
 
         // ウェーブシステムのアップデート
@@ -512,16 +519,11 @@ export class Game implements IGameEngine {
     }
 
     public resumeGameLoop(): void {
-        if (!this.gameLoopId) {
-            this.gameLoop(0);
-        }
+        this.gameEngine.resume();
     }
 
     public pauseGameLoop(): void {
-        if (this.gameLoopId) {
-            cancelAnimationFrame(this.gameLoopId);
-            this.gameLoopId = null;
-        }
+        this.gameEngine.pause();
     }
 
     public showGameOverScreen(): void {
