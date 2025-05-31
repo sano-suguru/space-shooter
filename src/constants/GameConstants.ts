@@ -30,9 +30,9 @@ export const GAME_CONSTANTS: GameConstants = {
     ENEMY: {
         SPAWN_INTERVAL: 1000,
         TYPES: {
-            SMALL: { width: 30, height: 30, speed: 180, health: 1, score: 10, color: '#ff00ff' },
-            MEDIUM: { width: 50, height: 50, speed: 120, health: 2, score: 20, color: '#00ffff' },
-            LARGE: { width: 70, height: 70, speed: 60, health: 3, score: 30, color: '#ffff00' }
+            SMALL: { width: 30, height: 30, speed: 180, health: 1, score: 10, color: '#7c4dff' }, // 洗練された紫
+            MEDIUM: { width: 50, height: 50, speed: 120, health: 2, score: 20, color: '#26c6da' }, // 洗練されたシアン
+            LARGE: { width: 70, height: 70, speed: 60, health: 3, score: 30, color: '#66bb6a' }  // 洗練されたグリーン
         }
     },
     BOSS: {
@@ -52,15 +52,15 @@ export const GAME_CONSTANTS: GameConstants = {
         SPAWN_CHANCE: 0.05,
         TYPES: {
             RAPID_FIRE: {
-                color: '#00ff00',
+                color: '#66bb6a', // 洗練されたグリーン
                 effect: (player: Player) => { player.setFireRate(GAME_CONSTANTS.PLAYER.FIRE_RATE / 2); }
             },
             TRIPLE_SHOT: {
-                color: '#0000ff',
+                color: '#7c4dff', // 洗練された紫
                 effect: (player: Player) => { player.setBulletType('triple'); }
             },
             SHIELD: {
-                color: '#ffff00',
+                color: '#26c6da', // 洗練されたシアン
                 effect: (player: Player) => { player.activateShield(); }
             }
         }
