@@ -119,4 +119,11 @@ export class Explosion {
     public isFinished(): boolean {
         return !this.active || this.currentFrame >= this.duration;
     }
+
+    /**
+     * 爆発の位置を取得
+     */
+    public getPosition(): { x: number; y: number } {
+        return { x: this.x, y: this.y };
+    }
 }

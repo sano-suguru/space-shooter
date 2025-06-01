@@ -10,13 +10,13 @@ export class Enemy extends GameObject {
     private enemyType: EnemyType;
     private animationPhase: number = 0;
 
-    constructor(x: number, y: number, enemyType: EnemyType, game: IGameEngine) {
+    constructor(x: number = 0, y: number = 0, enemyType: EnemyType = 'SMALL', game?: IGameEngine) {
         const config = GAME_CONSTANTS.ENEMY.TYPES[enemyType];
         super(x, y, config.width, config.height);
-        
+
         this.enemyType = enemyType;
         this.health = config.health;
-        const speedMultiplier = 1 + game.getDifficultyFactor();
+        const speedMultiplier = game ? 1 + game.getDifficultyFactor() : 1;
         this.speed = config.speed * speedMultiplier;
         // GameConstants.tsにmovementPatternがないため、enemyTypeから推定
         this.movementPattern = this.getMovementPatternFromType(enemyType);
@@ -24,7 +24,7 @@ export class Enemy extends GameObject {
 
     public update(deltaTime: number): void {
         this.animationPhase += deltaTime * 2;
-        
+
         switch (this.movementPattern) {
             case 'straight':
                 this.y += this.speed * deltaTime;
@@ -42,10 +42,10 @@ export class Enemy extends GameObject {
 
     public draw(ctx: CanvasRenderingContext2D): void {
         const config = GAME_CONSTANTS.ENEMY.TYPES[this.enemyType];
-        
+
         ctx.save();
         ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
-        
+
         // エネミータイプに応じた描画
         switch (this.enemyType) {
             case 'SMALL':
@@ -58,24 +58,24 @@ export class Enemy extends GameObject {
                 this.drawHeavyEnemy(ctx, config.color);
                 break;
         }
-        
+
         ctx.restore();
     }
 
     private drawBasicEnemy(ctx: CanvasRenderingContext2D, color: string): void {
         const pulse = Math.sin(this.animationPhase * 2) * 0.1 + 0.9;
         const size = Math.min(this.width, this.height) / 2 * pulse;
-        
+
         // グラデーション
         const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size);
         gradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
         gradient.addColorStop(0.3, color);
         gradient.addColorStop(1, 'rgba(0, 0, 0, 0.8)');
-        
+
         ctx.fillStyle = gradient;
         ctx.strokeStyle = color;
         ctx.lineWidth = 2;
-        
+
         // 六角形
         ctx.beginPath();
         for (let i = 0; i < 6; i++) {
@@ -96,12 +96,12 @@ export class Enemy extends GameObject {
     private drawFastEnemy(ctx: CanvasRenderingContext2D, color: string): void {
         const streak = Math.sin(this.animationPhase * 4) * 0.2 + 0.8;
         const size = Math.min(this.width, this.height) / 2;
-        
+
         // スピード感のあるストリーク
         ctx.fillStyle = color;
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
         ctx.lineWidth = 1;
-        
+
         // 三角形（尖った形状）
         ctx.beginPath();
         ctx.moveTo(0, -size);
@@ -110,7 +110,7 @@ export class Enemy extends GameObject {
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
-        
+
         // トレイル効果
         ctx.globalAlpha = streak * 0.5;
         for (let i = 1; i <= 3; i++) {
@@ -127,17 +127,17 @@ export class Enemy extends GameObject {
     private drawHeavyEnemy(ctx: CanvasRenderingContext2D, color: string): void {
         const armor = Math.sin(this.animationPhase) * 0.05 + 0.95;
         const size = Math.min(this.width, this.height) / 2 * armor;
-        
+
         // 重装甲の質感
         const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 1.2);
         gradient.addColorStop(0, 'rgba(255, 255, 255, 0.6)');
         gradient.addColorStop(0.5, color);
         gradient.addColorStop(1, 'rgba(0, 0, 0, 0.9)');
-        
+
         ctx.fillStyle = gradient;
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
         ctx.lineWidth = 3;
-        
+
         // 八角形（重厚感）
         ctx.beginPath();
         for (let i = 0; i < 8; i++) {
@@ -153,7 +153,7 @@ export class Enemy extends GameObject {
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
-        
+
         // 装甲パネル
         ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
         for (let i = 0; i < 4; i++) {

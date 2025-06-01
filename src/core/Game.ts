@@ -19,6 +19,9 @@ import { GameEngine } from './GameEngine';
 import { BackgroundRenderer } from '../rendering/BackgroundRenderer';
 import { IInputManager } from '../interfaces/IInputManager';
 import { IRandomProvider } from '../providers/IRandomProvider';
+import { IDOMManager } from '../interfaces/IDOMManager';
+import { IMessageManager } from '../interfaces/IMessageManager';
+import { ITimeProvider } from '../providers/ITimeProvider';
 
 export class Game implements IGameEngine {
     private ctx: CanvasRenderingContext2D;
@@ -44,7 +47,10 @@ export class Game implements IGameEngine {
         private gameObjectFactory: GameObjectFactory,
         private stateManager: GameStateManager,
         private inputManager: IInputManager,
-        private randomProvider: IRandomProvider
+        private randomProvider: IRandomProvider,
+        private _domManager: IDOMManager, // TODO: Phase 4 - DOM操作抽象化で使用予定
+        private messageManager: IMessageManager,
+        private _timeProvider: ITimeProvider
     ) {
         this.ctx = this.canvas.getContext('2d') as CanvasRenderingContext2D;
         this.canvas.width = GAME_CONSTANTS.CANVAS.WIDTH;
@@ -69,7 +75,9 @@ export class Game implements IGameEngine {
         );
 
         this.stateManager.setState('STARTING', this);
-    }
+
+        // Phase 4 テスタビリティ改善: 将来のDOM操作抽象化のために保持
+        void this._domManager;    }
 
     private initializeGameObjects(): void {
         // GameObjectManagerを初期化
@@ -164,7 +172,7 @@ export class Game implements IGameEngine {
     public start(): void {
         this.eventEmitter.emit('gameStarted');
         this.gameEngine.start();
-        setInterval(this.spawnEnemy, GAME_CONSTANTS.ENEMY.SPAWN_INTERVAL);
+        this._timeProvider.setInterval(this.spawnEnemy, GAME_CONSTANTS.ENEMY.SPAWN_INTERVAL);
     }
 
     /**
@@ -260,11 +268,11 @@ export class Game implements IGameEngine {
     private spawnEnemy = (): void => {
         if (this.stateManager.isPlaying() && !this.gameObjectManager.getBoss()) {
             const enemyTypes = Object.keys(GAME_CONSTANTS.ENEMY.TYPES) as EnemyType[];
-            const randomType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+            const randomType = enemyTypes[Math.floor(this.randomProvider.random() * enemyTypes.length)];
             const enemy = this.gameObjectFactory.createEnemy(randomType, this);
             this.gameObjectManager.addEnemy(enemy);
 
-            if (Math.random() < GAME_CONSTANTS.POWERUP.SPAWN_CHANCE) {
+            if (this.randomProvider.random() < GAME_CONSTANTS.POWERUP.SPAWN_CHANCE) {
                 const powerup = this.gameObjectFactory.createPowerUp();
                 this.gameObjectManager.addPowerUp(powerup);
             }
@@ -299,7 +307,7 @@ export class Game implements IGameEngine {
         this.level++;
         this.eventEmitter.emit('levelUpdated', this.level);
 
-        setTimeout(() => {
+        this._timeProvider.setTimeout(() => {
             this.startNextLevel();
         }, 3000);
         this.bossSpawnScore = this.currentScore + 1000;
@@ -322,6 +330,10 @@ export class Game implements IGameEngine {
     }
 
     public showMessage(text: string): void {
+        this.messageManager.showMessage(text);
+    }
+
+    public showMessageOld(text: string): void {
         const messageElement = document.createElement('div');
         messageElement.textContent = text;
 
@@ -371,12 +383,12 @@ export class Game implements IGameEngine {
         });
 
         // フェードアウトして削除
-        setTimeout(() => {
+        this._timeProvider.setTimeout(() => {
             messageElement.style.transition = 'all 0.5s ease-in';
             messageElement.style.opacity = '0';
             messageElement.style.transform = 'translate(-50%, -50%) scale(0.8)';
 
-            setTimeout(() => {
+            this._timeProvider.setTimeout(() => {
                 if (document.body.contains(messageElement)) {
                     document.body.removeChild(messageElement);
                 }
@@ -385,11 +397,7 @@ export class Game implements IGameEngine {
     }
 
     public hideMessage(): void {
-        // メッセージ要素を探して削除
-        const messageElement = document.querySelector('div[style*="position: absolute"]');
-        if (messageElement) {
-            document.body.removeChild(messageElement);
-        }
+        this.messageManager.hideMessage();
     }
 
     public addBossBullet(bullet: BossBullet): void {
@@ -405,21 +413,11 @@ export class Game implements IGameEngine {
     }
 
     public showGameOverScreen(): void {
-        const gameOverElement = document.getElementById('gameOver');
-        if (gameOverElement) {
-            gameOverElement.classList.remove('hidden');
-        }
-        const finalScoreElement = document.getElementById('finalScore');
-        if (finalScoreElement) {
-            finalScoreElement.textContent = this.scoreManager.getScore().toString();
-        }
+        this.messageManager.showGameOverScreen(this.scoreManager.getScore());
     }
 
     public hideGameOverScreen(): void {
-        const gameOverElement = document.getElementById('gameOver');
-        if (gameOverElement) {
-            gameOverElement.classList.add('hidden');
-        }
+        this.messageManager.hideGameOverScreen();
     }
 
     public getStateManager(): GameStateManager {

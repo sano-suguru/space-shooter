@@ -37,7 +37,7 @@ export class Player extends GameObject {
         this.fireRate = GAME_CONSTANTS.PLAYER.FIRE_RATE;
     }
 
-    public setKeyState(key: string, isPressed: boolean): void {
+    public setKeyState(_key: string, _isPressed: boolean): void {
         // この方法は非推奨 - InputManagerを直接使用してください
         // 後方互換性のために残しています
     }

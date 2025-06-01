@@ -25,6 +25,7 @@ export class GameObjectManager {
     private powerups: PowerUp[] = [];
     private bossBullets: BossBullet[] = [];
     private boss: Boss | null = null;
+    private player: any = null;
 
     // 背景オブジェクト配列
     private stars: Star[] = [];
@@ -158,6 +159,7 @@ export class GameObjectManager {
         if (bulletPool) {
             const bullet = bulletPool.get();
             bullet.initialize(x, y, speed, color);
+            this.bullets.push(bullet); // 弾丸を配列に自動追加
             return bullet;
         }
         return null;
@@ -167,9 +169,9 @@ export class GameObjectManager {
      * 背景オブジェクトを設定
      */
     public setBackgroundObjects(
-        stars: Star[], 
-        planets: Planet[], 
-        nebulas: Nebula[], 
+        stars: Star[],
+        planets: Planet[],
+        nebulas: Nebula[],
         auroras: Aurora[]
     ): void {
         this.stars = stars;
@@ -274,6 +276,37 @@ export class GameObjectManager {
 
     public addBossBullet(bullet: BossBullet): void {
         this.bossBullets.push(bullet);
+    }
+
+    /**
+     * プレイヤーを設定（テスト用）
+     */
+    public setPlayer(player: any): void {
+        this.player = player;
+    }
+
+    /**
+     * プレイヤーを取得（テスト用）
+     */
+    public getPlayer(): any {
+        return this.player;
+    }
+
+    /**
+     * 弾丸をゲームに追加（テスト用）
+     */
+    public addBullet(bullet: Bullet): void {
+        this.bullets.push(bullet);
+    }
+
+    /**
+     * 弾丸をゲームから削除（テスト用）
+     */
+    public removeBullet(bullet: Bullet): void {
+        const index = this.bullets.indexOf(bullet);
+        if (index > -1) {
+            this.bullets.splice(index, 1);
+        }
     }
 
     /**

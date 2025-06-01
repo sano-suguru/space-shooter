@@ -3,11 +3,13 @@ import { Star } from '../src/entities/Star';
 import { Planet } from '../src/entities/Planet';
 import { Nebula } from '../src/entities/Nebula';
 import { Aurora } from '../src/entities/Aurora';
+import { MockRandomProvider } from '../src/providers/MockRandomProvider';
 
 describe('BackgroundRenderer', () => {
   let renderer: BackgroundRenderer;
   let mockCanvas: HTMLCanvasElement;
   let mockContext: CanvasRenderingContext2D;
+  let mockRandomProvider: MockRandomProvider;
 
   beforeEach(() => {
     // Create mock canvas and context
@@ -15,6 +17,10 @@ describe('BackgroundRenderer', () => {
     mockCanvas.width = 400;
     mockCanvas.height = 600;
     mockContext = mockCanvas.getContext('2d') as CanvasRenderingContext2D;
+
+    // Create mock random provider
+    mockRandomProvider = new MockRandomProvider();
+    mockRandomProvider.setValues([0.5, 0.3, 0.7, 0.2, 0.8, 0.1, 0.9, 0.4, 0.6]);
 
     renderer = new BackgroundRenderer();
   });
@@ -43,9 +49,9 @@ describe('BackgroundRenderer', () => {
     beforeEach(() => {
       // テスト用のモック背景要素を作成
       mockStars = [
-        new Star(),
-        new Star(),
-        new Star()
+        new Star(mockRandomProvider),
+        new Star(mockRandomProvider),
+        new Star(mockRandomProvider)
       ];
 
       mockPlanets = [
@@ -104,7 +110,7 @@ describe('BackgroundRenderer', () => {
 
   describe('パフォーマンス測定システム', () => {
     test('パフォーマンス統計が正しく記録される', () => {
-      const mockStars = [new Star()];
+      const mockStars = [new Star(mockRandomProvider)];
       const mockPlanets: Planet[] = [];
       const mockNebulas: Nebula[] = [];
       const mockAuroras: Aurora[] = [];
@@ -129,7 +135,7 @@ describe('BackgroundRenderer', () => {
     });
 
     test('キャッシュ利用状況が正しく報告される', () => {
-      const mockStars = [new Star()];
+      const mockStars = [new Star(mockRandomProvider)];
 
       // 複数回描画してキャッシュを構築
       for (let i = 0; i < 3; i++) {
@@ -215,7 +221,7 @@ describe('BackgroundRenderer', () => {
 
     test('大量の要素でもパフォーマンスが安定している', () => {
       // 大量の星を生成
-      const manyStars = Array.from({ length: 100 }, () => new Star());
+      const manyStars = Array.from({ length: 100 }, () => new Star(mockRandomProvider));
 
       const startTime = performance.now();
 
@@ -238,7 +244,7 @@ describe('BackgroundRenderer', () => {
   describe('最適化ON/OFF比較機能', () => {
     test('最適化版と従来版の両方が正常に動作する', () => {
       const mockElements = {
-        stars: [new Star()],
+        stars: [new Star(mockRandomProvider)],
         planets: [new Planet()],
         nebulas: [new Nebula()],
         auroras: [new Aurora()]
@@ -266,7 +272,7 @@ describe('BackgroundRenderer', () => {
     });
 
     test('パフォーマンス統計が両方の描画方法で記録される', () => {
-      const mockStars = [new Star()];
+      const mockStars = [new Star(mockRandomProvider)];
 
       renderer.drawOptimizedBackground(mockContext, mockStars, [], [], []);
       renderer.drawTraditionalBackground(mockContext, mockStars, [], [], []);

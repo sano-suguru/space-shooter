@@ -6,24 +6,40 @@ import { Boss } from '../src/entities/Boss';
 import { PowerUp } from '../src/entities/PowerUp';
 import { GameObjectManager } from '../src/managers/GameObjectManager';
 import { EventEmitter } from '../src/events/EventEmitter';
-import { EventType } from '../src/events/EventType';
+import { EventMap } from '../src/events/EventType';
 import { GAME_CONSTANTS } from '../src/constants/GameConstants';
+import { MockInputManager } from '../src/managers';
+import { MockRandomProvider } from '../src/providers';
 
 describe('CollisionSystem', () => {
   let collisionSystem: CollisionSystem;
   let gameObjectManager: GameObjectManager;
-  let eventEmitter: EventEmitter;
+  let eventEmitter: EventEmitter<EventMap>;
   let mockCanvas: HTMLCanvasElement;
+  let mockGameEngine: any;
+  let mockInputManager: MockInputManager;
+  let mockRandomProvider: MockRandomProvider;
 
   beforeEach(() => {
     // Mock canvas for entities that need it
     mockCanvas = document.createElement('canvas');
     mockCanvas.width = GAME_CONSTANTS.CANVAS.WIDTH;
     mockCanvas.height = GAME_CONSTANTS.CANVAS.HEIGHT;
-    
-    eventEmitter = new EventEmitter();
+
+    // Mock dependencies
+    mockGameEngine = {
+      addBossBullet: jest.fn(),
+      getDifficultyFactor: jest.fn(() => 0.5),
+      createBullet: jest.fn(() => null)
+    };
+
+    mockInputManager = new MockInputManager();
+    mockRandomProvider = new MockRandomProvider();
+    mockRandomProvider.setValues([0.5, 0.3, 0.7, 0.2, 0.8]);
+
+    eventEmitter = new EventEmitter<EventMap>();
     gameObjectManager = new GameObjectManager(eventEmitter);
-    collisionSystem = new CollisionSystem(gameObjectManager, eventEmitter);
+    collisionSystem = new CollisionSystem(eventEmitter, gameObjectManager);
   });
 
   describe('SpatialHashアルゴリズム最適化', () => {
@@ -43,7 +59,8 @@ describe('CollisionSystem', () => {
       // 大量の弾丸を作成（通常のO(n²)では非効率になる規模）
       const bullets: Bullet[] = [];
       for (let i = 0; i < 50; i++) {
-        const bullet = new Bullet(i * 8, i * 10, 0, -1, false);
+        const bullet = new Bullet();
+        bullet.initialize(i * 8, i * 10);
         bullets.push(bullet);
         gameObjectManager.addBullet(bullet);
       }
@@ -51,16 +68,16 @@ describe('CollisionSystem', () => {
       // 複数の敵を作成
       const enemies: Enemy[] = [];
       for (let i = 0; i < 20; i++) {
-        const enemy = new Enemy(i * 20, i * 15);
+        const enemy = new Enemy(i * 20, i * 15, 'SMALL', mockGameEngine);
         enemies.push(enemy);
         gameObjectManager.addEnemy(enemy);
       }
 
       const startTime = performance.now();
-      
+
       // 衝突判定を実行
       collisionSystem.checkCollisions();
-      
+
       const endTime = performance.now();
       const executionTime = endTime - startTime;
 
@@ -77,14 +94,15 @@ describe('CollisionSystem', () => {
 
   describe('弾丸と敵の衝突判定', () => {
     test('プレイヤー弾丸と敵の衝突が正しく検出される', () => {
-      const enemy = new Enemy(100, 100);
-      const bullet = new Bullet(100, 100, 0, -1, false); // プレイヤーの弾丸
+      const enemy = new Enemy(100, 100, 'SMALL', mockGameEngine);
+      const bullet = new Bullet();
+      bullet.initialize(100, 100);
 
       gameObjectManager.addEnemy(enemy);
       gameObjectManager.addBullet(bullet);
 
       let collisionDetected = false;
-      eventEmitter.on(EventType.ENEMY_HIT, () => {
+      eventEmitter.on('enemyDestroyed', () => {
         collisionDetected = true;
       });
 
@@ -94,18 +112,19 @@ describe('CollisionSystem', () => {
     });
 
     test('敵弾丸とプレイヤーの衝突が正しく検出される', () => {
-      const player = new Player();
-      const enemyBullet = new Bullet(200, 300, 0, 1, true); // 敵の弾丸
+      const player = new Player(eventEmitter, mockInputManager, mockRandomProvider);
+      const enemyBullet = new Bullet();
+      enemyBullet.initialize(200, 300);
 
       // プレイヤーを特定位置に配置
-      player.x = 200;
-      player.y = 300;
+      (player as any).x = 200;
+      (player as any).y = 300;
 
       gameObjectManager.setPlayer(player);
       gameObjectManager.addBullet(enemyBullet);
 
       let playerHit = false;
-      eventEmitter.on(EventType.PLAYER_HIT, () => {
+      eventEmitter.on('playerDamaged', () => {
         playerHit = true;
       });
 
@@ -115,15 +134,17 @@ describe('CollisionSystem', () => {
     });
 
     test('同じ種類の弾丸同士は衝突しない', () => {
-      const playerBullet1 = new Bullet(150, 150, 0, -1, false);
-      const playerBullet2 = new Bullet(150, 150, 0, -1, false);
+      const playerBullet1 = new Bullet();
+      const playerBullet2 = new Bullet();
+      playerBullet1.initialize(150, 150);
+      playerBullet2.initialize(150, 150);
 
       gameObjectManager.addBullet(playerBullet1);
       gameObjectManager.addBullet(playerBullet2);
 
       let collisionCount = 0;
-      eventEmitter.on(EventType.ENEMY_HIT, () => collisionCount++);
-      eventEmitter.on(EventType.PLAYER_HIT, () => collisionCount++);
+      eventEmitter.on('enemyDestroyed', () => collisionCount++);
+      eventEmitter.on('playerDamaged', () => collisionCount++);
 
       collisionSystem.checkCollisions();
 
@@ -133,18 +154,19 @@ describe('CollisionSystem', () => {
 
   describe('ボス戦衝突判定', () => {
     test('プレイヤー弾丸とボスの衝突が正しく検出される', () => {
-      const boss = new Boss();
-      const bullet = new Bullet(200, 100, 0, -1, false);
+      const boss = new Boss(mockGameEngine);
+      const bullet = new Bullet();
+      bullet.initialize(200, 100);
 
       // ボスを衝突可能な位置に配置
-      boss.x = 200;
-      boss.y = 100;
+      (boss as any).x = 200;
+      (boss as any).y = 100;
 
       gameObjectManager.setBoss(boss);
       gameObjectManager.addBullet(bullet);
 
       let bossHit = false;
-      eventEmitter.on(EventType.BOSS_HIT, () => {
+      eventEmitter.on('bossDamaged', () => {
         bossHit = true;
       });
 
@@ -154,17 +176,18 @@ describe('CollisionSystem', () => {
     });
 
     test('ボス弾丸とプレイヤーの衝突が正しく検出される', () => {
-      const player = new Player();
-      const bossBullet = new Bullet(200, 300, 0, 1, true);
+      const player = new Player(eventEmitter, mockInputManager, mockRandomProvider);
+      const bossBullet = new Bullet();
+      bossBullet.initialize(200, 300);
 
-      player.x = 200;
-      player.y = 300;
+      (player as any).x = 200;
+      (player as any).y = 300;
 
       gameObjectManager.setPlayer(player);
       gameObjectManager.addBullet(bossBullet);
 
       let playerHit = false;
-      eventEmitter.on(EventType.PLAYER_HIT, () => {
+      eventEmitter.on('playerDamaged', () => {
         playerHit = true;
       });
 
@@ -176,17 +199,17 @@ describe('CollisionSystem', () => {
 
   describe('PowerUp衝突判定', () => {
     test('プレイヤーとPowerUpの衝突が正しく検出される', () => {
-      const player = new Player();
-      const powerUp = new PowerUp(200, 300, 'health');
+      const player = new Player(eventEmitter, mockInputManager, mockRandomProvider);
+      const powerUp = new PowerUp(200, 300);
 
-      player.x = 200;
-      player.y = 300;
+      (player as any).x = 200;
+      (player as any).y = 300;
 
       gameObjectManager.setPlayer(player);
       gameObjectManager.addPowerUp(powerUp);
 
       let powerUpCollected = false;
-      eventEmitter.on(EventType.POWERUP_COLLECTED, () => {
+      eventEmitter.on('powerUpCollected', () => {
         powerUpCollected = true;
       });
 
@@ -196,34 +219,35 @@ describe('CollisionSystem', () => {
     });
 
     test('異なるPowerUpタイプが正しく区別される', () => {
-      const player = new Player();
-      const healthPowerUp = new PowerUp(200, 300, 'health');
-      const weaponPowerUp = new PowerUp(250, 300, 'weapon');
+      const player = new Player(eventEmitter, mockInputManager, mockRandomProvider);
+      const healthPowerUp = new PowerUp(200, 300);
+      const weaponPowerUp = new PowerUp(250, 300);
 
-      player.x = 200;
-      player.y = 300;
+      (player as any).x = 200;
+      (player as any).y = 300;
 
       gameObjectManager.setPlayer(player);
       gameObjectManager.addPowerUp(healthPowerUp);
       gameObjectManager.addPowerUp(weaponPowerUp);
 
       const collectedTypes: string[] = [];
-      eventEmitter.on(EventType.POWERUP_COLLECTED, (data: any) => {
-        collectedTypes.push(data.type);
+      eventEmitter.on('powerUpCollected', (powerUp: any) => {
+        collectedTypes.push(powerUp.getType());
       });
 
       collisionSystem.checkCollisions();
 
       // プレイヤーの位置に近いhealthPowerUpのみ収集される
-      expect(collectedTypes).toContain('health');
-      expect(collectedTypes).not.toContain('weapon');
+      expect(collectedTypes).toContain(healthPowerUp.getType());
+      expect(collectedTypes).not.toContain(weaponPowerUp.getType());
     });
   });
 
   describe('衝突判定の境界ケース', () => {
     test('オブジェクトが画面外にある場合の処理', () => {
-      const enemy = new Enemy(-50, -50); // 画面外
-      const bullet = new Bullet(-50, -50, 0, -1, false);
+      const enemy = new Enemy(-50, -50, 'SMALL', mockGameEngine);
+      const bullet = new Bullet();
+      bullet.initialize(-50, -50);
 
       gameObjectManager.addEnemy(enemy);
       gameObjectManager.addBullet(bullet);
@@ -234,16 +258,17 @@ describe('CollisionSystem', () => {
     });
 
     test('オブジェクトが重複する座標にある場合', () => {
-      const enemy1 = new Enemy(100, 100);
-      const enemy2 = new Enemy(100, 100);
-      const bullet = new Bullet(100, 100, 0, -1, false);
+      const enemy1 = new Enemy(100, 100, 'SMALL', mockGameEngine);
+      const enemy2 = new Enemy(100, 100, 'SMALL', mockGameEngine);
+      const bullet = new Bullet();
+      bullet.initialize(100, 100);
 
       gameObjectManager.addEnemy(enemy1);
       gameObjectManager.addEnemy(enemy2);
       gameObjectManager.addBullet(bullet);
 
       let hitCount = 0;
-      eventEmitter.on(EventType.ENEMY_HIT, () => {
+      eventEmitter.on('enemyDestroyed', () => {
         hitCount++;
       });
 
@@ -265,8 +290,9 @@ describe('CollisionSystem', () => {
 
   describe('パフォーマンス統計', () => {
     test('衝突判定統計が正確に記録される', () => {
-      const enemy = new Enemy(100, 100);
-      const bullet = new Bullet(100, 100, 0, -1, false);
+      const enemy = new Enemy(100, 100, 'SMALL', mockGameEngine);
+      const bullet = new Bullet();
+      bullet.initialize(100, 100);
 
       gameObjectManager.addEnemy(enemy);
       gameObjectManager.addBullet(bullet);
@@ -276,12 +302,14 @@ describe('CollisionSystem', () => {
       const stats = collisionSystem.getCollisionStats();
       expect(stats.totalChecks).toBeGreaterThan(0);
       expect(stats.spatialHashChecks).toBeGreaterThanOrEqual(0);
-      expect(stats.optimizationRatio).toBeWithinRange(0, 1);
+      expect(stats.optimizationRatio).toBeGreaterThanOrEqual(0);
+      expect(stats.optimizationRatio).toBeLessThanOrEqual(1);
     });
 
     test('複数回の衝突判定で統計が累積される', () => {
-      const enemy = new Enemy(100, 100);
-      const bullet = new Bullet(150, 150, 0, -1, false);
+      const enemy = new Enemy(100, 100, 'SMALL', mockGameEngine);
+      const bullet = new Bullet();
+      bullet.initialize(150, 150);
 
       gameObjectManager.addEnemy(enemy);
       gameObjectManager.addBullet(bullet);
@@ -299,16 +327,17 @@ describe('CollisionSystem', () => {
   describe('空間分割の効率性', () => {
     test('近接オブジェクトのみが衝突判定される', () => {
       // 画面の左端と右端にオブジェクトを配置
-      const leftEnemy = new Enemy(50, 100);
-      const rightEnemy = new Enemy(350, 100);
-      const leftBullet = new Bullet(50, 100, 0, -1, false);
+      const leftEnemy = new Enemy(50, 100, 'SMALL', mockGameEngine);
+      const rightEnemy = new Enemy(350, 100, 'SMALL', mockGameEngine);
+      const leftBullet = new Bullet();
+      leftBullet.initialize(50, 100);
 
       gameObjectManager.addEnemy(leftEnemy);
       gameObjectManager.addEnemy(rightEnemy);
       gameObjectManager.addBullet(leftBullet);
 
       let hitCount = 0;
-      eventEmitter.on(EventType.ENEMY_HIT, () => {
+      eventEmitter.on('enemyDestroyed', () => {
         hitCount++;
       });
 
@@ -325,17 +354,18 @@ describe('CollisionSystem', () => {
     test('空間分割グリッドが適切に機能する', () => {
       // 64x64セルグリッドの異なるセルにオブジェクトを配置
       const cellSize = 64;
-      const enemy1 = new Enemy(32, 32);   // セル(0,0)
-      const enemy2 = new Enemy(96, 32);   // セル(1,0)
-      const bullet = new Bullet(32, 32, 0, -1, false); // セル(0,0)
+      const enemy1 = new Enemy(32, 32, 'SMALL', mockGameEngine);   // セル(0,0)
+      const enemy2 = new Enemy(96, 32, 'SMALL', mockGameEngine);   // セル(1,0)
+      const bullet = new Bullet();
+      bullet.initialize(32, 32); // セル(0,0)
 
       gameObjectManager.addEnemy(enemy1);
       gameObjectManager.addEnemy(enemy2);
       gameObjectManager.addBullet(bullet);
 
       let hitEnemies: Enemy[] = [];
-      eventEmitter.on(EventType.ENEMY_HIT, (data: any) => {
-        hitEnemies.push(data.enemy);
+      eventEmitter.on('enemyDestroyed', (enemy: Enemy) => {
+        hitEnemies.push(enemy);
       });
 
       collisionSystem.checkCollisions();
@@ -354,12 +384,13 @@ describe('CollisionSystem', () => {
         const bullets: Bullet[] = [];
 
         for (let i = 0; i < 20; i++) {
-          const enemy = new Enemy(i * 20, 100);
-          const bullet = new Bullet(i * 20, 100, 0, -1, false);
-          
+          const enemy = new Enemy(i * 20, 100, 'SMALL', mockGameEngine);
+          const bullet = new Bullet();
+          bullet.initialize(i * 20, 100);
+
           enemies.push(enemy);
           bullets.push(bullet);
-          
+
           gameObjectManager.addEnemy(enemy);
           gameObjectManager.addBullet(bullet);
         }

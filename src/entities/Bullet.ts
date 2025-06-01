@@ -39,10 +39,10 @@ export class Bullet extends GameObject {
 
     public draw(ctx: CanvasRenderingContext2D): void {
         if (!this.active) return;
-        
+
         ctx.fillStyle = this.color;
         ctx.fillRect(this.x, this.y, this.width, this.height);
-        
+
         // エフェクト追加：弾丸の光る効果
         ctx.shadowColor = this.color;
         ctx.shadowBlur = 5;
@@ -68,5 +68,12 @@ export class Bullet extends GameObject {
     public setType(speed: number, color: string): void {
         this.speed = speed;
         this.color = color;
+    }
+
+    /**
+     * 弾丸の位置を取得
+     */
+    public getPosition(): { x: number; y: number } {
+        return { x: this.x, y: this.y };
     }
 }

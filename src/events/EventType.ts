@@ -5,6 +5,14 @@ import { GameStateKey } from "../managers/GameStateManager";
 import { WaveConfig } from "../types";
 import { GameCommandMap } from "./GameCommands";
 
+// Event type constants
+export const EventType = {
+    ENEMY_HIT: 'enemyHit',
+    PLAYER_HIT: 'playerHit', 
+    BOSS_HIT: 'bossHit',
+    POWERUP_COLLECTED: 'powerUpCollected'
+} as const;
+
 export type EventMap = Readonly<{
     // ゲーム状態イベント
     'enemyDestroyed': (enemy: Enemy) => void;
