@@ -7,12 +7,14 @@ import { Player } from './entities/Player';
 import { EventEmitter } from './events/EventEmitter';
 import { getElementOrThrow } from './utils/DOMUtils';
 import { RealRandomProvider } from './providers';
+import { InputManager } from './managers/InputManager';
 
 function initGame(): void {
     const canvas = getElementOrThrow<HTMLCanvasElement>('gameCanvas');
     const eventEmitter = new EventEmitter();
-    const player = new Player(eventEmitter);
     const randomProvider = new RealRandomProvider();
+    const inputManager = new InputManager(canvas);
+    const player = new Player(eventEmitter, inputManager, randomProvider);
     const gameObjectFactory = new GameObjectFactory(randomProvider);
     const scoreManager = new ScoreManager(eventEmitter);
     const stateManager = new GameStateManager(eventEmitter);
@@ -30,7 +32,9 @@ function initGame(): void {
         scoreManager,
         player,
         gameObjectFactory,
-        stateManager
+        stateManager,
+        inputManager,
+        randomProvider
     );
 
     game.start();

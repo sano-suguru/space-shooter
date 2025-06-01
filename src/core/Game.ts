@@ -17,6 +17,8 @@ import { CollisionSystem } from '../systems/CollisionSystem';
 import { IGameEngine } from '../interfaces/IGameEngine';
 import { GameEngine } from './GameEngine';
 import { BackgroundRenderer } from '../rendering/BackgroundRenderer';
+import { IInputManager } from '../interfaces/IInputManager';
+import { IRandomProvider } from '../providers/IRandomProvider';
 
 export class Game implements IGameEngine {
     private ctx: CanvasRenderingContext2D;
@@ -40,7 +42,9 @@ export class Game implements IGameEngine {
         private scoreManager: ScoreManager,
         private player: Player,
         private gameObjectFactory: GameObjectFactory,
-        private stateManager: GameStateManager
+        private stateManager: GameStateManager,
+        private inputManager: IInputManager,
+        private randomProvider: IRandomProvider
     ) {
         this.ctx = this.canvas.getContext('2d') as CanvasRenderingContext2D;
         this.canvas.width = GAME_CONSTANTS.CANVAS.WIDTH;
@@ -277,7 +281,8 @@ export class Game implements IGameEngine {
     }
 
     public resetGame(): void {
-        this.player = new Player(this.eventEmitter, this);
+        this.player = new Player(this.eventEmitter, this.inputManager, this.randomProvider);
+        this.player.setGame(this);
         this.gameObjectManager.reset();
         this.level = 1;
         this.bossSpawnScore = 1000;

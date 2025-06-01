@@ -5,6 +5,8 @@ import { Bullet } from "./Bullet";
 import { GameObject } from "./GameObject";
 import { EventMap } from "../events/EventType";
 import { IGameEngine } from "../interfaces/IGameEngine";
+import { IInputManager } from "../interfaces/IInputManager";
+import { IRandomProvider } from "../providers/IRandomProvider";
 
 export class Player extends GameObject {
     private velocity: Vector2D = { x: 0, y: 0 };
@@ -13,16 +15,16 @@ export class Player extends GameObject {
     private bulletType: 'single' | 'triple' = 'single';
     private shieldActive = false;
     private activePowerups: { type: PowerUpType; startTime: number }[] = [];
-    private keys: { [key: string]: boolean } = {};
     private engineAnimationPhase = 0;
     private invincible = false;
     private lastHitTime = 0;
     private lastFireTime = 0;
     private thrusterParticles: Array<{ x: number; y: number; speed: number; life: number }> = [];
 
-
     constructor(
         private eventEmitter: EventEmitter<EventMap>,
+        private inputManager: IInputManager,
+        private randomProvider: IRandomProvider,
         private game?: IGameEngine
     ) {
         super(
@@ -36,7 +38,8 @@ export class Player extends GameObject {
     }
 
     public setKeyState(key: string, isPressed: boolean): void {
-        this.keys[key] = isPressed;
+        // この方法は非推奨 - InputManagerを直接使用してください
+        // 後方互換性のために残しています
     }
 
     public update(deltaTime: number): void {
@@ -61,18 +64,18 @@ export class Player extends GameObject {
         const { ACCELERATION, MAX_SPEED } = GAME_CONSTANTS.PLAYER;
 
         // X軸移動
-        if (this.keys['ArrowLeft']) {
+        if (this.inputManager.isKeyPressed('ArrowLeft')) {
             this.velocity.x = Math.max(this.velocity.x - ACCELERATION, -MAX_SPEED);
-        } else if (this.keys['ArrowRight']) {
+        } else if (this.inputManager.isKeyPressed('ArrowRight')) {
             this.velocity.x = Math.min(this.velocity.x + ACCELERATION, MAX_SPEED);
         } else {
             this.applyDecelerationX();
         }
 
         // Y軸移動
-        if (this.keys['ArrowUp']) {
+        if (this.inputManager.isKeyPressed('ArrowUp')) {
             this.velocity.y = Math.max(this.velocity.y - ACCELERATION, -MAX_SPEED);
-        } else if (this.keys['ArrowDown']) {
+        } else if (this.inputManager.isKeyPressed('ArrowDown')) {
             this.velocity.y = Math.min(this.velocity.y + ACCELERATION, MAX_SPEED);
         } else {
             this.applyDecelerationY();
@@ -122,7 +125,9 @@ export class Player extends GameObject {
     }
 
     private updateShooting(): void {
-        if (this.keys[' ']) this.shoot();
+        if (this.inputManager.isKeyPressed(' ')) {
+            this.shoot();
+        }
     }
 
     private shoot(): void {
@@ -191,7 +196,7 @@ export class Player extends GameObject {
             this.thrusterParticles.push({
                 x: this.x + this.width / 2,
                 y: this.y + this.height,
-                speed: Math.random() * 50 + 50,
+                speed: this.randomProvider.random() * 50 + 50,
                 life: 1
             });
         }
