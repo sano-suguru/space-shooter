@@ -182,9 +182,64 @@ if (typeof document === 'undefined') {
     createElement: jest.fn(() => ({
       width: 400,
       height: 600,
-      getContext: jest.fn(() => createMockContext())
-    }))
+      getContext: jest.fn(() => createMockContext()),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      style: {},
+      textContent: '',
+      classList: {
+        add: jest.fn(),
+        remove: jest.fn(),
+        contains: jest.fn()
+      }
+    })),
+    getElementById: jest.fn(() => ({
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      style: {},
+      textContent: '',
+      classList: {
+        add: jest.fn(),
+        remove: jest.fn(),
+        contains: jest.fn()
+      }
+    })),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    body: {
+      appendChild: jest.fn(),
+      removeChild: jest.fn(),
+      contains: jest.fn(() => true)
+    }
   };
+} else {
+  // document は存在するが、必要なメソッドをモック化
+  if (!document.addEventListener) {
+    document.addEventListener = jest.fn();
+  }
+  if (!document.removeEventListener) {
+    document.removeEventListener = jest.fn();
+  }
+  if (!document.getElementById) {
+    document.getElementById = jest.fn(() => ({
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      style: {},
+      textContent: '',
+      classList: {
+        add: jest.fn(),
+        remove: jest.fn(),
+        contains: jest.fn()
+      }
+    } as any));
+  }
+  if (!document.body) {
+    (document as any).body = {
+      appendChild: jest.fn(),
+      removeChild: jest.fn(),
+      contains: jest.fn(() => true)
+    };
+  }
 }
 
 // Define window if not available (Node environment)
@@ -200,17 +255,25 @@ Object.defineProperty(window, 'performance', {
 });
 
 // RequestAnimationFrame mock
+const mockRequestAnimationFrame = jest.fn((callback: any) => {
+  return setTimeout(callback, 16);
+});
+
+const mockCancelAnimationFrame = jest.fn((id: number) => {
+  clearTimeout(id);
+});
+
 Object.defineProperty(window, 'requestAnimationFrame', {
-  value: jest.fn((callback: any) => {
-    return setTimeout(callback, 16);
-  })
+  value: mockRequestAnimationFrame
 });
 
 Object.defineProperty(window, 'cancelAnimationFrame', {
-  value: jest.fn((id: number) => {
-    clearTimeout(id);
-  })
+  value: mockCancelAnimationFrame
 });
+
+// グローバルスコープにも定義
+(globalThis as any).requestAnimationFrame = mockRequestAnimationFrame;
+(globalThis as any).cancelAnimationFrame = mockCancelAnimationFrame;
 
 // Event mock
 Object.defineProperty(window, 'Event', {

@@ -218,28 +218,31 @@ describe('CollisionSystem', () => {
       expect(powerUpCollected).toBe(true);
     });
 
-    test('異なるPowerUpタイプが正しく区別される', () => {
+    test('距離に基づいてPowerUpが正しく区別される', () => {
       const player = new Player(eventEmitter, mockInputManager, mockRandomProvider);
-      const healthPowerUp = new PowerUp(200, 300);
-      const weaponPowerUp = new PowerUp(250, 300);
+      const nearPowerUp = new PowerUp(200, 300);  // プレイヤーと重複
+      const farPowerUp = new PowerUp(350, 300);   // プレイヤーから離れた位置
 
-      (player as any).x = 200;
-      (player as any).y = 300;
+      (player as any).x = 200;  // プレイヤー範囲: 200-250
+      (player as any).y = 300;  // プレイヤー範囲: 300-350
 
       gameObjectManager.setPlayer(player);
-      gameObjectManager.addPowerUp(healthPowerUp);
-      gameObjectManager.addPowerUp(weaponPowerUp);
+      gameObjectManager.addPowerUp(nearPowerUp);
+      gameObjectManager.addPowerUp(farPowerUp);
 
-      const collectedTypes: string[] = [];
-      eventEmitter.on('powerUpCollected', (powerUp: any) => {
-        collectedTypes.push(powerUp.getType());
+      let collectedCount = 0;
+      const collectedPowerUps: PowerUp[] = [];
+      eventEmitter.on('powerUpCollected', (powerUp: PowerUp) => {
+        collectedCount++;
+        collectedPowerUps.push(powerUp);
       });
 
       collisionSystem.checkCollisions();
 
-      // プレイヤーの位置に近いhealthPowerUpのみ収集される
-      expect(collectedTypes).toContain(healthPowerUp.getType());
-      expect(collectedTypes).not.toContain(weaponPowerUp.getType());
+      // 近いPowerUpのみが収集され、遠いPowerUpは収集されない
+      expect(collectedCount).toBe(1);
+      expect(collectedPowerUps).toContain(nearPowerUp);
+      expect(collectedPowerUps).not.toContain(farPowerUp);
     });
   });
 
