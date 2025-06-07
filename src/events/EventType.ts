@@ -36,4 +36,12 @@ export type EventMap = Readonly<{
     'stateChanged': (newState: GameStateKey) => void;
     'waveStarted': (waveConfig: WaveConfig) => void;
     'waveCompleted': (waveNumber: number, bonusScore: number) => void;
+    
+    // プログレッションシステムイベント
+    'playerLevelUp': (newLevel: number, coinsEarned: number) => void;
+    'experienceGained': (amount: number, totalExperience: number) => void;
+    'coinsEarned': (amount: number, totalCoins: number) => void;
+    'achievementUnlocked': (achievementId: string, name: string) => void;
+    'upgradeApplied': (upgradeId: string, newLevel: number) => void;
+    'profileUpdated': () => void;
 }> & GameCommandMap;

@@ -5,7 +5,7 @@ export class ScoreManager {
     private score: number = 0;
 
     constructor(
-        private eventEmitter: EventEmitter<EventMap>
+        protected eventEmitter: EventEmitter<EventMap>
     ) { }
 
     getScore(): number {

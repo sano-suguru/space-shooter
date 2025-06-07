@@ -7,10 +7,12 @@ import { EventMap } from "../events/EventType";
 import { IGameEngine } from "../interfaces/IGameEngine";
 import { IInputManager } from "../interfaces/IInputManager";
 import { IRandomProvider } from "../providers/IRandomProvider";
+import { UpgradeEffect } from "../progression/types/Upgrade";
 
 export class Player extends GameObject {
     private velocity: Vector2D = { x: 0, y: 0 };
     private health: number;
+    private maxHealth: number;
     private fireRate: number;
     private bulletType: 'single' | 'triple' = 'single';
     private shieldActive = false;
@@ -20,6 +22,17 @@ export class Player extends GameObject {
     private lastHitTime = 0;
     private lastFireTime = 0;
     private thrusterParticles: Array<{ x: number; y: number; speed: number; life: number }> = [];
+    
+    // アップグレード効果関連
+    private currentUpgradeEffect: UpgradeEffect = {};
+    private baseStats = {
+        health: GAME_CONSTANTS.PLAYER.MAX_HEALTH,
+        fireRate: GAME_CONSTANTS.PLAYER.FIRE_RATE,
+        moveSpeed: GAME_CONSTANTS.PLAYER.MAX_SPEED,
+        bulletDamage: 1,
+        bulletCount: 1,
+        bulletSpeed: GAME_CONSTANTS.BULLET.SPEED
+    };
 
     constructor(
         private eventEmitter: EventEmitter<EventMap>,
@@ -34,6 +47,7 @@ export class Player extends GameObject {
             GAME_CONSTANTS.PLAYER.HEIGHT
         );
         this.health = GAME_CONSTANTS.PLAYER.MAX_HEALTH;
+        this.maxHealth = GAME_CONSTANTS.PLAYER.MAX_HEALTH;
         this.fireRate = GAME_CONSTANTS.PLAYER.FIRE_RATE;
     }
 
@@ -61,22 +75,23 @@ export class Player extends GameObject {
     }
 
     private updateVelocity(): void {
-        const { ACCELERATION, MAX_SPEED } = GAME_CONSTANTS.PLAYER;
+        const { ACCELERATION } = GAME_CONSTANTS.PLAYER;
+        const effectiveMaxSpeed = this.getEffectiveMaxSpeed();
 
         // X軸移動
         if (this.inputManager.isKeyPressed('ArrowLeft')) {
-            this.velocity.x = Math.max(this.velocity.x - ACCELERATION, -MAX_SPEED);
+            this.velocity.x = Math.max(this.velocity.x - ACCELERATION, -effectiveMaxSpeed);
         } else if (this.inputManager.isKeyPressed('ArrowRight')) {
-            this.velocity.x = Math.min(this.velocity.x + ACCELERATION, MAX_SPEED);
+            this.velocity.x = Math.min(this.velocity.x + ACCELERATION, effectiveMaxSpeed);
         } else {
             this.applyDecelerationX();
         }
 
         // Y軸移動
         if (this.inputManager.isKeyPressed('ArrowUp')) {
-            this.velocity.y = Math.max(this.velocity.y - ACCELERATION, -MAX_SPEED);
+            this.velocity.y = Math.max(this.velocity.y - ACCELERATION, -effectiveMaxSpeed);
         } else if (this.inputManager.isKeyPressed('ArrowDown')) {
-            this.velocity.y = Math.min(this.velocity.y + ACCELERATION, MAX_SPEED);
+            this.velocity.y = Math.min(this.velocity.y + ACCELERATION, effectiveMaxSpeed);
         } else {
             this.applyDecelerationY();
         }
@@ -167,12 +182,14 @@ export class Player extends GameObject {
      * 弾丸を作成（プール使用 or フォールバック）
      */
     private createBullet(x: number, y: number, speed?: number, color?: string): Bullet | null {
+        const effectiveBulletSpeed = speed || this.getEffectiveBulletSpeed();
+        
         if (this.game) {
-            return this.game.createBullet(x, y, speed, color);
+            return this.game.createBullet(x, y, effectiveBulletSpeed, color);
         } else {
             // フォールバック：Gameインスタンスがない場合は直接作成
             const bullet = new Bullet();
-            bullet.initialize(x, y, speed, color);
+            bullet.initialize(x, y, effectiveBulletSpeed, color);
             return bullet;
         }
     }
@@ -309,7 +326,8 @@ export class Player extends GameObject {
 
     public takeDamage(amount: number): void {
         if (!this.invincible && !this.shieldActive) {
-            this.health = Math.max(0, this.health - amount);
+            const reducedDamage = this.applyDamageReduction(amount);
+            this.health = Math.max(0, this.health - reducedDamage);
             this.eventEmitter.emit('healthChanged', this.health);
             this.invincible = true;
             this.lastHitTime = Date.now();
@@ -362,6 +380,112 @@ export class Player extends GameObject {
 
     public getPosition(): Vector2D {
         return { x: this.x, y: this.y };
+    }
+
+    /**
+     * アップグレード効果を適用する
+     */
+    public applyUpgradeEffect(upgradeEffect: UpgradeEffect): void {
+        this.currentUpgradeEffect = { ...upgradeEffect };
+        this.recalculateStats();
+    }
+
+    /**
+     * アップグレード効果を考慮した統計値を再計算
+     */
+    private recalculateStats(): void {
+        const effect = this.currentUpgradeEffect;
+
+        // 体力関連
+        const newMaxHealth = Math.floor(this.baseStats.health * (effect.healthMultiplier || 1));
+        if (newMaxHealth !== this.maxHealth) {
+            const healthRatio = this.health / this.maxHealth;
+            this.maxHealth = newMaxHealth;
+            this.health = Math.floor(this.maxHealth * healthRatio); // 現在の体力割合を維持
+        }
+
+        // 射撃速度
+        this.fireRate = Math.floor(this.baseStats.fireRate / (effect.fireRateMultiplier || 1));
+
+        // 弾丸タイプを多重射撃に設定（bulletCountMultiplierが1より大きい場合）
+        if (effect.bulletCountMultiplier && effect.bulletCountMultiplier > 1) {
+            this.bulletType = 'triple';
+        }
+    }
+
+    /**
+     * アップグレード効果を考慮した移動速度を取得
+     */
+    private getEffectiveMaxSpeed(): number {
+        const effect = this.currentUpgradeEffect;
+        return this.baseStats.moveSpeed * (effect.moveSpeedMultiplier || 1);
+    }
+
+    /**
+     * アップグレード効果を考慮した弾丸速度を取得
+     */
+    private getEffectiveBulletSpeed(): number {
+        const effect = this.currentUpgradeEffect;
+        return this.baseStats.bulletSpeed * (effect.bulletSpeedMultiplier || 1);
+    }
+
+    /**
+     * アップグレード効果を考慮したダメージ軽減を適用
+     */
+    private applyDamageReduction(damage: number): number {
+        const effect = this.currentUpgradeEffect;
+        const reduction = effect.damageReductionPercent || 0;
+        return Math.max(1, Math.floor(damage * (1 - reduction)));
+    }
+
+    /**
+     * アップグレード効果を考慮した経験値ボーナスを取得
+     */
+    public getExperienceMultiplier(): number {
+        return this.currentUpgradeEffect.experienceBonusMultiplier || 1;
+    }
+
+    /**
+     * アップグレード効果を考慮したコインボーナスを取得
+     */
+    public getCoinMultiplier(): number {
+        return this.currentUpgradeEffect.coinBonusMultiplier || 1;
+    }
+
+    /**
+     * アップグレード効果を考慮したマグネット範囲を取得
+     */
+    public getMagnetRange(): number {
+        const baseRange = 50; // デフォルトのマグネット範囲
+        return baseRange + (this.currentUpgradeEffect.magnetRangeBonus || 0);
+    }
+
+    /**
+     * アップグレード効果を考慮したラッキードロップ確率を取得
+     */
+    public getLuckyDropChance(): number {
+        return this.currentUpgradeEffect.luckyDropChanceBonus || 0;
+    }
+
+    /**
+     * 現在のアップグレード効果を取得
+     */
+    public getCurrentUpgradeEffect(): UpgradeEffect {
+        return { ...this.currentUpgradeEffect };
+    }
+
+    /**
+     * 最大体力を取得
+     */
+    public getMaxHealth(): number {
+        return this.maxHealth;
+    }
+
+    /**
+     * アップグレードによる弾丸ダメージ倍率を取得
+     */
+    public getBulletDamageMultiplier(): number {
+        return this.currentUpgradeEffect.bulletDamageMultiplier || 1;
     }
 
     /**
