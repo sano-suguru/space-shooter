@@ -51,6 +51,107 @@ body {
   text-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
 }
 
+/* プログレッションメニューボタンスタイル */
+#progression-menu {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  z-index: 100;
+}
+
+.progression-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, var(--color-button-gradient-start), var(--color-button-gradient-end));
+  border: 1px solid rgba(74, 74, 74, 0.8);
+  border-radius: var(--border-radius-medium);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: all var(--transition-duration) ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(5px);
+  min-width: 60px;
+}
+
+.progression-btn:hover {
+  background: linear-gradient(135deg, var(--color-button-gradient-end), #8a8a8a);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 255, 170, 0.3);
+  border-color: var(--color-accent);
+}
+
+.progression-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.progression-btn.active {
+  background: linear-gradient(135deg, var(--color-accent), #00cc88);
+  border-color: var(--color-accent);
+  color: black;
+  box-shadow: 0 4px 15px rgba(0, 255, 170, 0.5);
+  transform: translateY(-2px);
+}
+
+.btn-icon {
+  font-size: 18px;
+  margin-bottom: 4px;
+  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.3));
+}
+
+.btn-text {
+  font-size: 10px;
+  font-weight: bold;
+  text-align: center;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  #progression-menu {
+    gap: 8px;
+  }
+  
+  .progression-btn {
+    min-width: 50px;
+    padding: 6px 8px;
+  }
+  
+  .btn-icon {
+    font-size: 16px;
+  }
+  
+  .btn-text {
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 480px) {
+  #progression-menu {
+    flex-direction: column;
+    right: 5px;
+    gap: 5px;
+  }
+  
+  .progression-btn {
+    min-width: 45px;
+    padding: 5px 6px;
+  }
+  
+  .btn-icon {
+    font-size: 14px;
+  }
+  
+  .btn-text {
+    font-size: 8px;
+  }
+}
+
 #score,
 #level,
 #health {

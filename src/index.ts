@@ -3,11 +3,14 @@ import { Game } from './core/Game';
 import { GameStateManager } from './managers/GameStateManager';
 import { ScoreManager } from './managers/ScoreManager';
 import { UIManager } from './managers/UIManager';
+import { ProgressionUIManager } from './managers/ProgressionUIManager';
 import { Player } from './entities/Player';
 import { EventEmitter } from './events/EventEmitter';
 import { getElementOrThrow } from './utils/DOMUtils';
 import { RealRandomProvider, RealTimeProvider } from './providers';
 import { InputManager, DOMManager, MessageManager } from './managers';
+import { ProgressManager } from './progression/managers/ProgressManager';
+import { PersistenceManager } from './progression/managers/PersistenceManager';
 
 function initGame(): void {
     const canvas = getElementOrThrow<HTMLCanvasElement>('gameCanvas');
@@ -22,12 +25,19 @@ function initGame(): void {
     const scoreManager = new ScoreManager(eventEmitter);
     const stateManager = new GameStateManager(eventEmitter);
 
+    // プログレッションシステムを初期化
+    const progressManager = new ProgressManager(eventEmitter);
+    
+    // 既存UIManagerを初期化
     const levelElement = getElementOrThrow<HTMLElement>('levelValue');
     const healthElement = getElementOrThrow<HTMLElement>('healthValue');
     const healthBarElement = getElementOrThrow<HTMLElement>('healthBarFill');
     const gameOverElement = getElementOrThrow<HTMLElement>('gameOver')
     const scoreElement = getElementOrThrow<HTMLElement>('scoreValue');
     new UIManager(eventEmitter, scoreElement, levelElement, healthElement, healthBarElement, gameOverElement);
+
+    // プログレッションUIManagerを初期化
+    new ProgressionUIManager(eventEmitter, domManager, progressManager);
 
     const game = new Game(
         canvas,

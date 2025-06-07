@@ -19,7 +19,27 @@
         体力: <span id="healthValue">100</span>
         <div id="healthBar">
           <div id="healthBarFill"></div>
-        </div>
+        </div>  
+      </div>
+      
+      <!-- プログレッションアクセスメニュー -->
+      <div id="progression-menu">
+        <button id="upgrade-shop-btn" class="progression-btn" title="アップグレードショップ (U)">
+          <span class="btn-icon">🛒</span>
+          <span class="btn-text">ショップ</span>
+        </button>
+        <button id="achievement-panel-btn" class="progression-btn" title="実績パネル (A)">
+          <span class="btn-icon">🏆</span>
+          <span class="btn-text">実績</span>
+        </button>
+        <button id="game-mode-btn" class="progression-btn" title="ゲームモード (M)">
+          <span class="btn-icon">🎮</span>
+          <span class="btn-text">モード</span>
+        </button>
+        <button id="progress-display-btn" class="progression-btn" title="進行状況 (P)">
+          <span class="btn-icon">📊</span>
+          <span class="btn-text">進行状況</span>
+        </button>
       </div>
     </div>
     <div id="gameOver" class="hidden">
@@ -27,6 +47,12 @@
       <p>最終スコア: <span id="finalScore"></span></p>
       <button id="restartButton">リスタート</button>
     </div>
+    
+    <!-- プログレッションUI コンテナ -->
+    <div id="upgrade-shop-container"></div>
+    <div id="achievement-panel-container"></div>
+    <div id="game-mode-selector-container"></div>
+    <div id="progress-display-container"></div>
   </div>
   <script type="module" src="src/index.ts"></script>
 </body>
