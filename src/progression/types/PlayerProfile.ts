@@ -22,6 +22,12 @@ export interface PlayerProfile {
     
     // 詳細統計
     stats: PlayerStats;
+    
+    // ゲームモード統計
+    gameModeStats?: {
+        gamesPlayedByMode: { [modeId: string]: number };
+        highScoresByMode: { [modeId: string]: number };
+    };
 }
 
 /**

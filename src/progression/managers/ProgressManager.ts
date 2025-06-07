@@ -5,7 +5,9 @@ import { PlayerProfile, GameSession } from '../types/PlayerProfile';
 import { PersistenceManager } from './PersistenceManager';
 import { UpgradeManager } from './UpgradeManager';
 import { AchievementManager } from './AchievementManager';
+import { GameModeManager } from './GameModeManager';
 import type { Achievement } from '../types/Achievement';
+import type { GameMode, GameModeModifiers } from '../types/GameMode';
 
 /**
  * プログレッションシステムの中核を管理するクラス
@@ -17,6 +19,7 @@ export class ProgressManager extends ScoreManager {
     private sessionStartTime: number;
     private upgradeManager: UpgradeManager;
     private achievementManager: AchievementManager;
+    private gameModeManager: GameModeManager;
 
     // レベルアップ計算用定数
     private static readonly BASE_EXP_REQUIREMENT = 100;
@@ -49,6 +52,9 @@ export class ProgressManager extends ScoreManager {
             }
         );
         
+        // ゲームモードマネージャー初期化
+        this.gameModeManager = new GameModeManager(eventEmitter, this.profile);
+        
         // セッション初期化
         this.sessionStartTime = Date.now();
         this.currentSession = this.initializeSession();
@@ -74,12 +80,20 @@ export class ProgressManager extends ScoreManager {
     private updateProgression(points: number): void {
         const prevLevel = this.profile.level;
         
-        // コイン獲得計算
-        const coinsEarned = Math.floor(points * ProgressManager.SCORE_TO_COINS_RATIO);
+        // ゲームモード報酬の適用
+        const baseReward = {
+            coins: Math.floor(points * ProgressManager.SCORE_TO_COINS_RATIO),
+            experience: Math.floor(points * 0.05)
+        };
+        
+        const modifiedReward = this.gameModeManager.calculateReward(baseReward);
+        
+        // コイン獲得計算（ゲームモード修正後）
+        const coinsEarned = modifiedReward.coins || 0;
         this.profile.coins += coinsEarned;
         
-        // 経験値獲得計算
-        const experienceEarned = Math.floor(points * 0.05); // スコア * 0.05 = 経験値
+        // 経験値獲得計算（ゲームモード修正後）
+        const experienceEarned = modifiedReward.experience || 0;
         this.profile.experience += experienceEarned;
         
         // セッション統計の更新
@@ -168,9 +182,11 @@ export class ProgressManager extends ScoreManager {
             case 'bossesDefeated':
                 this.currentSession.bossesDefeated += value;
                 this.profile.stats.bossesDefeated += value;
-                // ボス撃破ボーナス
-                this.profile.coins += ProgressManager.BOSS_BONUS_COINS;
-                this.eventEmitter.emit('coinsEarned', ProgressManager.BOSS_BONUS_COINS, this.profile.coins);
+                // ボス撃破ボーナス（ゲームモード修正適用）
+                const bossBonus = this.gameModeManager.calculateReward({ coins: ProgressManager.BOSS_BONUS_COINS });
+                const bonusCoins = bossBonus.coins || 0;
+                this.profile.coins += bonusCoins;
+                this.eventEmitter.emit('coinsEarned', bonusCoins, this.profile.coins);
                 break;
             case 'powerupsCollected':
                 this.currentSession.powerupsCollected += value;
@@ -191,10 +207,12 @@ export class ProgressManager extends ScoreManager {
             case 'waveReached':
                 this.currentSession.waveReached = Math.max(this.currentSession.waveReached, value);
                 this.profile.stats.maxWaveReached = Math.max(this.profile.stats.maxWaveReached, value);
-                // ウェーブクリアボーナス
+                // ウェーブクリアボーナス（ゲームモード修正適用）
                 if (value > 1) {
-                    this.profile.coins += ProgressManager.WAVE_BONUS_COINS;
-                    this.eventEmitter.emit('coinsEarned', ProgressManager.WAVE_BONUS_COINS, this.profile.coins);
+                    const waveBonus = this.gameModeManager.calculateReward({ coins: ProgressManager.WAVE_BONUS_COINS });
+                    const bonusCoins = waveBonus.coins || 0;
+                    this.profile.coins += bonusCoins;
+                    this.eventEmitter.emit('coinsEarned', bonusCoins, this.profile.coins);
                 }
                 break;
         }
@@ -227,6 +245,9 @@ export class ProgressManager extends ScoreManager {
         if (this.getScore() > this.profile.highScore) {
             this.profile.highScore = this.getScore();
         }
+        
+        // ゲームモード統計を記録
+        this.gameModeManager.recordGameCompletion(this.getScore());
         
         // アチーブメント判定を実行
         const unlockedAchievements = this.achievementManager.checkAchievements(this.currentSession);
@@ -413,6 +434,57 @@ export class ProgressManager extends ScoreManager {
         return this.achievementManager.getCompletionPercentage();
     }
 
+    // ゲームモード関連メソッド
+    
+    /**
+     * GameModeManagerのインスタンスを取得
+     */
+    getGameModeManager(): GameModeManager {
+        return this.gameModeManager;
+    }
+
+    /**
+     * 現在のゲームモードを取得
+     */
+    getCurrentGameMode(): GameMode {
+        return this.gameModeManager.getCurrentGameMode();
+    }
+
+    /**
+     * 現在のゲームモード修正子を取得
+     */
+    getCurrentGameModeModifiers(): GameModeModifiers {
+        return this.gameModeManager.getCurrentModifiers();
+    }
+
+    /**
+     * ゲームモードを選択
+     */
+    selectGameMode(modeId: string): boolean {
+        return this.gameModeManager.selectGameMode(modeId);
+    }
+
+    /**
+     * 利用可能なゲームモードを取得
+     */
+    getAvailableGameModes(): GameMode[] {
+        return this.gameModeManager.getUnlockedGameModes();
+    }
+
+    /**
+     * ゲームモード統計を取得
+     */
+    getGameModeStats() {
+        return this.gameModeManager.getGameModeStats();
+    }
+
+    /**
+     * ゲームモードのアンロック状況を取得
+     */
+    getGameModeUnlockStatuses() {
+        return this.gameModeManager.getGameModeUnlockStatuses();
+    }
+
     /**
      * プロファイル保存時に各Managerも同期
      */
@@ -421,6 +493,7 @@ export class ProgressManager extends ScoreManager {
         // 各Managerのプロファイルも更新
         this.upgradeManager.updateProfile(this.profile);
         this.achievementManager.updateProfile(this.profile);
+        this.gameModeManager.updatePlayerProfile(this.profile);
     }
 
     /**
@@ -433,8 +506,9 @@ export class ProgressManager extends ScoreManager {
         const levelUpBonus = newLevel * 100;
         this.profile.coins += levelUpBonus;
         
-        // UpgradeManagerにプロファイル変更を通知
+        // 各Managerにプロファイル変更を通知
         this.upgradeManager.updateProfile(this.profile);
+        this.gameModeManager.updatePlayerProfile(this.profile);
         
         // イベント発行
         this.eventEmitter.emit('playerLevelUp', newLevel, levelUpBonus);

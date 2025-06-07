@@ -5,6 +5,7 @@ import { GameStateKey } from "../managers/GameStateManager";
 import { WaveConfig } from "../types";
 import { GameCommandMap } from "./GameCommands";
 import type { Achievement } from "../progression/types/Achievement";
+import type { GameMode } from "../progression/types/GameMode";
 
 // Event type constants
 export const EventType = {
@@ -46,4 +47,9 @@ export type EventMap = Readonly<{
     'achievementProgress': (achievementId: string, current: number, required: number) => void;
     'upgradeApplied': (upgradeId: string, newLevel: number) => void;
     'profileUpdated': () => void;
+    
+    // ゲームモードシステムイベント
+    'gameModeChanged': (newMode: GameMode, previousMode: GameMode) => void;
+    'gameModeUnlocked': (gameMode: GameMode) => void;
+    'gameModeHighScore': (gameMode: GameMode, score: number) => void;
 }> & GameCommandMap;
