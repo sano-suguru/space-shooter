@@ -4,6 +4,8 @@ import { EventMap } from '../../events/EventType';
 import { PlayerProfile, GameSession } from '../types/PlayerProfile';
 import { PersistenceManager } from './PersistenceManager';
 import { UpgradeManager } from './UpgradeManager';
+import { AchievementManager } from './AchievementManager';
+import type { Achievement } from '../types/Achievement';
 
 /**
  * プログレッションシステムの中核を管理するクラス
@@ -14,6 +16,7 @@ export class ProgressManager extends ScoreManager {
     private currentSession: GameSession;
     private sessionStartTime: number;
     private upgradeManager: UpgradeManager;
+    private achievementManager: AchievementManager;
 
     // レベルアップ計算用定数
     private static readonly BASE_EXP_REQUIREMENT = 100;
@@ -32,6 +35,19 @@ export class ProgressManager extends ScoreManager {
         
         // アップグレードマネージャー初期化
         this.upgradeManager = new UpgradeManager(eventEmitter, this.profile);
+        
+        // アチーブメントマネージャー初期化
+        this.achievementManager = new AchievementManager(
+            this.profile,
+            (updatedProfile) => {
+                this.profile = updatedProfile;
+                this.saveProfile();
+            },
+            (achievement) => {
+                this.eventEmitter.emit('achievementUnlocked', achievement);
+                console.log(`🏆 アチーブメント達成: ${achievement.name}`);
+            }
+        );
         
         // セッション初期化
         this.sessionStartTime = Date.now();
@@ -212,8 +228,19 @@ export class ProgressManager extends ScoreManager {
             this.profile.highScore = this.getScore();
         }
         
+        // アチーブメント判定を実行
+        const unlockedAchievements = this.achievementManager.checkAchievements(this.currentSession);
+        
         // プロファイル保存
         this.saveProfile();
+        
+        // アチーブメント解除通知
+        if (unlockedAchievements.length > 0) {
+            console.log(`🎉 ${unlockedAchievements.length}個のアチーブメントが解除されました！`);
+            unlockedAchievements.forEach(result => {
+                console.log(`  - ${result.achievement.name}: +${result.achievement.reward.coins}コイン, +${result.achievement.reward.experience}経験値`);
+            });
+        }
         
         // イベント発行
         this.eventEmitter.emit('profileUpdated');
@@ -342,13 +369,58 @@ export class ProgressManager extends ScoreManager {
         return this.upgradeManager.getTotalEffect();
     }
 
+    // アチーブメント関連メソッド
+    
     /**
-     * プロファイル保存時にUpgradeManagerも同期
+     * AchievementManagerのインスタンスを取得
+     */
+    getAchievementManager(): AchievementManager {
+        return this.achievementManager;
+    }
+
+    /**
+     * アチーブメント統計情報を取得
+     */
+    getAchievementStats() {
+        return this.achievementManager.getAchievementStats();
+    }
+
+    /**
+     * 次の目標アチーブメントを取得
+     */
+    getNextTargetAchievement() {
+        return this.achievementManager.getNextTargetAchievement();
+    }
+
+    /**
+     * アチーブメント進捗情報を取得
+     */
+    getAchievementProgress(achievementId: string) {
+        return this.achievementManager.getAchievementProgress(achievementId);
+    }
+
+    /**
+     * 最近達成されたアチーブメントを取得
+     */
+    getRecentAchievements() {
+        return this.achievementManager.getRecentAchievements();
+    }
+
+    /**
+     * アチーブメント完了率を取得
+     */
+    getAchievementCompletionPercentage(): number {
+        return this.achievementManager.getCompletionPercentage();
+    }
+
+    /**
+     * プロファイル保存時に各Managerも同期
      */
     private saveProfile(): void {
         PersistenceManager.saveProfile(this.profile);
-        // UpgradeManagerのプロファイルも更新
+        // 各Managerのプロファイルも更新
         this.upgradeManager.updateProfile(this.profile);
+        this.achievementManager.updateProfile(this.profile);
     }
 
     /**
