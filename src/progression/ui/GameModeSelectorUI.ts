@@ -526,12 +526,20 @@ export class GameModeSelectorUI {
 
     private async renderReactComponent(): Promise<void> {
         try {
+            // 専用のlazy loaderを使用して動的インポート競合を回避
             const [
-                { GameModeSelector: GameModeSelectorComponent },
-                { createRoot }
+                { loadReactDependencies, loadGameModeSelector }
             ] = await Promise.all([
-                import('../../components/ui/GameModeSelector.js'),
-                import('react-dom/client')
+                import('../../components/ui/lazy/index.js'),
+                import('../../components/ui/lazy/index.js')
+            ]);
+
+            const [
+                { createElement, createRoot },
+                GameModeSelectorComponent
+            ] = await Promise.all([
+                loadReactDependencies(),
+                loadGameModeSelector()
             ]);
 
             if (!this.reactRoot) {
@@ -557,7 +565,6 @@ export class GameModeSelectorUI {
                 }
             };
 
-            const { createElement } = await import('react');
             this.reactRoot.render(createElement(GameModeSelectorComponent, props));
         } catch (error) {
             console.warn('React GameModeSelector loading failed, falling back to DOMBuilder:', error);

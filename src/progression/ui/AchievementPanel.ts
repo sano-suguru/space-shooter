@@ -42,13 +42,20 @@ export class AchievementPanel {
 
     private async renderReactComponent(): Promise<void> {
         try {
-            // 動的インポートでReactコンポーネントとReactDOMを読み込み
+            // 専用のlazy loaderを使用して動的インポート競合を回避
             const [
-                { AchievementPanel: AchievementPanelComponent },
-                { createRoot }
+                { loadReactDependencies, loadAchievementPanel }
             ] = await Promise.all([
-                import('../../components/ui/AchievementPanel.js'),
-                import('react-dom/client')
+                import('../../components/ui/lazy/index.js'),
+                import('../../components/ui/lazy/index.js')
+            ]);
+
+            const [
+                { createElement, createRoot },
+                AchievementPanelComponent
+            ] = await Promise.all([
+                loadReactDependencies(),
+                loadAchievementPanel()
             ]);
 
             // React Rootが未作成の場合は作成
@@ -71,7 +78,6 @@ export class AchievementPanel {
             };
 
             // Reactコンポーネントをレンダリング
-            const { createElement } = await import('react');
             this.reactRoot.render(createElement(AchievementPanelComponent, props));
 
         } catch (error) {

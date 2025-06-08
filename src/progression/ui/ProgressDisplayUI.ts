@@ -34,12 +34,20 @@ export class ProgressDisplayUI {
 
     private async renderReactComponent(): Promise<void> {
         try {
+            // 専用のlazy loaderを使用して動的インポート競合を回避
             const [
-                { ProgressDisplay: ProgressDisplayComponent },
-                { createRoot }
+                { loadReactDependencies, loadProgressDisplay }
             ] = await Promise.all([
-                import('../../components/ui/ProgressDisplay.js'),
-                import('react-dom/client')
+                import('../../components/ui/lazy/index.js'),
+                import('../../components/ui/lazy/index.js')
+            ]);
+
+            const [
+                { createElement, createRoot },
+                ProgressDisplayComponent
+            ] = await Promise.all([
+                loadReactDependencies(),
+                loadProgressDisplay()
             ]);
 
             // 既存のReactルートを破棄
@@ -59,7 +67,6 @@ export class ProgressDisplayUI {
                 }
             };
 
-            const { createElement } = await import('react');
             this.reactRoot.render(createElement(ProgressDisplayComponent, props));
         } catch (error) {
             console.warn('React ProgressDisplay loading failed, falling back to DOMBuilder:', error);
