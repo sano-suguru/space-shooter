@@ -46,7 +46,69 @@ export interface FormElementProps extends BaseComponentProps {
 // ====================
 
 /**
- * アップグレード関連コンポーネントProps
+ * アップグレードカテゴリー型
+ */
+export type UpgradeCategory = 'weapon' | 'defense' | 'utility';
+
+/**
+ * アップグレードショップProps
+ */
+export interface UpgradeShopProps extends BaseComponentProps {
+  isVisible: boolean;
+  playerProfile: PlayerProfile;
+  availableUpgrades: UpgradeConfig[];
+  onClose: () => void;
+  onPurchase: (upgradeId: string) => Promise<boolean>;
+  onCategoryChange?: (category: UpgradeCategory) => void;
+}
+
+/**
+ * アップグレードアイテムProps
+ */
+export interface UpgradeItemProps extends BaseComponentProps {
+  upgrade: UpgradeConfig;
+  currentLevel: number;
+  playerProfile: PlayerProfile;
+  onPurchase: (upgradeId: string) => void;
+  disabled?: boolean;
+}
+
+/**
+ * プレイヤー統計Props
+ */
+export interface PlayerStatsProps extends BaseComponentProps {
+  profile: PlayerProfile;
+  showLevel?: boolean;
+  showExperience?: boolean;
+  showCoins?: boolean;
+}
+
+/**
+ * カテゴリータブProps
+ */
+export interface CategoryTabsProps extends BaseComponentProps {
+  currentCategory: UpgradeCategory;
+  onCategoryChange: (category: UpgradeCategory) => void;
+  categories: Array<{
+    id: UpgradeCategory;
+    name: string;
+    icon: string;
+  }>;
+}
+
+/**
+ * プログレスバーProps
+ */
+export interface ProgressBarProps extends BaseComponentProps {
+  current: number;
+  max: number;
+  label?: string;
+  color?: string;
+  showPercentage?: boolean;
+}
+
+/**
+ * アップグレード関連コンポーネントProps（旧型、互換性維持）
  */
 export interface UpgradeComponentProps extends BaseComponentProps {
   upgrades: UpgradeConfig[];

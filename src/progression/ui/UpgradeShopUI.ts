@@ -6,6 +6,10 @@ import { EventEmitter } from '../../events/EventEmitter.js';
 import { EventMap } from '../../events/EventType.js';
 import { DOMBuilder, DOM } from '../../utils/DOMBuilder.js';
 
+// React関連のインポート（動的インポート）
+declare const React: any;
+declare const ReactDOM: any;
+
 type UpgradeCategory = 'weapon' | 'defense' | 'utility';
 
 export class UpgradeShopUI {
@@ -13,6 +17,10 @@ export class UpgradeShopUI {
     private upgradeListElement: HTMLElement | null = null;
     private currentCategory: UpgradeCategory = 'weapon';
     private playerStatsElement: HTMLElement | null = null;
+    
+    // React統合フラグ
+    private useReact: boolean = true; // デフォルトでReactを使用
+    private reactRoot: any = null;
 
     constructor(
         private domManager: IDOMManager,
@@ -375,13 +383,90 @@ export class UpgradeShopUI {
         }, 2000);
     }
 
+    // React統合メソッド
+    private async renderReactComponent(): Promise<void> {
+        try {
+            // 動的インポートでReactコンポーネントを読み込み
+            const { UpgradeShop } = await import('../../components/ui/index.js');
+            const { createRoot } = await import('react-dom/client');
+            const React = await import('react');
+
+            // React用のコンテナを作成
+            if (!this.reactRoot) {
+                const reactContainer = document.createElement('div');
+                reactContainer.id = 'upgrade-shop-react';
+                reactContainer.className = 'upgrade-shop-react';
+                
+                // 既存のコンテナと置き換え
+                this.container.parentNode?.insertBefore(reactContainer, this.container);
+                this.container.style.display = 'none'; // DOMBuilder版を非表示
+                
+                this.reactRoot = createRoot(reactContainer);
+            }
+
+            // Reactコンポーネントをレンダリング
+            const upgradeShopProps = {
+                isVisible: this.isVisible(),
+                playerProfile: this.progressManager.getProfile(),
+                availableUpgrades: this.upgradeManager.getAvailableUpgrades(),
+                onClose: () => this.hide(),
+                onPurchase: async (upgradeId: string): Promise<boolean> => {
+                    try {
+                        const result = this.upgradeManager.purchaseUpgrade(upgradeId);
+                        const success = typeof result === 'boolean' ? result : result.success;
+                        
+                        if (success) {
+                            this.showPurchaseSuccess();
+                        } else {
+                            this.showPurchaseError();
+                        }
+                        return success;
+                    } catch (error) {
+                        console.error('Purchase failed:', error);
+                        this.showPurchaseError();
+                        return false;
+                    }
+                },
+                onCategoryChange: (category: any) => {
+                    this.currentCategory = category;
+                }
+            };
+
+            this.reactRoot.render(React.createElement(UpgradeShop, upgradeShopProps));
+        } catch (error) {
+            console.warn('React rendering failed, falling back to DOMBuilder:', error);
+            this.useReact = false;
+            this.renderWithDOMBuilder();
+        }
+    }
+
+    private renderWithDOMBuilder(): void {
+        if (this.container.style.display === 'none') {
+            this.container.style.display = '';
+        }
+        this.updateDisplay();
+    }
+
     public show(): void {
         this.container.classList.remove('hidden');
-        this.updateDisplay();
+        
+        if (this.useReact) {
+            this.renderReactComponent();
+        } else {
+            this.renderWithDOMBuilder();
+        }
     }
 
     public hide(): void {
         this.container.classList.add('hidden');
+        
+        // React版も非表示にする
+        if (this.reactRoot) {
+            const reactContainer = document.getElementById('upgrade-shop-react');
+            if (reactContainer) {
+                reactContainer.classList.add('hidden');
+            }
+        }
     }
 
     public toggle(): void {

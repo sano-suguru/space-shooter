@@ -5,9 +5,18 @@
 
 export { Button, type ButtonProps } from './Button';
 export { Card, type CardProps } from './Card';
+export { ProgressBar } from './ProgressBar';
+export { PlayerStats } from './PlayerStats';
+export { CategoryTabs } from './CategoryTabs';
+export { UpgradeItem } from './UpgradeItem';
+export { UpgradeShop } from './UpgradeShop';
 
-// 将来的に追加予定のコンポーネント
-// export { Modal, type ModalProps } from './Modal';
-// export { Badge, type BadgeProps } from './Badge';
-// export { ProgressBar, type ProgressBarProps } from './ProgressBar';
-// export { Tooltip, type TooltipProps } from './Tooltip';
+// 型定義のエクスポート
+export type {
+  ProgressBarProps,
+  PlayerStatsProps,
+  CategoryTabsProps,
+  UpgradeItemProps,
+  UpgradeShopProps,
+  UpgradeCategory
+} from '../../types/react/index';
