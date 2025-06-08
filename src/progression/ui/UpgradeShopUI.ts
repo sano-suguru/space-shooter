@@ -4,6 +4,7 @@ import { ProgressManager } from '../managers/ProgressManager.js';
 import { UpgradeConfig } from '../types/Upgrade.js';
 import { EventEmitter } from '../../events/EventEmitter.js';
 import { EventMap } from '../../events/EventType.js';
+import { DOMBuilder, DOM } from '../../utils/DOMBuilder.js';
 
 type UpgradeCategory = 'weapon' | 'defense' | 'utility';
 
@@ -25,34 +26,95 @@ export class UpgradeShopUI {
     }
 
     private createShopUI(): HTMLElement {
-        const shop = this.domManager.createElement('div');
-        shop.id = 'upgrade-shop';
-        shop.className = 'upgrade-shop hidden';
+        const shop = DOMBuilder.createElement({
+            tag: 'div',
+            id: 'upgrade-shop',
+            className: 'upgrade-shop hidden'
+        });
 
-        shop.innerHTML = `
-            <div class="shop-header">
-                <div class="shop-title">
-                    <h2>🛠️ アップグレードショップ</h2>
-                    <button class="close-button" id="close-shop">×</button>
-                </div>
-                <div class="player-stats" id="player-stats">
-                    <span class="coins">💰 0</span>
-                    <span class="level">Lv.1</span>
-                    <span class="xp">XP: 0/100</span>
-                </div>
-            </div>
-            <div class="shop-categories">
-                <button class="category-tab active" data-category="weapon">⚔️ 武器</button>
-                <button class="category-tab" data-category="defense">🛡️ 防御</button>
-                <button class="category-tab" data-category="utility">⚡ 特殊</button>
-            </div>
-            <div class="upgrade-list" id="upgrade-list"></div>
-        `;
+        // ショップヘッダー
+        const shopHeader = this.createShopHeader();
+        
+        // カテゴリータブ
+        const shopCategories = this.createCategoryTabs();
+        
+        // アップグレードリスト
+        this.upgradeListElement = DOMBuilder.createElement({
+            tag: 'div',
+            className: 'upgrade-list',
+            id: 'upgrade-list'
+        });
 
-        this.upgradeListElement = shop.querySelector('#upgrade-list') as HTMLElement;
-        this.playerStatsElement = shop.querySelector('#player-stats') as HTMLElement;
+        shop.appendChild(shopHeader);
+        shop.appendChild(shopCategories);
+        shop.appendChild(this.upgradeListElement);
 
         return shop;
+    }
+
+    private createShopHeader(): HTMLElement {
+        const closeButton = DOMBuilder.createElement({
+            tag: 'button',
+            className: 'close-button',
+            id: 'close-shop',
+            textContent: '×'
+        });
+
+        const shopTitle = DOMBuilder.createElement({
+            tag: 'div',
+            className: 'shop-title',
+            children: [
+                DOM.h2('🛠️ アップグレードショップ'),
+                closeButton
+            ]
+        });
+
+        // プレイヤー統計情報の初期表示
+        this.playerStatsElement = DOMBuilder.createElement({
+            tag: 'div',
+            className: 'player-stats',
+            id: 'player-stats',
+            children: [
+                DOM.span('coins', '💰 0'),
+                DOM.span('level', 'Lv.1'),
+                DOM.span('xp', 'XP: 0/100')
+            ]
+        });
+
+        return DOMBuilder.createElement({
+            tag: 'div',
+            className: 'shop-header',
+            children: [shopTitle, this.playerStatsElement]
+        });
+    }
+
+    private createCategoryTabs(): HTMLElement {
+        const weaponTab = DOMBuilder.createElement({
+            tag: 'button',
+            className: 'category-tab active',
+            textContent: '⚔️ 武器',
+            attributes: { 'data-category': 'weapon' }
+        });
+
+        const defenseTab = DOMBuilder.createElement({
+            tag: 'button',
+            className: 'category-tab',
+            textContent: '🛡️ 防御',
+            attributes: { 'data-category': 'defense' }
+        });
+
+        const utilityTab = DOMBuilder.createElement({
+            tag: 'button',
+            className: 'category-tab',
+            textContent: '⚡ 特殊',
+            attributes: { 'data-category': 'utility' }
+        });
+
+        return DOMBuilder.createElement({
+            tag: 'div',
+            className: 'shop-categories',
+            children: [weaponTab, defenseTab, utilityTab]
+        });
     }
 
     private setupEventListeners(): void {
@@ -111,11 +173,17 @@ export class UpgradeShopUI {
         const profile = this.progressManager.getProfile();
         
         if (this.playerStatsElement) {
-            this.playerStatsElement.innerHTML = `
-                <span class="coins">💰 ${profile.coins}</span>
-                <span class="level">Lv.${profile.level}</span>
-                <span class="xp">XP: ${profile.experience}</span>
-            `;
+            // 既存の子要素をクリア
+            this.playerStatsElement.innerHTML = '';
+            
+            // 安全なDOM構築で統計情報を再作成
+            const coinsSpan = DOM.span('coins', `💰 ${profile.coins}`);
+            const levelSpan = DOM.span('level', `Lv.${profile.level}`);
+            const xpSpan = DOM.span('xp', `XP: ${profile.experience}`);
+            
+            this.playerStatsElement.appendChild(coinsSpan);
+            this.playerStatsElement.appendChild(levelSpan);
+            this.playerStatsElement.appendChild(xpSpan);
         }
     }
 
@@ -128,11 +196,14 @@ export class UpgradeShopUI {
         this.upgradeListElement.innerHTML = '';
 
         if (availableUpgrades.length === 0) {
-            this.upgradeListElement.innerHTML = `
-                <div class="no-upgrades">
-                    <p>このカテゴリーには利用可能なアップグレードがありません</p>
-                </div>
-            `;
+            const noUpgradesDiv = DOMBuilder.createElement({
+                tag: 'div',
+                className: 'no-upgrades',
+                children: [
+                    DOM.p('このカテゴリーには利用可能なアップグレードがありません')
+                ]
+            });
+            this.upgradeListElement.appendChild(noUpgradesDiv);
             return;
         }
 
@@ -149,52 +220,107 @@ export class UpgradeShopUI {
         const canAfford = profile.coins >= currentCost;
         const isMaxLevel = currentLevel >= upgrade.maxLevel;
 
-        const upgradeDiv = this.domManager.createElement('div');
-        upgradeDiv.className = `upgrade-item ${!canAfford || isMaxLevel ? 'disabled' : ''}`;
+        // アップグレード情報セクション
+        const upgradeInfo = this.createUpgradeInfo(upgrade, currentLevel);
+        
+        // アップグレード統計セクション  
+        const upgradeStats = this.createUpgradeStats(currentLevel, upgrade.maxLevel);
+        
+        // アップグレードヘッダー
+        const upgradeHeader = DOMBuilder.createElement({
+            tag: 'div',
+            className: 'upgrade-header',
+            children: [upgradeInfo, upgradeStats]
+        });
 
-        const progressBar = this.createProgressBar(currentLevel, upgrade.maxLevel);
-        const effectText = this.getEffectText(upgrade, currentLevel);
+        // アップグレードフッター
+        const upgradeFooter = this.createUpgradeFooter(upgrade.id, currentCost, canAfford, isMaxLevel);
 
-        upgradeDiv.innerHTML = `
-            <div class="upgrade-header">
-                <div class="upgrade-info">
-                    <h3 class="upgrade-name">${upgrade.name}</h3>
-                    <p class="upgrade-description">${upgrade.description}</p>
-                    <div class="upgrade-effect">${effectText}</div>
-                </div>
-                <div class="upgrade-stats">
-                    <div class="upgrade-level">Lv.${currentLevel}/${upgrade.maxLevel}</div>
-                    ${progressBar}
-                </div>
-            </div>
-            <div class="upgrade-footer">
-                <div class="upgrade-cost">💰 ${currentCost}</div>
-                <button class="purchase-button ${!canAfford || isMaxLevel ? 'disabled' : ''}" 
-                        data-upgrade-id="${upgrade.id}"
-                        ${!canAfford || isMaxLevel ? 'disabled' : ''}>
-                    ${isMaxLevel ? '最大レベル' : '購入'}
-                </button>
-            </div>
-        `;
-
-        // 購入ボタンのイベントリスナー
-        const purchaseButton = upgradeDiv.querySelector('.purchase-button') as HTMLButtonElement;
-        if (!purchaseButton.disabled) {
-            purchaseButton.addEventListener('click', () => {
-                this.purchaseUpgrade(upgrade.id);
-            });
-        }
+        const upgradeDiv = DOMBuilder.createElement({
+            tag: 'div',
+            className: `upgrade-item ${!canAfford || isMaxLevel ? 'disabled' : ''}`,
+            children: [upgradeHeader, upgradeFooter]
+        });
 
         return upgradeDiv;
     }
 
-    private createProgressBar(current: number, max: number): string {
+    private createUpgradeInfo(upgrade: UpgradeConfig, currentLevel: number): HTMLElement {
+        const effectText = this.getEffectText(upgrade, currentLevel);
+        
+        return DOMBuilder.createElement({
+            tag: 'div',
+            className: 'upgrade-info',
+            children: [
+                DOM.h3(upgrade.name, 'upgrade-name'),
+                DOM.p(upgrade.description, 'upgrade-description'),
+                DOMBuilder.createElement({
+                    tag: 'div',
+                    className: 'upgrade-effect',
+                    textContent: effectText
+                })
+            ]
+        });
+    }
+
+    private createUpgradeStats(currentLevel: number, maxLevel: number): HTMLElement {
+        const progressBar = this.createProgressBar(currentLevel, maxLevel);
+        
+        return DOMBuilder.createElement({
+            tag: 'div',
+            className: 'upgrade-stats',
+            children: [
+                DOMBuilder.createElement({
+                    tag: 'div',
+                    className: 'upgrade-level',
+                    textContent: `Lv.${currentLevel}/${maxLevel}`
+                }),
+                progressBar
+            ]
+        });
+    }
+
+    private createUpgradeFooter(upgradeId: string, cost: number, canAfford: boolean, isMaxLevel: boolean): HTMLElement {
+        const costDiv = DOMBuilder.createElement({
+            tag: 'div',
+            className: 'upgrade-cost',
+            textContent: `💰 ${cost}`
+        });
+
+        const purchaseButton = DOMBuilder.createElement({
+            tag: 'button',
+            className: `purchase-button ${!canAfford || isMaxLevel ? 'disabled' : ''}`,
+            textContent: isMaxLevel ? '最大レベル' : '購入',
+            attributes: { 
+                'data-upgrade-id': upgradeId,
+                ...((!canAfford || isMaxLevel) && { 'disabled': 'true' })
+            },
+            onClick: !canAfford || isMaxLevel ? undefined : () => {
+                this.purchaseUpgrade(upgradeId);
+            }
+        });
+
+        return DOMBuilder.createElement({
+            tag: 'div',
+            className: 'upgrade-footer',
+            children: [costDiv, purchaseButton]
+        });
+    }
+
+    private createProgressBar(current: number, max: number): HTMLElement {
         const percentage = (current / max) * 100;
-        return `
-            <div class="progress-bar">
-                <div class="progress-fill" style="width: ${percentage}%"></div>
-            </div>
-        `;
+        
+        const progressFill = DOMBuilder.createElement({
+            tag: 'div',
+            className: 'progress-fill',
+            attributes: { style: `width: ${percentage}%` }
+        });
+        
+        return DOMBuilder.createElement({
+            tag: 'div',
+            className: 'progress-bar',
+            children: [progressFill]
+        });
     }
 
     private calculateUpgradeCost(upgrade: UpgradeConfig, currentLevel: number): number {
@@ -204,7 +330,6 @@ export class UpgradeShopUI {
     private getEffectText(upgrade: UpgradeConfig, currentLevel: number): string {
         const nextLevel = currentLevel + 1;
         if (nextLevel > upgrade.maxLevel) {
-            const currentEffect = upgrade.effect(currentLevel);
             return `現在の効果: 適用済み`;
         }
         

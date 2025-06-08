@@ -12,6 +12,11 @@ import { InputManager, DOMManager, MessageManager } from './managers';
 import { ProgressManager } from './progression/managers/ProgressManager';
 import { PersistenceManager } from './progression/managers/PersistenceManager';
 
+// React関連のインポート
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import TestComponent from './components/common/TestComponent';
+
 function initGame(): void {
     const canvas = getElementOrThrow<HTMLCanvasElement>('gameCanvas');
     const eventEmitter = new EventEmitter();
@@ -56,4 +61,23 @@ function initGame(): void {
     game.start();
 }
 
-document.addEventListener('DOMContentLoaded', initGame);
+function initReact(): void {
+    // React環境テスト用コンポーネントのレンダリング
+    try {
+        const reactContainer = document.getElementById('react-test-container');
+        if (reactContainer) {
+            const root = createRoot(reactContainer);
+            root.render(React.createElement(TestComponent));
+            console.log('✅ React環境が正常に初期化されました');
+        }
+    } catch (error) {
+        console.error('❌ React初期化エラー:', error);
+    }
+}
+
+function initApplication(): void {
+    initGame();    // 既存のゲーム初期化
+    initReact();   // React環境初期化
+}
+
+document.addEventListener('DOMContentLoaded', initApplication);

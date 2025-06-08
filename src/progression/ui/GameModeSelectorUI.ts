@@ -4,6 +4,7 @@ import { ProgressManager } from '../managers/ProgressManager.js';
 import { GameMode } from '../types/GameMode.js';
 import { EventEmitter } from '../../events/EventEmitter.js';
 import { EventMap } from '../../events/EventType.js';
+import { DOMBuilder, DOM } from '../../utils/DOMBuilder.js';
 
 export class GameModeSelectorUI {
     private container: HTMLElement;
@@ -22,26 +23,59 @@ export class GameModeSelectorUI {
     }
 
     private createSelectorUI(): HTMLElement {
-        const selector = this.domManager.createElement('div');
-        selector.id = 'game-mode-selector';
-        selector.className = 'game-mode-selector hidden';
+        const selector = DOMBuilder.createElement({
+            tag: 'div',
+            id: 'game-mode-selector',
+            className: 'game-mode-selector hidden'
+        });
 
-        selector.innerHTML = `
-            <div class="selector-header">
-                <div class="selector-title">
-                    <h2>🎮 ゲームモード選択</h2>
-                    <button class="close-button" id="close-selector">×</button>
-                </div>
-                <div class="current-mode" id="current-mode">
-                    <span class="mode-label">現在のモード:</span>
-                    <span class="mode-name">Normal</span>
-                </div>
-            </div>
-            <div class="mode-list" id="mode-list"></div>
-        `;
+        // ヘッダーセクション
+        const selectorHeader = DOM.div('selector-header');
+        
+        // タイトルセクション
+        const selectorTitle = DOM.div('selector-title');
+        const titleH2 = DOM.h2('', '🎮 ゲームモード選択');
+        const closeButton = DOMBuilder.createElement({
+            tag: 'button',
+            className: 'close-button',
+            id: 'close-selector',
+            textContent: '×'
+        });
+        
+        selectorTitle.appendChild(titleH2);
+        selectorTitle.appendChild(closeButton);
 
-        this.modeListElement = selector.querySelector('#mode-list');
-        this.currentModeElement = selector.querySelector('#current-mode .mode-name');
+        // 現在のモードセクション
+        const currentMode = DOMBuilder.createElement({
+            tag: 'div',
+            className: 'current-mode',
+            id: 'current-mode'
+        });
+        
+        const modeLabel = DOM.span('mode-label', '現在のモード:');
+        const modeName = DOM.span('mode-name', 'Normal');
+        
+        currentMode.appendChild(modeLabel);
+        currentMode.appendChild(modeName);
+
+        // ヘッダーに要素を追加
+        selectorHeader.appendChild(selectorTitle);
+        selectorHeader.appendChild(currentMode);
+
+        // モードリスト
+        const modeList = DOMBuilder.createElement({
+            tag: 'div',
+            className: 'mode-list',
+            id: 'mode-list'
+        });
+
+        // セレクターに要素を追加
+        selector.appendChild(selectorHeader);
+        selector.appendChild(modeList);
+
+        // 参照を保存
+        this.modeListElement = modeList;
+        this.currentModeElement = modeName;
 
         return selector;
     }
@@ -105,48 +139,88 @@ export class GameModeSelectorUI {
         const isCurrent = mode.id === currentModeId;
         const stats = this.getIndividualModeStats(mode.id);
 
-        const modeDiv = this.domManager.createElement('div');
-        modeDiv.className = `mode-item ${isCurrent ? 'current' : ''} ${!isUnlocked ? 'locked' : ''}`;
-        modeDiv.setAttribute('data-mode-id', mode.id);
+        const modeDiv = DOMBuilder.createElement({
+            tag: 'div',
+            className: `mode-item ${isCurrent ? 'current' : ''} ${!isUnlocked ? 'locked' : ''}`,
+            attributes: { 'data-mode-id': mode.id }
+        });
 
         const difficultyIcon = this.getDifficultyIcon(mode.id);
-        const modifiersText = this.getModifiersText(mode);
 
-        modeDiv.innerHTML = `
-            <div class="mode-header">
-                <div class="mode-info">
-                    <div class="mode-title">
-                        <span class="mode-icon">${difficultyIcon}</span>
-                        <h3 class="mode-name">${mode.name}</h3>
-                        ${isCurrent ? '<span class="current-badge">選択中</span>' : ''}
-                        ${!isUnlocked ? '<span class="locked-badge">🔒</span>' : ''}
-                    </div>
-                    <p class="mode-description">${mode.description}</p>
-                </div>
-                <div class="mode-stats">
-                    <div class="stat-item">
-                        <span class="stat-label">プレイ回数</span>
-                        <span class="stat-value">${stats.gamesPlayed}</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">最高スコア</span>
-                        <span class="stat-value">${stats.highScore.toLocaleString()}</span>
-                    </div>
-                </div>
-            </div>
-            <div class="mode-details">
-                <div class="mode-modifiers">
-                    <h4>モード効果:</h4>
-                    ${modifiersText}
-                </div>
-                <div class="mode-reward">
-                    <span class="reward-multiplier">報酬倍率: ×${mode.rewardMultiplier}</span>
-                </div>
-            </div>
-            <div class="mode-footer">
-                ${this.createModeButton(mode, isUnlocked, isCurrent)}
-            </div>
-        `;
+        // Mode Header
+        const modeHeader = DOM.div('mode-header');
+        
+        // Mode Info Section
+        const modeInfo = DOM.div('mode-info');
+        
+        const modeTitle = DOM.div('mode-title');
+        const modeIcon = DOM.span('mode-icon', difficultyIcon);
+        const modeName = DOM.h3('mode-name', mode.name);
+        
+        modeTitle.appendChild(modeIcon);
+        modeTitle.appendChild(modeName);
+        
+        if (isCurrent) {
+            const currentBadge = DOM.span('current-badge', '選択中');
+            modeTitle.appendChild(currentBadge);
+        }
+        
+        if (!isUnlocked) {
+            const lockedBadge = DOM.span('locked-badge', '🔒');
+            modeTitle.appendChild(lockedBadge);
+        }
+
+        const modeDescription = DOM.p('mode-description', mode.description);
+        
+        modeInfo.appendChild(modeTitle);
+        modeInfo.appendChild(modeDescription);
+
+        // Mode Stats Section
+        const modeStats = DOM.div('mode-stats');
+        
+        const gamesPlayedStat = DOM.div('stat-item');
+        gamesPlayedStat.appendChild(DOM.span('stat-label', 'プレイ回数'));
+        gamesPlayedStat.appendChild(DOM.span('stat-value', stats.gamesPlayed.toString()));
+        
+        const highScoreStat = DOM.div('stat-item');
+        highScoreStat.appendChild(DOM.span('stat-label', '最高スコア'));
+        highScoreStat.appendChild(DOM.span('stat-value', stats.highScore.toLocaleString()));
+        
+        modeStats.appendChild(gamesPlayedStat);
+        modeStats.appendChild(highScoreStat);
+
+        modeHeader.appendChild(modeInfo);
+        modeHeader.appendChild(modeStats);
+
+        // Mode Details Section
+        const modeDetails = DOM.div('mode-details');
+        
+        const modeModifiers = DOM.div('mode-modifiers');
+        const modifiersTitle = DOMBuilder.createElement({
+            tag: 'h4',
+            textContent: 'モード効果:'
+        });
+        modeModifiers.appendChild(modifiersTitle);
+        
+        const modifiersElement = this.createModifiersElement(mode);
+        modeModifiers.appendChild(modifiersElement);
+        
+        const modeReward = DOM.div('mode-reward');
+        const rewardMultiplier = DOM.span('reward-multiplier', `報酬倍率: ×${mode.rewardMultiplier}`);
+        modeReward.appendChild(rewardMultiplier);
+        
+        modeDetails.appendChild(modeModifiers);
+        modeDetails.appendChild(modeReward);
+
+        // Mode Footer Section
+        const modeFooter = DOM.div('mode-footer');
+        const buttonElement = this.createModeButtonElement(mode, isUnlocked, isCurrent);
+        modeFooter.appendChild(buttonElement);
+
+        // Assemble the complete element
+        modeDiv.appendChild(modeHeader);
+        modeDiv.appendChild(modeDetails);
+        modeDiv.appendChild(modeFooter);
 
         return modeDiv;
     }
@@ -168,6 +242,88 @@ export class GameModeSelectorUI {
             case 'survival': return '🟡';
             default: return '❓';
         }
+    }
+
+    private createModifiersElement(mode: GameMode): HTMLElement {
+        const modifiers = [];
+
+        if (mode.modifiers.enemyHealthMultiplier !== 1) {
+            const percentage = Math.round(mode.modifiers.enemyHealthMultiplier * 100);
+            modifiers.push(`敵体力: ${percentage}%`);
+        }
+
+        if (mode.modifiers.enemySpeedMultiplier !== 1) {
+            const percentage = Math.round(mode.modifiers.enemySpeedMultiplier * 100);
+            modifiers.push(`敵速度: ${percentage}%`);
+        }
+
+        if (mode.modifiers.enemySpawnRateMultiplier !== 1) {
+            const percentage = Math.round(mode.modifiers.enemySpawnRateMultiplier * 100);
+            modifiers.push(`敵出現率: ${percentage}%`);
+        }
+
+        if (mode.modifiers.scoreMultiplier !== 1) {
+            const percentage = Math.round(mode.modifiers.scoreMultiplier * 100);
+            modifiers.push(`スコア: ${percentage}%`);
+        }
+
+        if (mode.modifiers.coinMultiplier !== 1) {
+            const percentage = Math.round(mode.modifiers.coinMultiplier * 100);
+            modifiers.push(`コイン: ${percentage}%`);
+        }
+
+        if (mode.modifiers.experienceMultiplier !== 1) {
+            const percentage = Math.round(mode.modifiers.experienceMultiplier * 100);
+            modifiers.push(`経験値: ${percentage}%`);
+        }
+
+        if (modifiers.length > 0) {
+            const ul = DOMBuilder.createElement({ tag: 'ul' });
+            modifiers.forEach(mod => {
+                const li = DOMBuilder.createElement({ tag: 'li', textContent: mod });
+                ul.appendChild(li);
+            });
+            return ul;
+        } else {
+            return DOM.p('', '標準設定');
+        }
+    }
+
+    private createModeButtonElement(mode: GameMode, isUnlocked: boolean, isCurrent: boolean): HTMLElement {
+        if (!isUnlocked) {
+            const profile = this.progressManager.getProfile();
+            const canUnlock = mode.unlockCondition(profile);
+
+            if (canUnlock) {
+                return DOMBuilder.createElement({
+                    tag: 'button',
+                    className: 'unlock-button',
+                    textContent: '解除する',
+                    attributes: { 'data-mode-id': mode.id }
+                });
+            } else {
+                const div = DOM.div('unlock-requirement');
+                div.textContent = `解除条件: ${this.getUnlockRequirementText(mode)}`;
+                return div;
+            }
+        }
+
+        if (isCurrent) {
+            const button = DOMBuilder.createElement({
+                tag: 'button',
+                className: 'select-button current',
+                textContent: '選択中'
+            });
+            (button as HTMLButtonElement).disabled = true;
+            return button;
+        }
+
+        return DOMBuilder.createElement({
+            tag: 'button',
+            className: 'select-button',
+            textContent: '選択する',
+            attributes: { 'data-mode-id': mode.id }
+        });
     }
 
     private getModifiersText(mode: GameMode): string {
@@ -293,35 +449,59 @@ export class GameModeSelectorUI {
     }
 
     private showModeChangeNotification(newMode: GameMode, previousMode: GameMode): void {
-        const notification = this.domManager.createElement('div');
-        notification.className = 'mode-notification success';
+        const notification = DOMBuilder.createElement({
+            tag: 'div',
+            className: 'mode-notification success'
+        });
 
-        notification.innerHTML = `
-            <div class="notification-content">
-                <div class="notification-icon">🎮</div>
-                <div class="notification-text">
-                    <h4>ゲームモード変更</h4>
-                    <p>${previousMode.name} → ${newMode.name}</p>
-                </div>
-            </div>
-        `;
+        const notificationContent = DOM.div('notification-content');
+        
+        const notificationIcon = DOM.div('notification-icon');
+        notificationIcon.textContent = '🎮';
+        
+        const notificationText = DOM.div('notification-text');
+        const title = DOMBuilder.createElement({
+            tag: 'h4',
+            textContent: 'ゲームモード変更'
+        });
+        const message = DOM.p('', `${previousMode.name} → ${newMode.name}`);
+        
+        notificationText.appendChild(title);
+        notificationText.appendChild(message);
+        
+        notificationContent.appendChild(notificationIcon);
+        notificationContent.appendChild(notificationText);
+        
+        notification.appendChild(notificationContent);
 
         this.showNotification(notification);
     }
 
     private showModeUnlockedNotification(gameMode: GameMode): void {
-        const notification = this.domManager.createElement('div');
-        notification.className = 'mode-notification unlock';
+        const notification = DOMBuilder.createElement({
+            tag: 'div',
+            className: 'mode-notification unlock'
+        });
 
-        notification.innerHTML = `
-            <div class="notification-content">
-                <div class="notification-icon">🔓</div>
-                <div class="notification-text">
-                    <h4>新モード解除！</h4>
-                    <p>${gameMode.name}が利用可能になりました</p>
-                </div>
-            </div>
-        `;
+        const notificationContent = DOM.div('notification-content');
+        
+        const notificationIcon = DOM.div('notification-icon');
+        notificationIcon.textContent = '🔓';
+        
+        const notificationText = DOM.div('notification-text');
+        const title = DOMBuilder.createElement({
+            tag: 'h4',
+            textContent: '新モード解除！'
+        });
+        const message = DOM.p('', `${gameMode.name}が利用可能になりました`);
+        
+        notificationText.appendChild(title);
+        notificationText.appendChild(message);
+        
+        notificationContent.appendChild(notificationIcon);
+        notificationContent.appendChild(notificationText);
+        
+        notification.appendChild(notificationContent);
 
         this.showNotification(notification);
     }

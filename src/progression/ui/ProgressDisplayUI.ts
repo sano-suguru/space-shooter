@@ -2,6 +2,7 @@ import { IDOMManager } from '../../interfaces/IDOMManager.js';
 import { ProgressManager } from '../managers/ProgressManager.js';
 import { EventEmitter } from '../../events/EventEmitter.js';
 import { EventMap } from '../../events/EventType.js';
+import { DOMBuilder, DOM } from '../../utils/DOMBuilder.js';
 
 export class ProgressDisplayUI {
     private container: HTMLElement;
@@ -21,61 +22,131 @@ export class ProgressDisplayUI {
     }
 
     private createProgressDisplay(): HTMLElement {
-        const display = this.domManager.createElement('div');
-        display.id = 'progress-display';
-        display.className = 'progress-display';
+        const display = DOMBuilder.createElement({
+            tag: 'div',
+            id: 'progress-display',
+            className: 'progress-display'
+        });
 
-        display.innerHTML = `
-            <div class="progress-header">
-                <div class="player-level" id="player-level">
-                    <span class="level-label">Lv.</span>
-                    <span class="level-number">1</span>
-                </div>
-                <div class="player-coins" id="player-coins">
-                    <span class="coins-icon">💰</span>
-                    <span class="coins-amount">0</span>
-                </div>
-            </div>
-            <div class="experience-bar" id="experience-bar">
-                <div class="xp-label">
-                    <span>経験値</span>
-                    <span class="xp-text" id="xp-text">0 / 100</span>
-                </div>
-                <div class="xp-bar-container">
-                    <div class="xp-bar-fill" id="xp-bar-fill" style="width: 0%"></div>
-                </div>
-            </div>
-            <div class="quick-stats" id="quick-stats">
-                <div class="stat-item">
-                    <span class="stat-icon">🎯</span>
-                    <div class="stat-info">
-                        <span class="stat-label">ハイスコア</span>
-                        <span class="stat-value" id="high-score">0</span>
-                    </div>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-icon">🎮</span>
-                    <div class="stat-info">
-                        <span class="stat-label">総ゲーム数</span>
-                        <span class="stat-value" id="total-games">0</span>
-                    </div>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-icon">💥</span>
-                    <div class="stat-info">
-                        <span class="stat-label">敵撃破数</span>
-                        <span class="stat-value" id="enemies-destroyed">0</span>
-                    </div>
-                </div>
-            </div>
-        `;
+        // Progress Header
+        const progressHeader = DOM.div('progress-header');
+        
+        // Player Level Section
+        const playerLevel = DOMBuilder.createElement({
+            tag: 'div',
+            className: 'player-level',
+            id: 'player-level'
+        });
+        
+        const levelLabel = DOM.span('level-label', 'Lv.');
+        const levelNumber = DOM.span('level-number', '1');
+        
+        playerLevel.appendChild(levelLabel);
+        playerLevel.appendChild(levelNumber);
 
-        this.levelElement = display.querySelector('#player-level .level-number');
-        this.xpBarElement = display.querySelector('#xp-bar-fill');
-        this.coinsElement = display.querySelector('#player-coins .coins-amount');
-        this.statsElement = display.querySelector('#quick-stats');
+        // Player Coins Section
+        const playerCoins = DOMBuilder.createElement({
+            tag: 'div',
+            className: 'player-coins',
+            id: 'player-coins'
+        });
+        
+        const coinsIcon = DOM.span('coins-icon', '💰');
+        const coinsAmount = DOM.span('coins-amount', '0');
+        
+        playerCoins.appendChild(coinsIcon);
+        playerCoins.appendChild(coinsAmount);
+
+        progressHeader.appendChild(playerLevel);
+        progressHeader.appendChild(playerCoins);
+
+        // Experience Bar Section
+        const experienceBar = DOMBuilder.createElement({
+            tag: 'div',
+            className: 'experience-bar',
+            id: 'experience-bar'
+        });
+        
+        const xpLabel = DOM.div('xp-label');
+        const xpLabelText = DOM.span('', '経験値');
+        const xpText = DOMBuilder.createElement({
+            tag: 'span',
+            className: 'xp-text',
+            id: 'xp-text',
+            textContent: '0 / 100'
+        });
+        
+        xpLabel.appendChild(xpLabelText);
+        xpLabel.appendChild(xpText);
+        
+        const xpBarContainer = DOM.div('xp-bar-container');
+        const xpBarFill = DOMBuilder.createElement({
+            tag: 'div',
+            className: 'xp-bar-fill',
+            id: 'xp-bar-fill'
+        });
+        xpBarFill.style.width = '0%';
+        
+        xpBarContainer.appendChild(xpBarFill);
+        
+        experienceBar.appendChild(xpLabel);
+        experienceBar.appendChild(xpBarContainer);
+
+        // Quick Stats Section
+        const quickStats = DOMBuilder.createElement({
+            tag: 'div',
+            className: 'quick-stats',
+            id: 'quick-stats'
+        });
+        
+        // High Score Stat
+        const highScoreStat = this.createStatItem('🎯', 'ハイスコア', '0', 'high-score');
+        
+        // Total Games Stat
+        const totalGamesStat = this.createStatItem('🎮', '総ゲーム数', '0', 'total-games');
+        
+        // Enemies Destroyed Stat
+        const enemiesStat = this.createStatItem('💥', '敵撃破数', '0', 'enemies-destroyed');
+        
+        quickStats.appendChild(highScoreStat);
+        quickStats.appendChild(totalGamesStat);
+        quickStats.appendChild(enemiesStat);
+
+        // Assemble the complete display
+        display.appendChild(progressHeader);
+        display.appendChild(experienceBar);
+        display.appendChild(quickStats);
+
+        // Store references
+        this.levelElement = levelNumber;
+        this.xpBarElement = xpBarFill;
+        this.coinsElement = coinsAmount;
+        this.statsElement = quickStats;
 
         return display;
+    }
+
+    private createStatItem(icon: string, label: string, value: string, valueId: string): HTMLElement {
+        const statItem = DOM.div('stat-item');
+        
+        const statIcon = DOM.span('stat-icon', icon);
+        
+        const statInfo = DOM.div('stat-info');
+        const statLabel = DOM.span('stat-label', label);
+        const statValue = DOMBuilder.createElement({
+            tag: 'span',
+            className: 'stat-value',
+            id: valueId,
+            textContent: value
+        });
+        
+        statInfo.appendChild(statLabel);
+        statInfo.appendChild(statValue);
+        
+        statItem.appendChild(statIcon);
+        statItem.appendChild(statInfo);
+        
+        return statItem;
     }
 
     private setupEventListeners(): void {
@@ -212,19 +283,35 @@ export class ProgressDisplayUI {
     }
 
     private showLevelUpNotification(newLevel: number, coinsEarned: number): void {
-        const notification = this.domManager.createElement('div');
-        notification.className = 'level-up-notification';
+        const notification = DOMBuilder.createElement({
+            tag: 'div',
+            className: 'level-up-notification'
+        });
         
-        notification.innerHTML = `
-            <div class="notification-content">
-                <div class="notification-icon">🆙</div>
-                <div class="notification-text">
-                    <h3>レベルアップ！</h3>
-                    <p>レベル ${newLevel}に到達しました！</p>
-                    <p class="bonus-coins">ボーナス: 💰 ${coinsEarned}</p>
-                </div>
-            </div>
-        `;
+        const notificationContent = DOM.div('notification-content');
+        
+        const notificationIcon = DOM.div('notification-icon');
+        notificationIcon.textContent = '🆙';
+        
+        const notificationText = DOM.div('notification-text');
+        
+        const title = DOMBuilder.createElement({
+            tag: 'h3',
+            textContent: 'レベルアップ！'
+        });
+        
+        const levelMessage = DOM.p('', `レベル ${newLevel}に到達しました！`);
+        
+        const bonusCoins = DOM.p('bonus-coins', `ボーナス: 💰 ${coinsEarned}`);
+        
+        notificationText.appendChild(title);
+        notificationText.appendChild(levelMessage);
+        notificationText.appendChild(bonusCoins);
+        
+        notificationContent.appendChild(notificationIcon);
+        notificationContent.appendChild(notificationText);
+        
+        notification.appendChild(notificationContent);
 
         this.showNotification(notification, 4000);
     }
@@ -272,17 +359,32 @@ export class ProgressDisplayUI {
         }
 
         // ハイスコア通知
-        const notification = this.domManager.createElement('div');
-        notification.className = 'high-score-notification';
-        notification.innerHTML = `
-            <div class="notification-content">
-                <div class="notification-icon">🏆</div>
-                <div class="notification-text">
-                    <h4>新記録達成！</h4>
-                    <p>ハイスコアを更新しました！</p>
-                </div>
-            </div>
-        `;
+        const notification = DOMBuilder.createElement({
+            tag: 'div',
+            className: 'high-score-notification'
+        });
+        
+        const notificationContent = DOM.div('notification-content');
+        
+        const notificationIcon = DOM.div('notification-icon');
+        notificationIcon.textContent = '🏆';
+        
+        const notificationText = DOM.div('notification-text');
+        
+        const title = DOMBuilder.createElement({
+            tag: 'h4',
+            textContent: '新記録達成！'
+        });
+        
+        const message = DOM.p('', 'ハイスコアを更新しました！');
+        
+        notificationText.appendChild(title);
+        notificationText.appendChild(message);
+        
+        notificationContent.appendChild(notificationIcon);
+        notificationContent.appendChild(notificationText);
+        
+        notification.appendChild(notificationContent);
 
         this.showNotification(notification, 3000);
     }

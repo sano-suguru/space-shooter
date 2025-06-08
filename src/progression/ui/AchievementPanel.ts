@@ -4,6 +4,7 @@ import { ProgressManager } from '../managers/ProgressManager.js';
 import { Achievement } from '../types/Achievement.js';
 import { EventEmitter } from '../../events/EventEmitter.js';
 import { EventMap } from '../../events/EventType.js';
+import { DOMBuilder, DOM } from '../../utils/DOMBuilder.js';
 
 type AchievementCategory = 'combat' | 'survival' | 'collection' | 'mastery' | 'special';
 
@@ -25,35 +26,108 @@ export class AchievementPanel {
     }
 
     private createAchievementPanel(): HTMLElement {
-        const panel = this.domManager.createElement('div');
-        panel.id = 'achievement-panel';
-        panel.className = 'achievement-panel hidden';
+        const panel = DOMBuilder.createElement({
+            tag: 'div',
+            id: 'achievement-panel',
+            className: 'achievement-panel hidden'
+        });
 
-        panel.innerHTML = `
-            <div class="achievement-header">
-                <div class="achievement-title">
-                    <h2>🏆 アチーブメント</h2>
-                    <button class="close-button" id="close-achievements">×</button>
-                </div>
-                <div class="achievement-stats" id="achievement-stats">
-                    <span class="completed">完了: 0/0</span>
-                    <span class="completion-rate">達成率: 0%</span>
-                </div>
-            </div>
-            <div class="achievement-categories">
-                <button class="category-tab active" data-category="combat">⚔️ 戦闘</button>
-                <button class="category-tab" data-category="survival">🛡️ 生存</button>
-                <button class="category-tab" data-category="collection">📦 収集</button>
-                <button class="category-tab" data-category="mastery">📈 熟練</button>
-                <button class="category-tab" data-category="special">⭐ 特別</button>
-            </div>
-            <div class="achievement-list" id="achievement-list"></div>
-        `;
+        // アチーブメントヘッダー
+        const achievementHeader = this.createAchievementHeader();
+        
+        // カテゴリータブ
+        const achievementCategories = this.createAchievementCategories();
+        
+        // アチーブメントリスト
+        this.achievementListElement = DOMBuilder.createElement({
+            tag: 'div',
+            className: 'achievement-list',
+            id: 'achievement-list'
+        });
 
-        this.achievementListElement = panel.querySelector('#achievement-list');
-        this.statsElement = panel.querySelector('#achievement-stats');
+        panel.appendChild(achievementHeader);
+        panel.appendChild(achievementCategories);
+        panel.appendChild(this.achievementListElement);
 
         return panel;
+    }
+
+    private createAchievementHeader(): HTMLElement {
+        const closeButton = DOMBuilder.createElement({
+            tag: 'button',
+            className: 'close-button',
+            id: 'close-achievements',
+            textContent: '×'
+        });
+
+        const achievementTitle = DOMBuilder.createElement({
+            tag: 'div',
+            className: 'achievement-title',
+            children: [
+                DOM.h2('🏆 アチーブメント'),
+                closeButton
+            ]
+        });
+
+        // 統計情報の初期表示
+        this.statsElement = DOMBuilder.createElement({
+            tag: 'div',
+            className: 'achievement-stats',
+            id: 'achievement-stats',
+            children: [
+                DOM.span('completed', '完了: 0/0'),
+                DOM.span('completion-rate', '達成率: 0%')
+            ]
+        });
+
+        return DOMBuilder.createElement({
+            tag: 'div',
+            className: 'achievement-header',
+            children: [achievementTitle, this.statsElement]
+        });
+    }
+
+    private createAchievementCategories(): HTMLElement {
+        const combatTab = DOMBuilder.createElement({
+            tag: 'button',
+            className: 'category-tab active',
+            textContent: '⚔️ 戦闘',
+            attributes: { 'data-category': 'combat' }
+        });
+
+        const survivalTab = DOMBuilder.createElement({
+            tag: 'button',
+            className: 'category-tab',
+            textContent: '🛡️ 生存',
+            attributes: { 'data-category': 'survival' }
+        });
+
+        const collectionTab = DOMBuilder.createElement({
+            tag: 'button',
+            className: 'category-tab',
+            textContent: '📦 収集',
+            attributes: { 'data-category': 'collection' }
+        });
+
+        const masteryTab = DOMBuilder.createElement({
+            tag: 'button',
+            className: 'category-tab',
+            textContent: '📈 熟練',
+            attributes: { 'data-category': 'mastery' }
+        });
+
+        const specialTab = DOMBuilder.createElement({
+            tag: 'button',
+            className: 'category-tab',
+            textContent: '⭐ 特別',
+            attributes: { 'data-category': 'special' }
+        });
+
+        return DOMBuilder.createElement({
+            tag: 'div',
+            className: 'achievement-categories',
+            children: [combatTab, survivalTab, collectionTab, masteryTab, specialTab]
+        });
     }
 
     private setupEventListeners(): void {
@@ -112,10 +186,15 @@ export class AchievementPanel {
         const stats = this.achievementManager.getAchievementStats();
 
         if (this.statsElement) {
-            this.statsElement.innerHTML = `
-                <span class="completed">完了: ${stats.completedAchievements}/${stats.totalAchievements}</span>
-                <span class="completion-rate">達成率: ${stats.completionPercentage}%</span>
-            `;
+            // 既存の子要素をクリア
+            this.statsElement.innerHTML = '';
+            
+            // 安全なDOM構築で統計情報を再作成
+            const completedSpan = DOM.span('completed', `完了: ${stats.completedAchievements}/${stats.totalAchievements}`);
+            const completionRateSpan = DOM.span('completion-rate', `達成率: ${stats.completionPercentage}%`);
+            
+            this.statsElement.appendChild(completedSpan);
+            this.statsElement.appendChild(completionRateSpan);
         }
     }
 
@@ -127,11 +206,14 @@ export class AchievementPanel {
         this.achievementListElement.innerHTML = '';
 
         if (achievements.length === 0) {
-            this.achievementListElement.innerHTML = `
-                <div class="no-achievements">
-                    <p>このカテゴリーにはアチーブメントがありません</p>
-                </div>
-            `;
+            const noAchievementsDiv = DOMBuilder.createElement({
+                tag: 'div',
+                className: 'no-achievements',
+                children: [
+                    DOM.p('このカテゴリーにはアチーブメントがありません')
+                ]
+            });
+            this.achievementListElement.appendChild(noAchievementsDiv);
             return;
         }
 
@@ -157,51 +239,96 @@ export class AchievementPanel {
         const isCompleted = profile.completedAchievements.includes(achievement.id);
         const progress = this.achievementManager.getAchievementProgress(achievement.id);
 
-        const achievementDiv = this.domManager.createElement('div');
-        achievementDiv.className = `achievement-item ${isCompleted ? 'completed' : 'incomplete'}`;
-        achievementDiv.setAttribute('data-achievement-id', achievement.id);
+        // アチーブメントアイコン
+        const achievementIcon = this.createAchievementIcon(isCompleted);
+        
+        // アチーブメントコンテンツ
+        const achievementContent = this.createAchievementContent(achievement, isCompleted, progress);
+        
+        // アチーブメントステータス
+        const achievementStatus = this.createAchievementStatus(isCompleted);
 
-        const progressBar = progress ? this.createProgressBar(progress.current, progress.required) : '';
-        const rewardText = this.getRewardText(achievement);
-
-        achievementDiv.innerHTML = `
-            <div class="achievement-icon">
-                ${isCompleted ? '🏆' : '⭐'}
-            </div>
-            <div class="achievement-content">
-                <div class="achievement-info">
-                    <h3 class="achievement-name">${achievement.name}</h3>
-                    <p class="achievement-description">${achievement.description}</p>
-                    ${rewardText}
-                </div>
-                <div class="achievement-progress">
-                    <div class="progress-text">
-                        ${isCompleted ? '完了！' : progress ? `${progress.current}/${progress.required}` : '進捗なし'}
-                    </div>
-                    ${!isCompleted && progress ? progressBar : ''}
-                </div>
-            </div>
-            <div class="achievement-status">
-                ${isCompleted ? 
-                    '<span class="status-badge completed">完了</span>' : 
-                    '<span class="status-badge incomplete">未完了</span>'
-                }
-            </div>
-        `;
-
-        return achievementDiv;
+        return DOMBuilder.createElement({
+            tag: 'div',
+            className: `achievement-item ${isCompleted ? 'completed' : 'incomplete'}`,
+            attributes: { 'data-achievement-id': achievement.id },
+            children: [achievementIcon, achievementContent, achievementStatus]
+        });
     }
 
-    private createProgressBar(current: number, required: number): string {
-        const percentage = Math.min((current / required) * 100, 100);
-        return `
-            <div class="progress-bar">
-                <div class="progress-fill" style="width: ${percentage}%"></div>
-            </div>
-        `;
+    private createAchievementIcon(isCompleted: boolean): HTMLElement {
+        return DOMBuilder.createElement({
+            tag: 'div',
+            className: 'achievement-icon',
+            textContent: isCompleted ? '🏆' : '⭐'
+        });
     }
 
-    private getRewardText(achievement: Achievement): string {
+    private createAchievementContent(achievement: Achievement, isCompleted: boolean, progress: any): HTMLElement {
+        const achievementInfo = this.createAchievementInfo(achievement);
+        const achievementProgress = this.createAchievementProgressSection(isCompleted, progress);
+
+        return DOMBuilder.createElement({
+            tag: 'div',
+            className: 'achievement-content',
+            children: [achievementInfo, achievementProgress]
+        });
+    }
+
+    private createAchievementInfo(achievement: Achievement): HTMLElement {
+        const rewardElement = this.createRewardElement(achievement);
+        const children = [
+            DOM.h3(achievement.name, 'achievement-name'),
+            DOM.p(achievement.description, 'achievement-description')
+        ];
+
+        if (rewardElement) {
+            children.push(rewardElement);
+        }
+
+        return DOMBuilder.createElement({
+            tag: 'div',
+            className: 'achievement-info',
+            children: children
+        });
+    }
+
+    private createAchievementProgressSection(isCompleted: boolean, progress: any): HTMLElement {
+        const progressText = DOMBuilder.createElement({
+            tag: 'div',
+            className: 'progress-text',
+            textContent: isCompleted ? '完了！' : progress ? `${progress.current}/${progress.required}` : '進捗なし'
+        });
+
+        const children = [progressText];
+
+        if (!isCompleted && progress) {
+            const progressBar = this.createProgressBar(progress.current, progress.required);
+            children.push(progressBar);
+        }
+
+        return DOMBuilder.createElement({
+            tag: 'div',
+            className: 'achievement-progress',
+            children: children
+        });
+    }
+
+    private createAchievementStatus(isCompleted: boolean): HTMLElement {
+        const statusBadge = DOMBuilder.createElement({
+            tag: 'span',
+            className: `status-badge ${isCompleted ? 'completed' : 'incomplete'}`,
+            textContent: isCompleted ? '完了' : '未完了'
+        });
+
+        return DOMBuilder.createElement({
+            tag: 'div',
+            className: 'achievement-status',
+            children: [statusBadge]
+        });
+    }
+
+    private createRewardElement(achievement: Achievement): HTMLElement | null {
         const rewards = [];
         
         if (achievement.reward.coins > 0) {
@@ -212,9 +339,33 @@ export class AchievementPanel {
             rewards.push(`✨ ${achievement.reward.experience} XP`);
         }
 
-        return rewards.length > 0 ? 
-            `<div class="achievement-rewards">報酬: ${rewards.join(', ')}</div>` : '';
+        if (rewards.length > 0) {
+            return DOMBuilder.createElement({
+                tag: 'div',
+                className: 'achievement-rewards',
+                textContent: `報酬: ${rewards.join(', ')}`
+            });
+        }
+
+        return null;
     }
+
+    private createProgressBar(current: number, required: number): HTMLElement {
+        const percentage = Math.min((current / required) * 100, 100);
+        
+        const progressFill = DOMBuilder.createElement({
+            tag: 'div',
+            className: 'progress-fill',
+            attributes: { style: `width: ${percentage}%` }
+        });
+        
+        return DOMBuilder.createElement({
+            tag: 'div',
+            className: 'progress-bar',
+            children: [progressFill]
+        });
+    }
+
 
     private updateAchievementProgress(achievementId: string, current: number, required: number): void {
         const achievementElement = this.container.querySelector(`[data-achievement-id="${achievementId}"]`);
@@ -235,18 +386,35 @@ export class AchievementPanel {
 
     private showAchievementUnlockedAnimation(achievement: Achievement): void {
         // アチーブメント解除の通知アニメーション
-        const notification = this.domManager.createElement('div');
-        notification.className = 'achievement-notification';
-        
-        notification.innerHTML = `
-            <div class="notification-content">
-                <div class="notification-icon">🏆</div>
-                <div class="notification-text">
-                    <h4>アチーブメント解除！</h4>
-                    <p>${achievement.name}</p>
-                </div>
-            </div>
-        `;
+        const notificationIcon = DOMBuilder.createElement({
+            tag: 'div',
+            className: 'notification-icon',
+            textContent: '🏆'
+        });
+
+        const notificationText = DOMBuilder.createElement({
+            tag: 'div',
+            className: 'notification-text',
+            children: [
+                DOMBuilder.createElement({
+                    tag: 'h4',
+                    textContent: 'アチーブメント解除！'
+                }),
+                DOM.p(achievement.name)
+            ]
+        });
+
+        const notificationContent = DOMBuilder.createElement({
+            tag: 'div',
+            className: 'notification-content',
+            children: [notificationIcon, notificationText]
+        });
+
+        const notification = DOMBuilder.createElement({
+            tag: 'div',
+            className: 'achievement-notification',
+            children: [notificationContent]
+        });
 
         // ゲームコンテナに追加（全画面表示）
         const gameContainer = document.getElementById('game-container');
