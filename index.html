@@ -5,8 +5,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>スペースシューティングゲーム</title>
-  <script type="module" crossorigin src="/space-shooter/assets/index-DGWkSYL8.js"></script>
-  <link rel="stylesheet" crossorigin href="/space-shooter/assets/index-B6hcZCY2.css">
+  <script type="module" crossorigin src="/space-shooter/assets/index-CY4_SN9q.js"></script>
+  <link rel="modulepreload" crossorigin href="/space-shooter/assets/game-EMqM8hLi.js">
+  <link rel="modulepreload" crossorigin href="/space-shooter/assets/react-tIGb0r0N.js">
+  <link rel="modulepreload" crossorigin href="/space-shooter/assets/progression-Cxgl8s08.js">
+  <link rel="stylesheet" crossorigin href="/space-shooter/assets/index-C9VOu0Zb.css">
 </head>
 
 <body>
@@ -20,7 +23,27 @@
         体力: <span id="healthValue">100</span>
         <div id="healthBar">
           <div id="healthBarFill"></div>
-        </div>
+        </div>  
+      </div>
+      
+      <!-- プログレッションアクセスメニュー -->
+      <div id="progression-menu">
+        <button id="upgrade-shop-btn" class="progression-btn" title="アップグレードショップ (U)">
+          <span class="btn-icon">🛒</span>
+          <span class="btn-text">ショップ</span>
+        </button>
+        <button id="achievement-panel-btn" class="progression-btn" title="実績パネル (A)">
+          <span class="btn-icon">🏆</span>
+          <span class="btn-text">実績</span>
+        </button>
+        <button id="game-mode-btn" class="progression-btn" title="ゲームモード (M)">
+          <span class="btn-icon">🎮</span>
+          <span class="btn-text">モード</span>
+        </button>
+        <button id="progress-display-btn" class="progression-btn" title="進行状況 (P)">
+          <span class="btn-icon">📊</span>
+          <span class="btn-text">進行状況</span>
+        </button>
       </div>
     </div>
     <div id="gameOver" class="hidden">
@@ -28,6 +51,15 @@
       <p>最終スコア: <span id="finalScore"></span></p>
       <button id="restartButton">リスタート</button>
     </div>
+    
+    <!-- プログレッションUI コンテナ -->
+    <div id="upgrade-shop-container"></div>
+    <div id="achievement-panel-container"></div>
+    <div id="game-mode-selector-container"></div>
+    <div id="progress-display-container"></div>
+    
+    <!-- React環境テスト用コンテナ -->
+    <div id="react-test-container"></div>
   </div>
 </body>
 
