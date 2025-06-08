@@ -47,6 +47,7 @@ function initGame(): void {
     // React.lazy()システムを統合したUIManagerを初期化（Phase 4.4テスト）
     const reactLazyUIManager = new ReactLazyUIManager(eventEmitter, progressManager);
     console.log('🚀 ReactLazyUIManager initialized for Phase 4.4 testing');
+    console.log('Active UI Manager:', reactLazyUIManager.getActiveUI());
 
     const game = new Game(
         canvas,

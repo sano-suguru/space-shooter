@@ -25,7 +25,7 @@ export class LazyLoadingPerformanceTest {
    * React.lazy()コンポーネントの読み込み時間を測定
    */
   async measureComponentLoadTime(componentName: string): Promise<number> {
-    const startTime = performance.now();
+    const startTime = perf.now();
     
     try {
       // 各コンポーネントの動的インポート時間を測定
@@ -50,6 +50,15 @@ export class LazyLoadingPerformanceTest {
       const loadTime = endTime - startTime;
       
       console.log(`📊 ${componentName} 読み込み時間: ${loadTime.toFixed(2)}ms`);
+      
+      // パフォーマンスメトリクスを記録
+      this.metrics.push({
+        componentLoadTime: loadTime,
+        bundleSize: 0, // 実際のバンドルサイズは別途測定
+        memoryUsage: 0, // 実際のメモリ使用量は別途測定
+        renderTime: 0 // 実際のレンダリング時間は別途測定
+      });
+      
       return loadTime;
     } catch (error) {
       console.error(`❌ ${componentName} 読み込みエラー:`, error);

@@ -57,12 +57,21 @@ export const UpgradeShop: React.FC<UpgradeShopProps> = ({
 
   // ショップが非表示の場合は何も表示しない
   if (!isVisible) {
+    console.log('🛒 UpgradeShop not visible, returning null');
     return null;
   }
 
+  console.log('🛒 UpgradeShop rendering with:', {
+    isVisible,
+    currentCategory,
+    filteredUpgrades: filteredUpgrades.length,
+    availableUpgrades: availableUpgrades.length,
+    playerProfile: { coins: playerProfile.coins, level: playerProfile.level }
+  });
+
   return (
     <div 
-      className={`upgrade-shop-overlay ${className}`}
+      className={`upgrade-shop ${className}`}
       style={style}
       data-testid={testId}
       {...props}

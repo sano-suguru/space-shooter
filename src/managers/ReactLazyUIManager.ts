@@ -8,7 +8,6 @@ import { createRoot, Root } from 'react-dom/client';
 import { EventEmitter } from "../events/EventEmitter";
 import { EventMap } from "../events/EventType";
 import { ProgressManager } from "../progression/managers/ProgressManager";
-import { UpgradeManager } from "../progression/managers/UpgradeManager";
 import { getElementOrThrow } from "../utils/DOMUtils";
 import { 
   SafeAchievementPanel, 
@@ -193,23 +192,54 @@ export class ReactLazyUIManager {
    */
   private showUpgradeShop(): void {
     const root = this.roots.get('upgrade-shop-container');
-    if (root) {
-      const profile = this.progressManager.getProfile();
-      const upgradeManager = this.progressManager.getUpgradeManager();
-      
-      root.render(
-        React.createElement(SafeUpgradeShop, {
-          isVisible: true,
-          playerProfile: profile,
-          availableUpgrades: upgradeManager.getAvailableUpgrades(),
-          onClose: () => this.hideAllUIs(),
-          onPurchase: async (upgradeId: string) => {
-            const result = upgradeManager.purchaseUpgrade(upgradeId);
-            return result.success;
-          }
-        })
-      );
+    if (!root) {
+      console.error('UpgradeShop container not found');
+      return;
     }
+
+    const profile = this.progressManager.getProfile();
+    const upgradeManager = this.progressManager.getUpgradeManager();
+    const availableUpgrades = upgradeManager.getAvailableUpgrades();
+    
+    console.log('🛒 Rendering UpgradeShop with data:');
+    console.log('  Profile coins:', profile.coins);
+    console.log('  Profile level:', profile.level);  
+    console.log('  Available upgrades count:', availableUpgrades.length);
+    console.log('  Available upgrades:', availableUpgrades.map(u => ({ id: u.id, name: u.name, category: u.category })));
+    console.log('  Container element exists:', !!root);
+    
+    root.render(
+      React.createElement(SafeUpgradeShop, {
+        isVisible: true,
+        playerProfile: profile,
+        availableUpgrades: upgradeManager.getAvailableUpgrades(),
+        onClose: () => {
+          console.log('🛒 UpgradeShop close requested');
+          this.hideAllUIs();
+        },
+        onPurchase: async (upgradeId: string): Promise<boolean> => {
+          console.log('🛒 Purchase attempt:', upgradeId);
+          try {
+            const result = this.progressManager.purchaseUpgrade(upgradeId);
+            console.log('🛒 Purchase result:', result);
+            
+            if (result.success) {
+              // プロファイル更新後に再レンダリング
+              setTimeout(() => {
+                if (this.activeUI === 'upgrade-shop') {
+                  this.showUpgradeShop();
+                }
+              }, 100);
+            }
+            
+            return result.success;
+          } catch (error) {
+            console.error('🛒 Purchase error:', error);
+            return false;
+          }
+        }
+      })
+    );
   }
 
   /**
