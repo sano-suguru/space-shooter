@@ -208,7 +208,7 @@ export class Game implements IGameEngine {
         const boss = new Boss(this);
         this.gameObjectManager.setBoss(boss);
         this.eventEmitter.emit('bossSpawned');
-        this.showMessage("ボスが出現しました！");
+        this.showMessage("ボスが出現しました！", 3000, 'important');
     }
 
     /**
@@ -302,7 +302,7 @@ export class Game implements IGameEngine {
     private handleBossDefeat(): void {
         this.scoreManager.addScore(500);
 
-        this.showMessage(`レベル ${this.level} クリア！次のレベルが始まります。`);
+        this.showMessage(`レベル ${this.level} クリア！次のレベルが始まります。`, 3000, 'important');
 
         this.level++;
         this.eventEmitter.emit('levelUpdated', this.level);
@@ -326,11 +326,15 @@ export class Game implements IGameEngine {
         this.bossSpawnScore = this.scoreManager.getScore() + 1000;
 
         this.eventEmitter.emit('levelStarted', this.level);
-        this.showMessage(`レベル ${this.level} 開始！`);
+        this.showMessage(`レベル ${this.level} 開始！`, 3000, 'important');
     }
 
-    public showMessage(text: string): void {
-        this.messageManager.showMessage(text);
+    public showMessage(text: string, duration?: number, priority?: 'critical' | 'important' | 'info' | 'minimal'): void {
+        this.messageManager.showMessage(text, duration, priority);
+    }
+
+    public showWaveMessage(text: string): void {
+        this.messageManager.showWaveMessage(text);
     }
 
     public showMessageOld(text: string): void {

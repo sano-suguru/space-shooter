@@ -1,4 +1,4 @@
-import { IMessageManager } from "../interfaces/IMessageManager";
+import { IMessageManager, MessageSettings, MessagePriority } from "../interfaces/IMessageManager";
 import { IDOMManager } from "../interfaces/IDOMManager";
 import { ITimeProvider } from "../providers/ITimeProvider";
 
@@ -9,19 +9,111 @@ import { ITimeProvider } from "../providers/ITimeProvider";
 export class MessageManager implements IMessageManager {
   private currentMessageElement: HTMLElement | null = null;
   private currentTimeoutId: number | null = null;
+  private settings: MessageSettings;
 
   constructor(
     private domManager: IDOMManager,
     private timeProvider: ITimeProvider
-  ) {}
+  ) {
+    // デフォルト設定: ユーザーフィードバックに対応し、控えめ表示モードを有効化
+    this.settings = {
+      enabled: true,
+      minPriority: 'minimal', // 全てのメッセージを表示
+      showWaveMessages: true,
+      showBossMessages: true,
+      showLevelMessages: true,
+      subtleMode: true // 控えめ表示モードをデフォルトで有効
+    };
+  }
 
-  public showMessage(text: string, duration: number = 3000): void {
+  public showMessage(text: string, duration: number = 3000, priority: MessagePriority = 'important'): void {
+    // 設定チェック: メッセージ表示が無効または重要度が不足の場合は表示しない
+    if (!this.settings.enabled || !this.shouldShowMessage(priority)) {
+      return;
+    }
+
     // 既存のメッセージがあれば削除
     this.hideMessage();
 
     const messageElement = this.domManager.createElement('div');
     this.domManager.setTextContent(messageElement, text);
 
+    // 控えめ表示モードの場合は、全てのメッセージを右上の小さな表示に統一
+    if (this.settings.subtleMode) {
+      this.applySubtleMessageStyle(messageElement, duration);
+    } else {
+      this.applyTraditionalMessageStyle(messageElement, duration);
+    }
+  }
+
+  /**
+   * 控えめなメッセージ表示スタイルを適用（ユーザーフィードバック対応）
+   */
+  private applySubtleMessageStyle(messageElement: HTMLElement, duration: number): void {
+    // Wave表示と同様の控えめなスタイル
+    this.domManager.setStyle(messageElement, 'position', 'absolute');
+    this.domManager.setStyle(messageElement, 'top', '50px'); // Waveメッセージより少し下
+    this.domManager.setStyle(messageElement, 'right', '10px');
+    this.domManager.setStyle(messageElement, 'zIndex', '900'); // Waveより高い優先度
+    this.domManager.setStyle(messageElement, 'textAlign', 'right');
+    this.domManager.setStyle(messageElement, 'maxWidth', '250px');
+    this.domManager.setStyle(messageElement, 'pointerEvents', 'none'); // クリックを通す
+
+    // コンパクトなフォントスタイリング
+    this.domManager.setStyle(messageElement, 'color', '#ffffff');
+    this.domManager.setStyle(messageElement, 'fontSize', '16px'); // 小さなフォントサイズ
+    this.domManager.setStyle(messageElement, 'fontWeight', '600');
+    this.domManager.setStyle(messageElement, 'fontFamily', 'Arial, sans-serif');
+    this.domManager.setStyle(messageElement, 'lineHeight', '1.3');
+
+    // 控えめなテキストエフェクト
+    this.domManager.setStyle(messageElement, 'textShadow', `
+      0 0 6px rgba(0, 255, 255, 0.7),
+      1px 1px 2px rgba(0, 0, 0, 0.8)
+    `);
+
+    // 半透明の背景スタイリング
+    this.domManager.setStyle(messageElement, 'backgroundColor', 'rgba(0, 20, 40, 0.8)');
+    this.domManager.setStyle(messageElement, 'padding', '10px 14px');
+    this.domManager.setStyle(messageElement, 'borderRadius', '6px');
+    this.domManager.setStyle(messageElement, 'border', '1px solid rgba(0, 255, 255, 0.5)');
+    this.domManager.setStyle(messageElement, 'boxShadow', '0 2px 6px rgba(0, 255, 255, 0.2)');
+
+    // スライドイン・アウトアニメーション
+    this.domManager.setStyle(messageElement, 'opacity', '0');
+    this.domManager.setStyle(messageElement, 'transform', 'translateX(100%)');
+    this.domManager.setStyle(messageElement, 'transition', 'all 0.3s ease-out');
+
+    const body = this.domManager.getBody();
+    this.domManager.appendChild(body, messageElement);
+    this.currentMessageElement = messageElement;
+
+    // スライドイン効果
+    this.timeProvider.setTimeout(() => {
+      this.domManager.setStyle(messageElement, 'opacity', '1');
+      this.domManager.setStyle(messageElement, 'transform', 'translateX(0)');
+    }, 50);
+
+    // 短縮された表示時間でスライドアウトして削除
+    const subtleDuration = Math.min(duration * 0.7, 2000); // 従来の70%または最大2秒
+    this.currentTimeoutId = this.timeProvider.setTimeout(() => {
+      this.domManager.setStyle(messageElement, 'transition', 'all 0.3s ease-in');
+      this.domManager.setStyle(messageElement, 'opacity', '0');
+      this.domManager.setStyle(messageElement, 'transform', 'translateX(100%)');
+
+      this.timeProvider.setTimeout(() => {
+        if (this.currentMessageElement === messageElement && this.domManager.contains(body, messageElement)) {
+          this.domManager.removeChild(body, messageElement);
+          this.currentMessageElement = null;
+        }
+      }, 300);
+    }, subtleDuration - 300);
+  }
+
+  /**
+   * 従来のメッセージ表示スタイルを適用（後方互換性）
+   */
+  private applyTraditionalMessageStyle(messageElement: HTMLElement, duration: number): void {
     // 基本的な位置設定
     this.domManager.setStyle(messageElement, 'position', 'absolute');
     this.domManager.setStyle(messageElement, 'top', '50%');
@@ -177,6 +269,94 @@ export class MessageManager implements IMessageManager {
         }
       }, 300);
     }, duration - 300);
+  }
+
+  public showWaveMessage(text: string, duration: number = 1500): void {
+    const waveElement = this.domManager.createElement('div');
+    this.domManager.setTextContent(waveElement, text);
+
+    // Wave表示用の控えめなスタイル - ゲーム画面内の右上（UI overlayの子要素として配置）
+    this.domManager.setStyle(waveElement, 'position', 'absolute');
+    this.domManager.setStyle(waveElement, 'top', '10px');
+    this.domManager.setStyle(waveElement, 'right', '10px');
+    this.domManager.setStyle(waveElement, 'zIndex', '800'); // 通常メッセージより低い優先度
+    this.domManager.setStyle(waveElement, 'textAlign', 'right');
+    this.domManager.setStyle(waveElement, 'width', '200px'); // 固定幅
+    this.domManager.setStyle(waveElement, 'pointerEvents', 'none'); // クリックを通す
+
+    // コンパクトなフォントスタイリング
+    this.domManager.setStyle(waveElement, 'color', '#ffffff');
+    this.domManager.setStyle(waveElement, 'fontSize', '18px');
+    this.domManager.setStyle(waveElement, 'fontWeight', '600');
+    this.domManager.setStyle(waveElement, 'fontFamily', 'Arial, sans-serif');
+
+    // 控えめなテキストエフェクト
+    this.domManager.setStyle(waveElement, 'textShadow', `
+      0 0 8px rgba(0, 255, 255, 0.8),
+      1px 1px 2px rgba(0, 0, 0, 0.7)
+    `);
+
+    // 半透明の背景スタイリング
+    this.domManager.setStyle(waveElement, 'backgroundColor', 'rgba(0, 20, 40, 0.75)');
+    this.domManager.setStyle(waveElement, 'padding', '12px 16px');
+    this.domManager.setStyle(waveElement, 'borderRadius', '8px');
+    this.domManager.setStyle(waveElement, 'border', '1px solid rgba(0, 255, 255, 0.6)');
+    this.domManager.setStyle(waveElement, 'boxShadow', '0 2px 8px rgba(0, 255, 255, 0.3)');
+
+    // スライドイン・アウトアニメーション
+    this.domManager.setStyle(waveElement, 'opacity', '0');
+    this.domManager.setStyle(waveElement, 'transform', 'translateX(100%)');
+    this.domManager.setStyle(waveElement, 'transition', 'all 0.3s ease-out');
+
+    const body = this.domManager.getBody();
+    this.domManager.appendChild(body, waveElement);
+
+    // スライドイン効果
+    this.timeProvider.setTimeout(() => {
+      this.domManager.setStyle(waveElement, 'opacity', '1');
+      this.domManager.setStyle(waveElement, 'transform', 'translateX(0)');
+    }, 50);
+
+    // スライドアウトして削除
+    this.timeProvider.setTimeout(() => {
+      this.domManager.setStyle(waveElement, 'transition', 'all 0.3s ease-in');
+      this.domManager.setStyle(waveElement, 'opacity', '0');
+      this.domManager.setStyle(waveElement, 'transform', 'translateX(100%)');
+
+      this.timeProvider.setTimeout(() => {
+        if (this.domManager.contains(body, waveElement)) {
+          this.domManager.removeChild(body, waveElement);
+        }
+      }, 300);
+    }, duration - 300);
+  }
+
+  /**
+   * メッセージ表示設定を更新
+   */
+  public updateSettings(newSettings: Partial<MessageSettings>): void {
+    this.settings = { ...this.settings, ...newSettings };
+  }
+
+  /**
+   * 現在のメッセージ表示設定を取得
+   */
+  public getSettings(): MessageSettings {
+    return { ...this.settings };
+  }
+
+  /**
+   * 重要度と設定に基づいてメッセージを表示するかどうかを判定
+   */
+  private shouldShowMessage(priority: MessagePriority): boolean {
+    const priorityLevels: Record<MessagePriority, number> = {
+      'critical': 4,
+      'important': 3,
+      'info': 2,
+      'minimal': 1
+    };
+
+    return priorityLevels[priority] >= priorityLevels[this.settings.minPriority];
   }
 
   public dispose(): void {

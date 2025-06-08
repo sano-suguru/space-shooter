@@ -1,4 +1,4 @@
-import { IMessageManager } from "../interfaces/IMessageManager";
+import { IMessageManager, MessageSettings, MessagePriority } from "../interfaces/IMessageManager";
 
 /**
  * テスト用のメッセージ管理クラス
@@ -8,6 +8,7 @@ export class MockMessageManager implements IMessageManager {
   private displayedMessages: Array<{
     text: string;
     duration: number;
+    priority?: MessagePriority;
     timestamp: number;
   }> = [];
   
@@ -18,14 +19,29 @@ export class MockMessageManager implements IMessageManager {
     timestamp: number;
   }> = [];
   
+  private waveMessages: Array<{
+    text: string;
+    duration: number;
+    timestamp: number;
+  }> = [];
+  
   private gameOverScreenVisible = false;
   private gameOverFinalScore = 0;
   private currentMessageVisible = false;
+  private settings: MessageSettings = {
+    enabled: true,
+    minPriority: 'minimal',
+    showWaveMessages: true,
+    showBossMessages: true,
+    showLevelMessages: true,
+    subtleMode: true
+  };
 
-  public showMessage(text: string, duration: number = 3000): void {
+  public showMessage(text: string, duration: number = 3000, priority: MessagePriority = 'important'): void {
     this.displayedMessages.push({
       text,
       duration,
+      priority,
       timestamp: Date.now()
     });
     this.currentMessageVisible = true;
@@ -54,9 +70,18 @@ export class MockMessageManager implements IMessageManager {
     });
   }
 
+  public showWaveMessage(text: string, duration: number = 1500): void {
+    this.waveMessages.push({
+      text,
+      duration,
+      timestamp: Date.now()
+    });
+  }
+
   public dispose(): void {
     this.displayedMessages = [];
     this.notifications = [];
+    this.waveMessages = [];
     this.gameOverScreenVisible = false;
     this.gameOverFinalScore = 0;
     this.currentMessageVisible = false;
@@ -188,10 +213,59 @@ export class MockMessageManager implements IMessageManager {
   }
 
   /**
+   * 表示されたWaveメッセージの一覧を取得
+   */
+  public getWaveMessages(): Array<{
+    text: string;
+    duration: number;
+    timestamp: number;
+  }> {
+    return [...this.waveMessages];
+  }
+
+  /**
+   * 最後に表示されたWaveメッセージを取得
+   */
+  public getLastWaveMessage(): { text: string; duration: number; timestamp: number } | null {
+    return this.waveMessages.length > 0 
+      ? this.waveMessages[this.waveMessages.length - 1] 
+      : null;
+  }
+
+  /**
+   * 特定のテキストのWaveメッセージが表示されたかチェック
+   */
+  public hasWaveMessageBeenDisplayed(text: string): boolean {
+    return this.waveMessages.some(msg => msg.text === text);
+  }
+
+  /**
+   * 表示されたWaveメッセージ数を取得
+   */
+  public getWaveMessageCount(): number {
+    return this.waveMessages.length;
+  }
+
+  /**
    * すべての記録をクリア（テスト用）
    */
   public clearHistory(): void {
     this.displayedMessages = [];
     this.notifications = [];
+    this.waveMessages = [];
+  }
+
+  /**
+   * メッセージ表示設定を更新
+   */
+  public updateSettings(newSettings: Partial<MessageSettings>): void {
+    this.settings = { ...this.settings, ...newSettings };
+  }
+
+  /**
+   * 現在のメッセージ表示設定を取得
+   */
+  public getSettings(): MessageSettings {
+    return { ...this.settings };
   }
 }

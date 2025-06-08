@@ -137,7 +137,7 @@ export class WaveManager {
         });
 
         this.eventEmitter.emit('waveStarted', waveConfig);
-        this.game.showMessage(`Wave ${waveConfig.id}: ${waveConfig.name}`);
+        this.game.showWaveMessage(`Wave ${waveConfig.id}: ${waveConfig.name}`);
     }
 
     private generateFormation(type: FormationType, count: number, offsetX: number, offsetY: number): Vector2D[] {
@@ -282,7 +282,7 @@ export class WaveManager {
         const bonusScore = completedWave.bonusScore * GAME_CONSTANTS.WAVE.CLEAR_BONUS_MULTIPLIER;
         this.eventEmitter.emit('waveCompleted', this.currentWave, bonusScore);
 
-        this.game.showMessage(`Wave ${this.currentWave} Complete! Bonus: ${bonusScore}`);
+        this.game.showWaveMessage(`Wave ${this.currentWave} Complete! Bonus: ${bonusScore}`);
 
         // 次のウェーブまでの遅延
         setTimeout(() => {
