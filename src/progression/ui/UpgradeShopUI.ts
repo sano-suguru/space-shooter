@@ -386,21 +386,17 @@ export class UpgradeShopUI {
     // React統合メソッド
     private async renderReactComponent(): Promise<void> {
         try {
-            // 専用のlazy loaderを使用して動的インポート競合を回避
-            const [
-                { loadReactDependencies, loadUpgradeShop }
-            ] = await Promise.all([
-                import('../../components/ui/lazy/index.js'),
-                import('../../components/ui/lazy/index.js')
-            ]);
+            // React.lazy()システムを使用した高度なコード分割
+            const { 
+                SafeUpgradeShop,
+                ComponentPreloader 
+            } = await import('../../components/ui/lazy/LazyComponents.js');
 
-            const [
-                { createElement, createRoot },
-                UpgradeShop
-            ] = await Promise.all([
-                loadReactDependencies(),
-                loadUpgradeShop()
-            ]);
+            // コンポーネントの事前読み込み（オプション）
+            await ComponentPreloader.preload('upgrade');
+
+            const { createElement } = await import('react');
+            const { createRoot } = await import('react-dom/client');
 
             // React用のコンテナを作成
             if (!this.reactRoot) {
@@ -443,7 +439,7 @@ export class UpgradeShopUI {
                 }
             };
 
-            this.reactRoot.render(createElement(UpgradeShop, upgradeShopProps));
+            this.reactRoot.render(createElement(SafeUpgradeShop, upgradeShopProps));
         } catch (error) {
             console.warn('React rendering failed, falling back to DOMBuilder:', error);
             this.useReact = false;

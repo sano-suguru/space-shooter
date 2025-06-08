@@ -34,21 +34,17 @@ export class ProgressDisplayUI {
 
     private async renderReactComponent(): Promise<void> {
         try {
-            // 専用のlazy loaderを使用して動的インポート競合を回避
-            const [
-                { loadReactDependencies, loadProgressDisplay }
-            ] = await Promise.all([
-                import('../../components/ui/lazy/index.js'),
-                import('../../components/ui/lazy/index.js')
-            ]);
+            // React.lazy()システムを使用した高度なコード分割
+            const { 
+                SafeProgressDisplay,
+                ComponentPreloader 
+            } = await import('../../components/ui/lazy/LazyComponents.js');
 
-            const [
-                { createElement, createRoot },
-                ProgressDisplayComponent
-            ] = await Promise.all([
-                loadReactDependencies(),
-                loadProgressDisplay()
-            ]);
+            // コンポーネントの事前読み込み（オプション）
+            await ComponentPreloader.preload('progress');
+
+            const { createElement } = await import('react');
+            const { createRoot } = await import('react-dom/client');
 
             // 既存のReactルートを破棄
             if (this.reactRoot) {
@@ -67,7 +63,7 @@ export class ProgressDisplayUI {
                 }
             };
 
-            this.reactRoot.render(createElement(ProgressDisplayComponent, props));
+            this.reactRoot.render(createElement(SafeProgressDisplay, props));
         } catch (error) {
             console.warn('React ProgressDisplay loading failed, falling back to DOMBuilder:', error);
             this.useReact = false;
@@ -94,17 +90,17 @@ export class ProgressDisplayUI {
 
         // Progress Header
         const progressHeader = DOM.div('progress-header');
-        
+
         // Player Level Section
         const playerLevel = DOMBuilder.createElement({
             tag: 'div',
             className: 'player-level',
             id: 'player-level'
         });
-        
+
         const levelLabel = DOM.span('level-label', 'Lv.');
         const levelNumber = DOM.span('level-number', '1');
-        
+
         playerLevel.appendChild(levelLabel);
         playerLevel.appendChild(levelNumber);
 
@@ -114,10 +110,10 @@ export class ProgressDisplayUI {
             className: 'player-coins',
             id: 'player-coins'
         });
-        
+
         const coinsIcon = DOM.span('coins-icon', '💰');
         const coinsAmount = DOM.span('coins-amount', '0');
-        
+
         playerCoins.appendChild(coinsIcon);
         playerCoins.appendChild(coinsAmount);
 
@@ -130,7 +126,7 @@ export class ProgressDisplayUI {
             className: 'experience-bar',
             id: 'experience-bar'
         });
-        
+
         const xpLabel = DOM.div('xp-label');
         const xpLabelText = DOM.span('', '経験値');
         const xpText = DOMBuilder.createElement({
@@ -139,10 +135,10 @@ export class ProgressDisplayUI {
             id: 'xp-text',
             textContent: '0 / 100'
         });
-        
+
         xpLabel.appendChild(xpLabelText);
         xpLabel.appendChild(xpText);
-        
+
         const xpBarContainer = DOM.div('xp-bar-container');
         const xpBarFill = DOMBuilder.createElement({
             tag: 'div',
@@ -150,9 +146,9 @@ export class ProgressDisplayUI {
             id: 'xp-bar-fill'
         });
         xpBarFill.style.width = '0%';
-        
+
         xpBarContainer.appendChild(xpBarFill);
-        
+
         experienceBar.appendChild(xpLabel);
         experienceBar.appendChild(xpBarContainer);
 
@@ -162,16 +158,16 @@ export class ProgressDisplayUI {
             className: 'quick-stats',
             id: 'quick-stats'
         });
-        
+
         // High Score Stat
         const highScoreStat = this.createStatItem('🎯', 'ハイスコア', '0', 'high-score');
-        
+
         // Total Games Stat
         const totalGamesStat = this.createStatItem('🎮', '総ゲーム数', '0', 'total-games');
-        
+
         // Enemies Destroyed Stat
         const enemiesStat = this.createStatItem('💥', '敵撃破数', '0', 'enemies-destroyed');
-        
+
         quickStats.appendChild(highScoreStat);
         quickStats.appendChild(totalGamesStat);
         quickStats.appendChild(enemiesStat);
@@ -191,9 +187,9 @@ export class ProgressDisplayUI {
 
     private createStatItem(icon: string, label: string, value: string, valueId: string): HTMLElement {
         const statItem = DOM.div('stat-item');
-        
+
         const statIcon = DOM.span('stat-icon', icon);
-        
+
         const statInfo = DOM.div('stat-info');
         const statLabel = DOM.span('stat-label', label);
         const statValue = DOMBuilder.createElement({
@@ -202,13 +198,13 @@ export class ProgressDisplayUI {
             id: valueId,
             textContent: value
         });
-        
+
         statInfo.appendChild(statLabel);
         statInfo.appendChild(statValue);
-        
+
         statItem.appendChild(statIcon);
         statItem.appendChild(statInfo);
-        
+
         return statItem;
     }
 
@@ -248,7 +244,7 @@ export class ProgressDisplayUI {
 
     private updateDisplay(): void {
         const profile = this.progressManager.getProfile();
-        
+
         // レベル表示更新
         if (this.levelElement) {
             this.levelElement.textContent = profile.level.toString();
@@ -269,13 +265,13 @@ export class ProgressDisplayUI {
     private updateExperienceBar(currentExperience: number): void {
         const profile = this.progressManager.getProfile();
         const currentLevel = profile.level;
-        
+
         // 簡易的なレベル計算（1000 XPごとにレベルアップ）
         const xpForCurrentLevel = (currentLevel - 1) * 1000;
         const xpForNextLevel = currentLevel * 1000;
         const currentLevelXP = currentExperience - xpForCurrentLevel;
         const xpNeededForNext = xpForNextLevel - xpForCurrentLevel;
-        
+
         const percentage = Math.min((currentLevelXP / xpNeededForNext) * 100, 100);
 
         // XPバーの更新
@@ -350,30 +346,30 @@ export class ProgressDisplayUI {
             tag: 'div',
             className: 'level-up-notification'
         });
-        
+
         const notificationContent = DOM.div('notification-content');
-        
+
         const notificationIcon = DOM.div('notification-icon');
         notificationIcon.textContent = '🆙';
-        
+
         const notificationText = DOM.div('notification-text');
-        
+
         const title = DOMBuilder.createElement({
             tag: 'h3',
             textContent: 'レベルアップ！'
         });
-        
+
         const levelMessage = DOM.p('', `レベル ${newLevel}に到達しました！`);
-        
+
         const bonusCoins = DOM.p('bonus-coins', `ボーナス: 💰 ${coinsEarned}`);
-        
+
         notificationText.appendChild(title);
         notificationText.appendChild(levelMessage);
         notificationText.appendChild(bonusCoins);
-        
+
         notificationContent.appendChild(notificationIcon);
         notificationContent.appendChild(notificationText);
-        
+
         notification.appendChild(notificationContent);
 
         this.showNotification(notification, 4000);
@@ -383,12 +379,12 @@ export class ProgressDisplayUI {
         const xpEffect = this.domManager.createElement('div');
         xpEffect.className = 'xp-gained-effect';
         xpEffect.textContent = `+${amount} XP`;
-        
+
         // 経験値バーの近くに表示
         const xpBarContainer = this.container.querySelector('.xp-bar-container');
         if (xpBarContainer) {
             xpBarContainer.appendChild(xpEffect);
-            
+
             setTimeout(() => {
                 xpEffect.remove();
             }, 2000);
@@ -399,12 +395,12 @@ export class ProgressDisplayUI {
         const coinEffect = this.domManager.createElement('div');
         coinEffect.className = 'coins-gained-effect';
         coinEffect.textContent = `+${amount}`;
-        
+
         // コイン表示の近くに表示
         const coinsContainer = this.container.querySelector('#player-coins');
         if (coinsContainer) {
             coinsContainer.appendChild(coinEffect);
-            
+
             setTimeout(() => {
                 coinEffect.remove();
             }, 2000);
@@ -415,7 +411,7 @@ export class ProgressDisplayUI {
         const highScoreElement = this.container.querySelector('#high-score');
         if (highScoreElement) {
             highScoreElement.classList.add('new-high-score');
-            
+
             setTimeout(() => {
                 highScoreElement.classList.remove('new-high-score');
             }, 3000);
@@ -426,27 +422,27 @@ export class ProgressDisplayUI {
             tag: 'div',
             className: 'high-score-notification'
         });
-        
+
         const notificationContent = DOM.div('notification-content');
-        
+
         const notificationIcon = DOM.div('notification-icon');
         notificationIcon.textContent = '🏆';
-        
+
         const notificationText = DOM.div('notification-text');
-        
+
         const title = DOMBuilder.createElement({
             tag: 'h4',
             textContent: '新記録達成！'
         });
-        
+
         const message = DOM.p('', 'ハイスコアを更新しました！');
-        
+
         notificationText.appendChild(title);
         notificationText.appendChild(message);
-        
+
         notificationContent.appendChild(notificationIcon);
         notificationContent.appendChild(notificationText);
-        
+
         notification.appendChild(notificationContent);
 
         this.showNotification(notification, 3000);
@@ -456,7 +452,7 @@ export class ProgressDisplayUI {
         const gameContainer = document.getElementById('game-container');
         if (gameContainer) {
             gameContainer.appendChild(notification);
-            
+
             setTimeout(() => {
                 notification.classList.add('fade-out');
                 setTimeout(() => {
@@ -504,7 +500,7 @@ export class ProgressDisplayUI {
     } {
         const profile = this.progressManager.getProfile();
         const nextLevelXP = profile.level * 1000;
-        
+
         return {
             level: profile.level,
             experience: profile.experience,
