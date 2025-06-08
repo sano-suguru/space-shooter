@@ -10,6 +10,8 @@ export class GameModeSelectorUI {
     private container: HTMLElement;
     private modeListElement: HTMLElement | null = null;
     private currentModeElement: HTMLElement | null = null;
+    private useReact: boolean = true;
+    private reactRoot: any = null;
 
     constructor(
         private domManager: IDOMManager,
@@ -573,5 +575,83 @@ export class GameModeSelectorUI {
 
     public isVisible(): boolean {
         return !this.container.classList.contains('hidden');
+    }
+
+    // React統合メソッド
+    private render(): void {
+        if (this.useReact) {
+            this.renderReactComponent();
+        } else {
+            this.renderWithDOMBuilder();
+        }
+    }
+
+    private async renderReactComponent(): Promise<void> {
+        try {
+            const [
+                { GameModeSelector: GameModeSelectorComponent },
+                { createRoot }
+            ] = await Promise.all([
+                import('../../components/ui/GameModeSelector.js'),
+                import('react-dom/client')
+            ]);
+
+            if (!this.reactRoot) {
+                this.reactRoot = createRoot(this.container);
+            }
+
+            const props = {
+                isVisible: !this.container.classList.contains('hidden'),
+                gameModes: this.gameModeManager.getAllGameModes(),
+                currentMode: this.gameModeManager.getCurrentGameMode(),
+                playerProfile: this.progressManager.getProfile(),
+                onClose: () => this.hide(),
+                onModeSelect: (mode: GameMode) => {
+                    const success = this.gameModeManager.selectGameMode(mode.id);
+                    if (!success) {
+                        this.showModeSelectionError();
+                    }
+                },
+                onModeUnlock: (mode: GameMode) => {
+                    // GameModeManager doesn't have direct unlock functionality
+                    // Modes are unlocked automatically when conditions are met
+                    console.log('モード解除要求:', mode);
+                }
+            };
+
+            const { createElement } = await import('react');
+            this.reactRoot.render(createElement(GameModeSelectorComponent, props));
+        } catch (error) {
+            console.warn('React GameModeSelector loading failed, falling back to DOMBuilder:', error);
+            this.useReact = false;
+            this.renderWithDOMBuilder();
+        }
+    }
+
+    private renderWithDOMBuilder(): void {
+        // 既存のDOMBuilder実装を使用
+        this.updateDisplay();
+        this.setupModeButtons();
+    }
+
+    public setUseReact(useReact: boolean): void {
+        if (this.useReact !== useReact) {
+            this.useReact = useReact;
+            this.render();
+        }
+    }
+
+    // 表示メソッドを React 対応に更新
+    public showReact(): void {
+        this.container.classList.remove('hidden');
+        this.render();
+    }
+
+    public updateDisplayReact(): void {
+        if (this.useReact) {
+            this.renderReactComponent();
+        } else {
+            this.updateDisplay();
+        }
     }
 }

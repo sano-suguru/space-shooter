@@ -160,6 +160,49 @@ export interface AchievementStatsProps extends BaseComponentProps {
 }
 
 /**
+ * ゲームモードセレクターProps
+ */
+export interface GameModeSelectorProps extends BaseComponentProps {
+  isVisible: boolean;
+  gameModes: GameMode[];
+  currentMode: GameMode;
+  playerProfile: PlayerProfile;
+  onClose: () => void;
+  onModeSelect: (mode: GameMode) => void;
+  onModeUnlock?: (mode: GameMode) => void;
+}
+
+/**
+ * ゲームモードアイテムProps
+ */
+export interface GameModeItemProps extends BaseComponentProps {
+  mode: GameMode;
+  isUnlocked: boolean;
+  isCurrent: boolean;
+  stats: {
+    gamesPlayed: number;
+    highScore: number;
+  };
+  onSelect: (mode: GameMode) => void;
+  onUnlock?: (mode: GameMode) => void;
+}
+
+/**
+ * ゲームモード統計Props
+ */
+export interface GameModeStatsProps extends BaseComponentProps {
+  gamesPlayed: number;
+  highScore: number;
+}
+
+/**
+ * ゲームモード修飾子表示Props
+ */
+export interface GameModeModifiersProps extends BaseComponentProps {
+  modifiers: GameMode['modifiers'];
+}
+
+/**
  * アップグレード関連コンポーネントProps（旧型、互換性維持）
  */
 export interface UpgradeComponentProps extends BaseComponentProps {

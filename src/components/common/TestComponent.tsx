@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Button, Card, UpgradeShop, ProgressBar, PlayerStats, AchievementPanel } from '../ui';
+import { Button, Card, UpgradeShop, ProgressBar, PlayerStats, AchievementPanel, GameModeSelector } from '../ui';
 import { Achievement } from '../../progression/types/Achievement';
+import { GameMode } from '../../progression/types/GameMode';
 
 /**
  * React環境動作確認用のテストコンポーネント
@@ -12,6 +13,8 @@ export const TestComponent: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showUpgradeShop, setShowUpgradeShop] = useState(false);
   const [showAchievementPanel, setShowAchievementPanel] = useState(false);
+  const [showGameModeSelector, setShowGameModeSelector] = useState(false);
+  const [currentGameMode, setCurrentGameMode] = useState('normal');
 
   // モックデータ
   const mockPlayerProfile = {
@@ -188,6 +191,75 @@ export const TestComponent: React.FC = () => {
   const handleAchievementSelect = (achievement: Achievement) => {
     console.log('アチーブメント選択:', achievement);
     setMessage(`アチーブメント "${achievement.name}" が選択されました`);
+  };
+
+  // モックゲームモードデータ
+  const mockGameModes: GameMode[] = [
+    {
+      id: 'normal',
+      name: 'ノーマル',
+      description: '標準的な難易度で楽しめます',
+      modifiers: {
+        enemyHealthMultiplier: 1.0,
+        enemySpeedMultiplier: 1.0,
+        enemySpawnRateMultiplier: 1.0,
+        scoreMultiplier: 1.0,
+        coinMultiplier: 1.0,
+        experienceMultiplier: 1.0
+      },
+      rewardMultiplier: 1.0,
+      unlockCondition: () => true
+    },
+    {
+      id: 'hardcore',
+      name: 'ハードコア',
+      description: '敵が強く、緊張感のあるバトル',
+      modifiers: {
+        enemyHealthMultiplier: 1.5,
+        enemySpeedMultiplier: 1.2,
+        enemySpawnRateMultiplier: 1.3,
+        scoreMultiplier: 1.5,
+        coinMultiplier: 1.3,
+        experienceMultiplier: 1.4
+      },
+      rewardMultiplier: 1.5,
+      unlockCondition: (profile) => profile.level >= 5
+    },
+    {
+      id: 'survival',
+      name: 'サバイバル',
+      description: '無限に続く敵の波に耐え抜け',
+      modifiers: {
+        enemyHealthMultiplier: 1.2,
+        enemySpeedMultiplier: 1.1,
+        enemySpawnRateMultiplier: 2.0,
+        scoreMultiplier: 2.0,
+        coinMultiplier: 1.8,
+        experienceMultiplier: 1.6
+      },
+      rewardMultiplier: 2.0,
+      unlockCondition: (profile) => profile.level >= 10
+    }
+  ];
+
+  const handleGameModeSelectorToggle = () => {
+    setShowGameModeSelector(!showGameModeSelector);
+  };
+
+  const handleGameModeSelect = (mode: GameMode) => {
+    console.log('ゲームモード選択:', mode);
+    setCurrentGameMode(mode.id);
+    setMessage(`ゲームモード "${mode.name}" が選択されました`);
+  };
+
+  const handleGameModeUnlock = (mode: GameMode) => {
+    console.log('ゲームモード解除:', mode);
+    setMessage(`ゲームモード "${mode.name}" の解除が試行されました`);
+  };
+
+  // 現在のゲームモードを取得
+  const getCurrentMode = (): GameMode => {
+    return mockGameModes.find(mode => mode.id === currentGameMode) || mockGameModes[0];
   };
 
   return (
@@ -412,6 +484,49 @@ export const TestComponent: React.FC = () => {
         )}
       </Card>
 
+      {/* GameModeSelectorテスト */}
+      <Card
+        title="🎮 ゲームモードセレクターテスト"
+        headerIcon="🕹️"
+        size="medium"
+        style={{ margin: '10px', maxWidth: '600px' }}
+      >
+        <p style={{ marginBottom: '16px', color: '#ccc' }}>
+          Phase 3の第3ターゲット - GameModeSelectorの動作テスト
+        </p>
+        
+        <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#1a1a1a', borderRadius: '6px' }}>
+          <p style={{ color: '#61dafb', fontSize: '14px', margin: '0' }}>
+            現在のモード: <strong>{getCurrentMode().name}</strong>
+          </p>
+        </div>
+        
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+          <Button 
+            variant="info"
+            icon="🎮"
+            onClick={handleGameModeSelectorToggle}
+            size="medium"
+          >
+            {showGameModeSelector ? 'セレクターを閉じる' : 'モード選択を開く'}
+          </Button>
+        </div>
+
+        {showGameModeSelector && (
+          <div style={{ marginTop: '20px', border: '1px solid #333', borderRadius: '8px', padding: '10px' }}>
+            <GameModeSelector
+              isVisible={true}
+              gameModes={mockGameModes}
+              currentMode={getCurrentMode()}
+              playerProfile={mockPlayerProfile}
+              onClose={handleGameModeSelectorToggle}
+              onModeSelect={handleGameModeSelect}
+              onModeUnlock={handleGameModeUnlock}
+            />
+          </div>
+        )}
+      </Card>
+
       {/* Phase 3 完了ステータス */}
       <Card
         title="✅ Phase 3: コンポーネント段階移行"
@@ -421,12 +536,13 @@ export const TestComponent: React.FC = () => {
       >
         <div style={{ display: 'grid', gap: '8px', color: '#4ade80' }}>
           <p>✅ UpgradeShop → React化（完了）</p>
-          <p>🔄 AchievementPanel → React化（進行中）</p>
+          <p>✅ AchievementPanel → React化（完了）</p>
+          <p>🔄 GameModeSelector → React化（進行中）</p>
           <p>✅ 段階的共存アプローチ実装</p>
           <p>✅ 型安全なコンポーネント設計</p>
           <p>✅ HMR対応・開発効率向上</p>
           <p style={{ marginTop: '12px', fontSize: '14px', color: '#ccc' }}>
-            次のステップ: GameModeSelectorUI, ProgressDisplayUIの移行
+            次のステップ: ProgressDisplayUIの移行
           </p>
         </div>
       </Card>

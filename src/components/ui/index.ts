@@ -14,6 +14,10 @@ export { AchievementPanel } from './AchievementPanel';
 export { AchievementItem } from './AchievementItem';
 export { AchievementStats } from './AchievementStats';
 export { AchievementCategoryTabs } from './AchievementCategoryTabs';
+export { GameModeSelector } from './GameModeSelector';
+export { GameModeItem } from './GameModeItem';
+export { GameModeStats } from './GameModeStats';
+export { GameModeModifiers } from './GameModeModifiers';
 
 // 型定義のエクスポート
 export type {
@@ -27,5 +31,9 @@ export type {
   AchievementItemProps,
   AchievementStatsProps,
   AchievementCategoryTabsProps,
-  AchievementCategory
+  AchievementCategory,
+  GameModeSelectorProps,
+  GameModeItemProps,
+  GameModeStatsProps,
+  GameModeModifiersProps
 } from '../../types/react/index';
