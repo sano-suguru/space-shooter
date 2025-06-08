@@ -10,6 +10,10 @@ export { PlayerStats } from './PlayerStats';
 export { CategoryTabs } from './CategoryTabs';
 export { UpgradeItem } from './UpgradeItem';
 export { UpgradeShop } from './UpgradeShop';
+export { AchievementPanel } from './AchievementPanel';
+export { AchievementItem } from './AchievementItem';
+export { AchievementStats } from './AchievementStats';
+export { AchievementCategoryTabs } from './AchievementCategoryTabs';
 
 // 型定義のエクスポート
 export type {
@@ -18,5 +22,10 @@ export type {
   CategoryTabsProps,
   UpgradeItemProps,
   UpgradeShopProps,
-  UpgradeCategory
+  UpgradeCategory,
+  AchievementPanelProps,
+  AchievementItemProps,
+  AchievementStatsProps,
+  AchievementCategoryTabsProps,
+  AchievementCategory
 } from '../../types/react/index';

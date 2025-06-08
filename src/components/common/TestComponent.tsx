@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Button, Card, UpgradeShop, ProgressBar, PlayerStats } from '../ui';
+import { Button, Card, UpgradeShop, ProgressBar, PlayerStats, AchievementPanel } from '../ui';
+import { Achievement } from '../../progression/types/Achievement';
 
 /**
  * React環境動作確認用のテストコンポーネント
@@ -10,6 +11,7 @@ export const TestComponent: React.FC = () => {
   const [message, setMessage] = useState('React + TypeScript 環境が正常に動作しています！');
   const [loading, setLoading] = useState(false);
   const [showUpgradeShop, setShowUpgradeShop] = useState(false);
+  const [showAchievementPanel, setShowAchievementPanel] = useState(false);
 
   // モックデータ
   const mockPlayerProfile = {
@@ -123,6 +125,69 @@ export const TestComponent: React.FC = () => {
     setMessage(`アップグレード "${upgradeId}" の購入を試行しました`);
     // モック購入処理
     return Promise.resolve(true);
+  };
+
+  // モックアチーブメントデータ
+  const mockAchievements: Achievement[] = [
+    {
+      id: 'first-kill',
+      name: '初撃破',
+      description: '初めて敵を撃破する',
+      category: 'combat',
+      difficulty: 'bronze',
+      condition: (profile) => profile.stats.enemiesDestroyed >= 1,
+      reward: { coins: 50, experience: 25 },
+      hidden: false
+    },
+    {
+      id: 'wave-10',
+      name: 'ウェーブ10到達',
+      description: 'ウェーブ10に到達する',
+      category: 'survival',
+      difficulty: 'silver',
+      condition: (profile) => profile.stats.maxWaveReached >= 10,
+      reward: { coins: 100, experience: 50 },
+      hidden: false
+    },
+    {
+      id: 'damage-1000',
+      name: 'ダメージディーラー',
+      description: '累計1000ダメージを与える',
+      category: 'combat',
+      difficulty: 'silver',
+      condition: (profile) => profile.stats.damageDealt >= 1000,
+      reward: { coins: 75, experience: 40 },
+      hidden: false
+    },
+    {
+      id: 'powerup-collector',
+      name: 'コレクター',
+      description: 'パワーアップを20個収集する',
+      category: 'collection',
+      difficulty: 'bronze',
+      condition: (profile) => profile.stats.powerupsCollected >= 20,
+      reward: { coins: 60, experience: 30 },
+      hidden: false
+    },
+    {
+      id: 'marksman',
+      name: 'マークスマン',
+      description: '500発の弾丸を発射する',
+      category: 'mastery',
+      difficulty: 'gold',
+      condition: (profile) => profile.stats.bulletsShot >= 500,
+      reward: { coins: 80, experience: 35 },
+      hidden: false
+    }
+  ];
+
+  const handleAchievementPanelToggle = () => {
+    setShowAchievementPanel(!showAchievementPanel);
+  };
+
+  const handleAchievementSelect = (achievement: Achievement) => {
+    console.log('アチーブメント選択:', achievement);
+    setMessage(`アチーブメント "${achievement.name}" が選択されました`);
   };
 
   return (
@@ -311,6 +376,42 @@ export const TestComponent: React.FC = () => {
         </div>
       </Card>
 
+      {/* AchievementPanelテスト */}
+      <Card
+        title="🏆 アチーブメントパネルテスト"
+        headerIcon="🎖️"
+        size="medium"
+        style={{ margin: '10px', maxWidth: '600px' }}
+      >
+        <p style={{ marginBottom: '16px', color: '#ccc' }}>
+          Phase 3の次のターゲット - AchievementPanelの動作テスト
+        </p>
+        
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+          <Button 
+            variant="warning"
+            icon="🏆"
+            onClick={handleAchievementPanelToggle}
+            size="medium"
+          >
+            {showAchievementPanel ? 'パネルを閉じる' : 'アチーブメントを開く'}
+          </Button>
+        </div>
+
+        {showAchievementPanel && (
+          <div style={{ marginTop: '20px', border: '1px solid #333', borderRadius: '8px', padding: '10px' }}>
+            <AchievementPanel
+              isVisible={true}
+              achievements={mockAchievements}
+              playerProfile={mockPlayerProfile}
+              onClose={handleAchievementPanelToggle}
+              onAchievementSelect={handleAchievementSelect}
+              onCategoryChange={(category) => console.log('アチーブメントカテゴリ変更:', category)}
+            />
+          </div>
+        )}
+      </Card>
+
       {/* Phase 3 完了ステータス */}
       <Card
         title="✅ Phase 3: コンポーネント段階移行"
@@ -320,11 +421,12 @@ export const TestComponent: React.FC = () => {
       >
         <div style={{ display: 'grid', gap: '8px', color: '#4ade80' }}>
           <p>✅ UpgradeShop → React化（完了）</p>
+          <p>🔄 AchievementPanel → React化（進行中）</p>
           <p>✅ 段階的共存アプローチ実装</p>
           <p>✅ 型安全なコンポーネント設計</p>
           <p>✅ HMR対応・開発効率向上</p>
           <p style={{ marginTop: '12px', fontSize: '14px', color: '#ccc' }}>
-            次のステップ: AchievementPanel, GameModeSelectorUI, ProgressDisplayUIの移行
+            次のステップ: GameModeSelectorUI, ProgressDisplayUIの移行
           </p>
         </div>
       </Card>

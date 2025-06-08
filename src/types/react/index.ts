@@ -51,6 +51,11 @@ export interface FormElementProps extends BaseComponentProps {
 export type UpgradeCategory = 'weapon' | 'defense' | 'utility';
 
 /**
+ * アチーブメントカテゴリー型
+ */
+export type AchievementCategory = 'combat' | 'survival' | 'collection' | 'mastery' | 'special';
+
+/**
  * アップグレードショップProps
  */
 export interface UpgradeShopProps extends BaseComponentProps {
@@ -105,6 +110,53 @@ export interface ProgressBarProps extends BaseComponentProps {
   label?: string;
   color?: string;
   showPercentage?: boolean;
+}
+
+/**
+ * アチーブメントパネルProps
+ */
+export interface AchievementPanelProps extends BaseComponentProps {
+  isVisible: boolean;
+  achievements: Achievement[];
+  playerProfile: PlayerProfile;
+  onClose: () => void;
+  onCategoryChange?: (category: AchievementCategory) => void;
+  onAchievementSelect?: (achievement: Achievement) => void;
+}
+
+/**
+ * アチーブメントアイテムProps
+ */
+export interface AchievementItemProps extends BaseComponentProps {
+  achievement: Achievement;
+  isCompleted: boolean;
+  progress?: {
+    current: number;
+    required: number;
+  };
+  onSelect?: (achievement: Achievement) => void;
+}
+
+/**
+ * アチーブメントカテゴリータブProps
+ */
+export interface AchievementCategoryTabsProps extends BaseComponentProps {
+  currentCategory: AchievementCategory;
+  onCategoryChange: (category: AchievementCategory) => void;
+  categories: Array<{
+    id: AchievementCategory;
+    name: string;
+    icon: string;
+  }>;
+}
+
+/**
+ * アチーブメント統計Props
+ */
+export interface AchievementStatsProps extends BaseComponentProps {
+  completedCount: number;
+  totalCount: number;
+  completionPercentage: number;
 }
 
 /**

@@ -5,14 +5,15 @@ import { Achievement } from '../types/Achievement.js';
 import { EventEmitter } from '../../events/EventEmitter.js';
 import { EventMap } from '../../events/EventType.js';
 import { DOMBuilder, DOM } from '../../utils/DOMBuilder.js';
-
-type AchievementCategory = 'combat' | 'survival' | 'collection' | 'mastery' | 'special';
+import { AchievementCategory } from '../../types/react/index.js';
 
 export class AchievementPanel {
     private container: HTMLElement;
     private achievementListElement: HTMLElement | null = null;
     private currentCategory: AchievementCategory = 'combat';
     private statsElement: HTMLElement | null = null;
+    private useReact: boolean = true; // デフォルトでReactを使用
+    private reactRoot: any = null;
 
     constructor(
         private domManager: IDOMManager,
@@ -20,8 +21,73 @@ export class AchievementPanel {
         private progressManager: ProgressManager,
         private eventEmitter: EventEmitter<EventMap>
     ) {
-        this.container = this.createAchievementPanel();
+        this.container = this.createContainer();
         this.setupEventListeners();
+        this.render();
+    }
+
+    private createContainer(): HTMLElement {
+        return DOMBuilder.createElement({
+            tag: 'div',
+            id: 'achievement-panel',
+            className: 'achievement-panel hidden'
+        });
+    }
+
+    private render(): void {
+        if (this.useReact) {
+            this.renderReactComponent();
+        } else {
+            this.renderWithDOMBuilder();
+        }
+    }
+
+    private async renderReactComponent(): Promise<void> {
+        try {
+            // 動的インポートでReactコンポーネントとReactDOMを読み込み
+            const [
+                { AchievementPanel: AchievementPanelComponent },
+                { createRoot }
+            ] = await Promise.all([
+                import('../../components/ui/AchievementPanel.js'),
+                import('react-dom/client')
+            ]);
+
+            // React Rootが未作成の場合は作成
+            if (!this.reactRoot) {
+                this.reactRoot = createRoot(this.container);
+            }
+
+            // プロップスを準備
+            const props = {
+                isVisible: !this.container.classList.contains('hidden'),
+                achievements: this.achievementManager.getDisplayAchievements(false),
+                playerProfile: this.progressManager.getProfile(),
+                onClose: () => this.hide(),
+                onCategoryChange: (category: AchievementCategory) => {
+                    this.currentCategory = category;
+                },
+                onAchievementSelect: (achievement: any) => {
+                    console.log('アチーブメント選択:', achievement);
+                }
+            };
+
+            // Reactコンポーネントをレンダリング
+            const { createElement } = await import('react');
+            this.reactRoot.render(createElement(AchievementPanelComponent, props));
+
+        } catch (error) {
+            console.warn('React AchievementPanel の読み込みに失敗しました。DOMBuilderにフォールバックします:', error);
+            this.useReact = false;
+            this.renderWithDOMBuilder();
+        }
+    }
+
+    private renderWithDOMBuilder(): void {
+        // 既存のDOMBuilder実装を保持
+        this.container.innerHTML = '';
+        const panel = this.createAchievementPanel();
+        this.container.appendChild(panel);
         this.updateDisplay();
     }
 
@@ -433,11 +499,18 @@ export class AchievementPanel {
 
     public show(): void {
         this.container.classList.remove('hidden');
-        this.updateDisplay();
+        if (this.useReact) {
+            this.renderReactComponent();
+        } else {
+            this.updateDisplay();
+        }
     }
 
     public hide(): void {
         this.container.classList.add('hidden');
+        if (this.useReact) {
+            this.renderReactComponent();
+        }
     }
 
     public toggle(): void {
@@ -446,6 +519,23 @@ export class AchievementPanel {
         } else {
             this.hide();
         }
+    }
+
+    /**
+     * React/DOMBuilder間の切り替え（開発・テスト用）
+     */
+    public setUseReact(useReact: boolean): void {
+        if (this.useReact !== useReact) {
+            this.useReact = useReact;
+            this.render();
+        }
+    }
+
+    /**
+     * 現在のレンダリングモードを取得
+     */
+    public getUseReact(): boolean {
+        return this.useReact;
     }
 
     public getElement(): HTMLElement {
