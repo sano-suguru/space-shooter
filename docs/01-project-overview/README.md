@@ -1,4 +1,4 @@
-# Space Shooter 🚀
+# Space Shooter - プロジェクト基本情報 🚀
 
 TypeScriptとHTML5 Canvasで開発された宇宙シューティングゲーム。Clean Architectureとモダンな開発手法を適用したプロダクション品質の実装です。
 
@@ -38,7 +38,7 @@ pnpm dev
 - **Jest** - テストフレームワーク
 - **Clean Architecture** - 保守性・拡張性
 
-## 📊 プロジェクト品質
+## 📊 プロジェクト品質指標
 
 - ✅ **技術負債ゼロ** - 循環依存完全解消
 - ✅ **テストカバレッジ60%** - 233テスト全成功
@@ -46,15 +46,33 @@ pnpm dev
 - ✅ **Clean Architecture** - 責務分離完了
 - ✅ **プロダクション品質** - 安定動作確認済み
 
-## 📚 ドキュメント
+## 📁 現在のプロジェクト構造
 
-詳細なドキュメントは [docs/](docs/) フォルダに体系的に整理されています：
-
-- **[プロジェクト概要](docs/01-project-overview/)** - 基本情報・開発状況
-- **[アーキテクチャ](docs/02-architecture/)** - 技術仕様・パフォーマンス
-- **[開発計画](docs/03-planning/)** - 技術負債・改善計画
-- **[機能設計](docs/04-feature-design/)** - プログレッションシステム
-- **[UI/UX](docs/05-ui-ux/)** - UIライブラリ評価
+```
+src/
+├── core/                    # コアエンジン
+│   ├── Game.ts             # メインゲームクラス
+│   └── GameEngine.ts       # ゲームループ管理
+├── entities/               # ゲームオブジェクト
+│   ├── Player.ts
+│   ├── Enemy.ts
+│   ├── Boss.ts
+│   └── PowerUp.ts
+├── managers/               # システム管理
+│   ├── GameObjectManager.ts
+│   ├── WaveManager.ts
+│   ├── MessageManager.ts
+│   └── UIManager.ts
+├── progression/            # プログレッション機能
+│   ├── managers/
+│   ├── types/
+│   └── ui/
+├── systems/               # システムコンポーネント
+│   └── CollisionSystem.ts
+├── utils/                 # ユーティリティ
+├── interfaces/            # インターフェース定義
+└── components/            # UI コンポーネント
+```
 
 ## 🧪 開発・テスト
 
@@ -69,17 +87,21 @@ pnpm build
 pnpm preview
 ```
 
-## 🛠️ 開発者向け情報
+## 🛠️ 開発者向け技術情報
 
-このプロジェクトは**モダンTypeScript/JavaScriptゲーム開発のベストプラクティス実装例**として設計されています：
-
+### アーキテクチャパターン
 - **Dependency Injection** - テスタブルな設計
 - **Event-Driven Architecture** - 疎結合な通信
 - **Object Pool Pattern** - メモリ効率最適化  
 - **Spatial Hash** - 高速衝突判定
 - **Mock Provider Pattern** - 完全なテスト環境
 
-## 🤝 貢献
+### パフォーマンス最適化
+- **SpatialHash**: O(n²) → O(n) 衝突判定
+- **BackgroundRenderer**: 50%描画コスト削減
+- **ObjectPool**: メモリ使用量最適化
+
+## 🤝 貢献ガイドライン
 
 1. フォーク
 2. フィーチャーブランチ作成 (`git checkout -b feature/amazing-feature`)
@@ -89,8 +111,10 @@ pnpm preview
 
 ## 📄 ライセンス
 
-MIT License - 詳細は [LICENSE](LICENSE) ファイルを参照
+MIT License - 詳細は [LICENSE](../../LICENSE) ファイルを参照
 
 ---
 
-🎯 **高品質なゲーム開発アーキテクチャの学習・参考にご活用ください！**
+**最終更新**: 2025/06/08  
+**このドキュメントは**: プロジェクトの基本情報を提供します  
+**詳細情報**: [ドキュメント索引](../README.md) から関連ドキュメントをご確認ください
