@@ -1,4 +1,3 @@
-import { IDOMManager } from '../../interfaces/IDOMManager.js';
 import { AchievementManager } from '../managers/AchievementManager.js';
 import { ProgressManager } from '../managers/ProgressManager.js';
 import { Achievement } from '../types/Achievement.js';
@@ -16,7 +15,6 @@ export class AchievementPanel {
     private reactRoot: any = null;
 
     constructor(
-        private domManager: IDOMManager,
         private achievementManager: AchievementManager,
         private progressManager: ProgressManager,
         private eventEmitter: EventEmitter<EventMap>

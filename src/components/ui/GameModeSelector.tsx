@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { GameModeSelectorProps } from '../../types/react/index';
 import { GameModeItem } from './GameModeItem';
 import { Button } from './Button';

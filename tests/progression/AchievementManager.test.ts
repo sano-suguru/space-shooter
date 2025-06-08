@@ -368,7 +368,7 @@ describe('AchievementManager', () => {
             mockProfile.totalGamesPlayed = 1;
             achievementManager.updateProfile(mockProfile);
             
-            const results = achievementManager.checkAchievements();
+            achievementManager.checkAchievements();
             
             expect(mockOnAchievementUnlocked).toHaveBeenCalledTimes(1);
             expect(mockOnProfileUpdate).toHaveBeenCalled();

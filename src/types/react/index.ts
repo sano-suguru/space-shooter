@@ -203,6 +203,68 @@ export interface GameModeModifiersProps extends BaseComponentProps {
 }
 
 /**
+ * プログレス表示Props
+ */
+export interface ProgressDisplayProps extends BaseComponentProps {
+  isVisible: boolean;
+  playerProfile: PlayerProfile;
+  onNotificationShow?: (notification: NotificationData) => void;
+}
+
+/**
+ * プログレスヘッダーProps
+ */
+export interface ProgressHeaderProps extends BaseComponentProps {
+  level: number;
+  coins: number;
+}
+
+/**
+ * 経験値バーProps
+ */
+export interface ExperienceBarProps extends BaseComponentProps {
+  currentExperience: number;
+  currentLevel: number;
+  nextLevelXP: number;
+}
+
+/**
+ * クイック統計Props
+ */
+export interface QuickStatsProps extends BaseComponentProps {
+  highScore: number;
+  totalGamesPlayed: number;
+  enemiesDestroyed: number;
+}
+
+/**
+ * 統計アイテムProps
+ */
+export interface StatItemProps extends BaseComponentProps {
+  icon: string;
+  label: string;
+  value: string | number;
+  id?: string;
+}
+
+/**
+ * 通知データ型
+ */
+export interface NotificationData {
+  type: 'levelUp' | 'highScore' | 'experienceGain' | 'coinsEarned';
+  title: string;
+  message: string;
+  icon: string;
+  duration?: number;
+  data?: {
+    level?: number;
+    coinsEarned?: number;
+    experienceGained?: number;
+    newScore?: number;
+  };
+}
+
+/**
  * アップグレード関連コンポーネントProps（旧型、互換性維持）
  */
 export interface UpgradeComponentProps extends BaseComponentProps {

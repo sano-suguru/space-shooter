@@ -1,13 +1,10 @@
 import { Player } from '../../src/entities/Player';
 import { EventEmitter } from '../../src/events/EventEmitter';
-import { MockInputManager } from '../../src/managers/MockInputManager';
-import { MockRandomProvider } from '../../src/providers/MockRandomProvider';
-import { MockTimeProvider } from '../../src/providers/MockTimeProvider';
-import { GAME_CONSTANTS } from '../../src/constants/GameConstants';
-import { PowerUpType } from '../../src/types';
 import { EventMap } from '../../src/events/EventType';
 import { IGameEngine } from '../../src/interfaces/IGameEngine';
-import { BossBullet } from '../../src/entities/BossBullet';
+import { MockInputManager } from '../../src/managers/MockInputManager';
+import { MockRandomProvider } from '../../src/providers/MockRandomProvider';
+import { GAME_CONSTANTS } from '../../src/constants/GameConstants';
 import '../canvas.setup';
 
 // モックGameEngineクラス
@@ -22,7 +19,6 @@ describe('Player', () => {
     let eventEmitter: EventEmitter<EventMap>;
     let mockInputManager: MockInputManager;
     let mockRandomProvider: MockRandomProvider;
-    let mockTimeProvider: MockTimeProvider;
     let mockGameEngine: MockGameEngine;
     let mockCtx: CanvasRenderingContext2D;
 
@@ -30,7 +26,6 @@ describe('Player', () => {
         eventEmitter = new EventEmitter<EventMap>();
         mockInputManager = new MockInputManager();
         mockRandomProvider = new MockRandomProvider();
-        mockTimeProvider = new MockTimeProvider();
         mockGameEngine = new MockGameEngine();
 
         player = new Player(
@@ -65,7 +60,7 @@ describe('Player', () => {
         jest.spyOn(Date, 'now').mockReturnValue(1000);
         
         // setTimeoutのモック - パワーアップ持続時間のため即座に実行しない
-        jest.spyOn(globalThis, 'setTimeout').mockImplementation((callback, delay) => {
+        jest.spyOn(globalThis, 'setTimeout').mockImplementation((_callback, delay) => {
             // パワーアップテスト用にタイマーIDを返すが、実際の実行は手動制御
             return delay as any;
         });
@@ -320,10 +315,10 @@ describe('Player', () => {
             player.activatePowerup('SHIELD');
 
             // シールド状態でダメージを受けない
-            const initialHealth = player.getHealth();
+            const healthBeforeShieldTest = player.getHealth();
             player.takeDamage(10);
 
-            expect(player.getHealth()).toBe(initialHealth);
+            expect(player.getHealth()).toBe(healthBeforeShieldTest);
         });
 
         test('RAPID_FIRE パワーアップ持続効果', () => {
@@ -380,10 +375,10 @@ describe('Player', () => {
         test('activateShield メソッド', () => {
             player.activateShield();
 
-            const initialHealth = player.getHealth();
+            const healthBeforeDamage = player.getHealth();
             player.takeDamage(10);
 
-            expect(player.getHealth()).toBe(initialHealth);
+            expect(player.getHealth()).toBe(healthBeforeDamage);
         });
     });
 
@@ -413,8 +408,6 @@ describe('Player', () => {
         });
 
         test('無敵時間中はダメージを受けない', () => {
-            const initialHealth = player.getHealth();
-
             // 最初のダメージで無敵状態になる
             player.takeDamage(10);
             const healthAfterFirstDamage = player.getHealth();
@@ -443,11 +436,11 @@ describe('Player', () => {
 
         test('シールド状態ではダメージを受けない', () => {
             player.activateShield();
-            const initialHealth = player.getHealth();
+            const healthBeforeShieldedDamage = player.getHealth();
 
             player.takeDamage(10);
 
-            expect(player.getHealth()).toBe(initialHealth);
+            expect(player.getHealth()).toBe(healthBeforeShieldedDamage);
         });
     });
 

@@ -6,7 +6,6 @@ import { PersistenceManager } from './PersistenceManager';
 import { UpgradeManager } from './UpgradeManager';
 import { AchievementManager } from './AchievementManager';
 import { GameModeManager } from './GameModeManager';
-import type { Achievement } from '../types/Achievement';
 import type { GameMode, GameModeModifiers } from '../types/GameMode';
 
 /**
@@ -16,7 +15,6 @@ import type { GameMode, GameModeModifiers } from '../types/GameMode';
 export class ProgressManager extends ScoreManager {
     private profile: PlayerProfile;
     private currentSession: GameSession;
-    private sessionStartTime: number;
     private upgradeManager: UpgradeManager;
     private achievementManager: AchievementManager;
     private gameModeManager: GameModeManager;
@@ -56,7 +54,6 @@ export class ProgressManager extends ScoreManager {
         this.gameModeManager = new GameModeManager(eventEmitter, this.profile);
         
         // セッション初期化
-        this.sessionStartTime = Date.now();
         this.currentSession = this.initializeSession();
         
         // レベルアップ通知の設定
@@ -224,7 +221,6 @@ export class ProgressManager extends ScoreManager {
      * ゲーム開始時の処理
      */
     startGame(): void {
-        this.sessionStartTime = Date.now();
         this.currentSession = this.initializeSession();
         this.eventEmitter.emit('gameStarted');
     }

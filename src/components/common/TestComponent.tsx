@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, Card, UpgradeShop, ProgressBar, PlayerStats, AchievementPanel, GameModeSelector } from '../ui';
+import { Button, Card, UpgradeShop, ProgressBar, PlayerStats, AchievementPanel, GameModeSelector, ProgressDisplay } from '../ui';
 import { Achievement } from '../../progression/types/Achievement';
 import { GameMode } from '../../progression/types/GameMode';
 
@@ -14,6 +14,7 @@ export const TestComponent: React.FC = () => {
   const [showUpgradeShop, setShowUpgradeShop] = useState(false);
   const [showAchievementPanel, setShowAchievementPanel] = useState(false);
   const [showGameModeSelector, setShowGameModeSelector] = useState(false);
+  const [showProgressDisplay, setShowProgressDisplay] = useState(false);
   const [currentGameMode, setCurrentGameMode] = useState('normal');
 
   // モックデータ
@@ -527,6 +528,42 @@ export const TestComponent: React.FC = () => {
         )}
       </Card>
 
+      {/* ProgressDisplayテスト */}
+      <Card
+        title="📊 プログレス表示テスト"
+        headerIcon="📈"
+        size="medium"
+        style={{ margin: '10px', maxWidth: '600px' }}
+      >
+        <p style={{ marginBottom: '16px', color: '#ccc' }}>
+          Phase 3の最終ターゲット - ProgressDisplayの動作テスト
+        </p>
+        
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+          <Button 
+            variant="secondary"
+            icon="📊"
+            onClick={() => setShowProgressDisplay(!showProgressDisplay)}
+            size="medium"
+          >
+            {showProgressDisplay ? '表示を閉じる' : 'プログレス表示を開く'}
+          </Button>
+        </div>
+
+        {showProgressDisplay && (
+          <div style={{ marginTop: '20px', border: '1px solid #333', borderRadius: '8px', padding: '10px' }}>
+            <ProgressDisplay
+              isVisible={true}
+              playerProfile={mockPlayerProfile}
+              onNotificationShow={(notification) => {
+                console.log('通知表示:', notification);
+                setMessage(`通知: ${notification.title} - ${notification.message}`);
+              }}
+            />
+          </div>
+        )}
+      </Card>
+
       {/* Phase 3 完了ステータス */}
       <Card
         title="✅ Phase 3: コンポーネント段階移行"
@@ -537,12 +574,13 @@ export const TestComponent: React.FC = () => {
         <div style={{ display: 'grid', gap: '8px', color: '#4ade80' }}>
           <p>✅ UpgradeShop → React化（完了）</p>
           <p>✅ AchievementPanel → React化（完了）</p>
-          <p>🔄 GameModeSelector → React化（進行中）</p>
+          <p>✅ GameModeSelector → React化（完了）</p>
+          <p>🔄 ProgressDisplay → React化（進行中）</p>
           <p>✅ 段階的共存アプローチ実装</p>
           <p>✅ 型安全なコンポーネント設計</p>
           <p>✅ HMR対応・開発効率向上</p>
           <p style={{ marginTop: '12px', fontSize: '14px', color: '#ccc' }}>
-            次のステップ: ProgressDisplayUIの移行
+            Phase 3の最終段階：全コンポーネントReact化完了間近
           </p>
         </div>
       </Card>

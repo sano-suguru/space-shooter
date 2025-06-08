@@ -245,7 +245,7 @@ export const ACHIEVEMENTS: Achievement[] = [
         description: '完璧なゲームを達成（15ウェーブノーダメージ）',
         category: 'mastery',
         difficulty: 'platinum',
-        condition: (profile, session) => session ? session.perfectWaves >= 15 : false,
+        condition: (_profile, session) => session ? session.perfectWaves >= 15 : false,
         reward: { coins: 5000, experience: 2500 },
         hidden: true
     },
@@ -255,7 +255,7 @@ export const ACHIEVEMENTS: Achievement[] = [
         description: '1時間以内でウェーブ10に到達する',
         category: 'mastery',
         difficulty: 'platinum',
-        condition: (profile, session) => {
+        condition: (_profile, session) => {
             return session ? (session.waveReached >= 10 && session.playTime <= 3600) : false;
         },
         reward: { coins: 7500, experience: 3000 },

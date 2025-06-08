@@ -3,13 +3,12 @@
  * 文字列HTML生成からタイプセーフなDOM構築への移行例
  */
 
-import { IDOMManager } from '../../../interfaces/IDOMManager.js';
 import { UpgradeManager } from '../../managers/UpgradeManager.js';
 import { ProgressManager } from '../../managers/ProgressManager.js';
 import { UpgradeConfig } from '../../types/Upgrade.js';
 import { EventEmitter } from '../../../events/EventEmitter.js';
 import { EventMap } from '../../../events/EventType.js';
-import { DOMBuilder, DOM } from '../../../utils/DOMBuilder.js';
+import { DOM } from '../../../utils/DOMBuilder.js';
 
 type UpgradeCategory = 'weapon' | 'defense' | 'utility';
 
@@ -20,7 +19,6 @@ export class ImprovedUpgradeShopUI {
     private currentCategory: UpgradeCategory = 'weapon';
 
     constructor(
-        private domManager: IDOMManager,
         private upgradeManager: UpgradeManager,
         private progressManager: ProgressManager,
         private eventEmitter: EventEmitter<EventMap>

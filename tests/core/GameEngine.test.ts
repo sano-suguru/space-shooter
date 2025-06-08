@@ -25,7 +25,7 @@ describe('GameEngine', () => {
 
         // アニメーションフレームIDを設定（連続的なIDを返すようにする）
         let frameId = 1;
-        mockRequestAnimationFrame.mockImplementation((callback: Function) => {
+        mockRequestAnimationFrame.mockImplementation((_callback: Function) => {
             return frameId++;
         });
     });

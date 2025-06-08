@@ -242,17 +242,22 @@ describe('GameObjectManager', () => {
       expect(bossBulletUpdateSpy).toHaveBeenCalledWith(16);
     });
 
-    test('プール付きオブジェクトも正常に更新される', () => {
-      const bullet = gameObjectManager.createBullet(100, 100);
+        test('プール付きオブジェクトも正常に更新される', () => {
+            const bullet = gameObjectManager.createBullet(100, 100);
 
-      if (bullet) {
-        const bulletUpdateSpy = jest.spyOn(bullet, 'update');
+            if (bullet) {
+                const bulletUpdateSpy = jest.spyOn(bullet, 'update');
 
-        gameObjectManager.updateAllObjects(16);
+                gameObjectManager.updateAllObjects(16);
 
-        expect(bulletUpdateSpy).toHaveBeenCalledWith(16);
-      }
-    });
+                expect(bulletUpdateSpy).toHaveBeenCalledWith(16);
+            } else {
+                // 弾丸が作成されなかった場合、少なくともエラーが発生しないことを確認
+                expect(() => {
+                    gameObjectManager.updateAllObjects(16);
+                }).not.toThrow();
+            }
+        });
   });
 
   describe('衝突判定用オブジェクト取得', () => {
@@ -293,7 +298,9 @@ describe('GameObjectManager', () => {
       const enemy = new Enemy(100, 100);
       const powerUp = new PowerUp(200, 200);
       const boss = new Boss(mockGameEngine);
-      const bullet = gameObjectManager.createBullet(100, 100);
+      
+      // 弾丸を作成してプールをテスト
+      gameObjectManager.createBullet(100, 100);
 
       gameObjectManager.addEnemy(enemy);
       gameObjectManager.addPowerUp(powerUp);
@@ -367,9 +374,11 @@ describe('GameObjectManager', () => {
       for (let iteration = 0; iteration < 10; iteration++) {
         // オブジェクト作成
         const enemies = Array.from({ length: 20 }, (_, i) => new Enemy(i * 10, 100));
-        const bullets = Array.from({ length: 30 }, (_, i) =>
-          gameObjectManager.createBullet(i * 10, 100)
-        ).filter((bullet): bullet is Bullet => bullet !== null);
+        
+        // 弾丸を作成（プールテスト用）
+        for (let i = 0; i < 30; i++) {
+          gameObjectManager.createBullet(i * 10, 100);
+        }
 
         enemies.forEach(enemy => gameObjectManager.addEnemy(enemy));
 

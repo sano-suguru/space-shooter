@@ -9,15 +9,72 @@ export class ProgressDisplayUI {
     private levelElement: HTMLElement | null = null;
     private xpBarElement: HTMLElement | null = null;
     private coinsElement: HTMLElement | null = null;
-    private statsElement: HTMLElement | null = null;
+    private useReact: boolean = true; // Default to React
+    private reactRoot: any = null;
 
     constructor(
         private domManager: IDOMManager,
         private progressManager: ProgressManager,
         private eventEmitter: EventEmitter<EventMap>
     ) {
-        this.container = this.createProgressDisplay();
+        this.container = this.domManager.createElement('div');
+        this.container.id = 'progress-display';
+        this.container.className = 'progress-display';
         this.setupEventListeners();
+        this.render();
+    }
+
+    private render(): void {
+        if (this.useReact) {
+            this.renderReactComponent();
+        } else {
+            this.renderWithDOMBuilder();
+        }
+    }
+
+    private async renderReactComponent(): Promise<void> {
+        try {
+            const [
+                { ProgressDisplay: ProgressDisplayComponent },
+                { createRoot }
+            ] = await Promise.all([
+                import('../../components/ui/ProgressDisplay.js'),
+                import('react-dom/client')
+            ]);
+
+            // 既存のReactルートを破棄
+            if (this.reactRoot) {
+                this.reactRoot.unmount();
+            }
+
+            // 新しいReactルートを作成
+            this.reactRoot = createRoot(this.container);
+
+            const props = {
+                isVisible: !this.container.classList.contains('hidden'),
+                playerProfile: this.progressManager.getProfile(),
+                onNotificationShow: (notification: any) => {
+                    // 通知表示のハンドリング（必要に応じて実装）
+                    console.log('Notification:', notification);
+                }
+            };
+
+            const { createElement } = await import('react');
+            this.reactRoot.render(createElement(ProgressDisplayComponent, props));
+        } catch (error) {
+            console.warn('React ProgressDisplay loading failed, falling back to DOMBuilder:', error);
+            this.useReact = false;
+            this.renderWithDOMBuilder();
+        }
+    }
+
+    private renderWithDOMBuilder(): void {
+        // 既存のDOMBuilder実装を使用
+        this.container.innerHTML = '';
+        const display = this.createProgressDisplay();
+        while (display.firstChild) {
+            this.container.appendChild(display.firstChild);
+        }
         this.updateDisplay();
     }
 
@@ -121,7 +178,6 @@ export class ProgressDisplayUI {
         this.levelElement = levelNumber;
         this.xpBarElement = xpBarFill;
         this.coinsElement = coinsAmount;
-        this.statsElement = quickStats;
 
         return display;
     }

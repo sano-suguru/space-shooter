@@ -10,7 +10,6 @@ import { getElementOrThrow } from './utils/DOMUtils';
 import { RealRandomProvider, RealTimeProvider } from './providers';
 import { InputManager, DOMManager, MessageManager } from './managers';
 import { ProgressManager } from './progression/managers/ProgressManager';
-import { PersistenceManager } from './progression/managers/PersistenceManager';
 
 // React関連のインポート
 import React from 'react';

@@ -11,7 +11,6 @@ import { MockRandomProvider, MockTimeProvider } from '../src/providers';
 describe('Game', () => {
   let game: Game;
   let mockCanvas: HTMLCanvasElement;
-  let mockContext: CanvasRenderingContext2D;
   let eventEmitter: EventEmitter<EventMap>;
   let scoreManager: ScoreManager;
   let player: Player;
@@ -28,7 +27,6 @@ describe('Game', () => {
     mockCanvas = document.createElement('canvas');
     mockCanvas.width = 400;
     mockCanvas.height = 600;
-    mockContext = mockCanvas.getContext('2d') as CanvasRenderingContext2D;
 
     // 依存関係のモック作成
     eventEmitter = new EventEmitter<EventMap>();

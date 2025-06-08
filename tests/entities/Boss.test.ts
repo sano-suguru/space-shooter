@@ -22,12 +22,10 @@ class MockGameEngine {
 describe('Boss', () => {
     let boss: Boss;
     let mockGameEngine: MockGameEngine;
-    let mockCanvas: HTMLCanvasElement;
     let mockContext: CanvasRenderingContext2D;
 
     beforeEach(() => {
         // Canvas contextのモック
-        mockCanvas = document.createElement('canvas');
         mockContext = {
             save: jest.fn(),
             restore: jest.fn(),

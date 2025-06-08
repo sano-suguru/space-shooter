@@ -51,7 +51,6 @@ export class ProgressionUIManager {
         );
 
         this.achievementPanel = new AchievementPanel(
-            this.domManager,
             this.progressManager.getAchievementManager(),
             this.progressManager,
             this.eventEmitter

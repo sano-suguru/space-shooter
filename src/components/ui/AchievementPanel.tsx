@@ -71,7 +71,7 @@ export const AchievementPanel: React.FC<AchievementPanelProps> = ({
   };
 
   // プログレス情報取得（仮実装 - 実際のプログレスマネージャーから取得）
-  const getAchievementProgress = (achievementId: string) => {
+  const getAchievementProgress = (_achievementId: string) => {
     // TODO: 実際のプログレスマネージャーからプログレス情報を取得
     // 現在は仮のプログレス値を返す
     const mockProgress = {

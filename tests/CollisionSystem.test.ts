@@ -356,7 +356,6 @@ describe('CollisionSystem', () => {
 
     test('空間分割グリッドが適切に機能する', () => {
       // 64x64セルグリッドの異なるセルにオブジェクトを配置
-      const cellSize = 64;
       const enemy1 = new Enemy(32, 32, 'SMALL', mockGameEngine);   // セル(0,0)
       const enemy2 = new Enemy(96, 32, 'SMALL', mockGameEngine);   // セル(1,0)
       const bullet = new Bullet();

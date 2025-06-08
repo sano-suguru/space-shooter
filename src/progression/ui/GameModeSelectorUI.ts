@@ -328,62 +328,6 @@ export class GameModeSelectorUI {
         });
     }
 
-    private getModifiersText(mode: GameMode): string {
-        const modifiers = [];
-
-        if (mode.modifiers.enemyHealthMultiplier !== 1) {
-            const percentage = Math.round(mode.modifiers.enemyHealthMultiplier * 100);
-            modifiers.push(`敵体力: ${percentage}%`);
-        }
-
-        if (mode.modifiers.enemySpeedMultiplier !== 1) {
-            const percentage = Math.round(mode.modifiers.enemySpeedMultiplier * 100);
-            modifiers.push(`敵速度: ${percentage}%`);
-        }
-
-        if (mode.modifiers.enemySpawnRateMultiplier !== 1) {
-            const percentage = Math.round(mode.modifiers.enemySpawnRateMultiplier * 100);
-            modifiers.push(`敵出現率: ${percentage}%`);
-        }
-
-        if (mode.modifiers.scoreMultiplier !== 1) {
-            const percentage = Math.round(mode.modifiers.scoreMultiplier * 100);
-            modifiers.push(`スコア: ${percentage}%`);
-        }
-
-        if (mode.modifiers.coinMultiplier !== 1) {
-            const percentage = Math.round(mode.modifiers.coinMultiplier * 100);
-            modifiers.push(`コイン: ${percentage}%`);
-        }
-
-        if (mode.modifiers.experienceMultiplier !== 1) {
-            const percentage = Math.round(mode.modifiers.experienceMultiplier * 100);
-            modifiers.push(`経験値: ${percentage}%`);
-        }
-
-        return modifiers.length > 0 ?
-            `<ul>${modifiers.map(mod => `<li>${mod}</li>`).join('')}</ul>` :
-            '<p>標準設定</p>';
-    }
-
-    private createModeButton(mode: GameMode, isUnlocked: boolean, isCurrent: boolean): string {
-        if (!isUnlocked) {
-            const profile = this.progressManager.getProfile();
-            const canUnlock = mode.unlockCondition(profile);
-
-            if (canUnlock) {
-                return `<button class="unlock-button" data-mode-id="${mode.id}">解除する</button>`;
-            } else {
-                return `<div class="unlock-requirement">解除条件: ${this.getUnlockRequirementText(mode)}</div>`;
-            }
-        }
-
-        if (isCurrent) {
-            return `<button class="select-button current" disabled>選択中</button>`;
-        }
-
-        return `<button class="select-button" data-mode-id="${mode.id}">選択する</button>`;
-    }
 
     private getUnlockRequirementText(mode: GameMode): string {
         // 実際の解除条件に基づいてテキストを生成
@@ -434,7 +378,7 @@ export class GameModeSelectorUI {
         }
     }
 
-    private unlockMode(modeId: string): void {
+    private unlockMode(_modeId: string): void {
         // GameModeManager doesn't have direct unlock functionality
         // Modes are unlocked automatically when conditions are met
         this.showModeUnlockError();
@@ -522,12 +466,6 @@ export class GameModeSelectorUI {
         this.showNotification(notification);
     }
 
-    private showModeUnlockSuccess(): void {
-        const notification = this.domManager.createElement('div');
-        notification.className = 'mode-feedback success';
-        notification.textContent = 'モードを解除しました！';
-        this.showNotification(notification);
-    }
 
     private showModeUnlockError(): void {
         const notification = this.domManager.createElement('div');

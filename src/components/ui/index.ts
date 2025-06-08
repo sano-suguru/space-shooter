@@ -18,6 +18,11 @@ export { GameModeSelector } from './GameModeSelector';
 export { GameModeItem } from './GameModeItem';
 export { GameModeStats } from './GameModeStats';
 export { GameModeModifiers } from './GameModeModifiers';
+export { ProgressDisplay } from './ProgressDisplay';
+export { ProgressHeader } from './ProgressHeader';
+export { ExperienceBar } from './ExperienceBar';
+export { QuickStats } from './QuickStats';
+export { StatItem } from './StatItem';
 
 // 型定義のエクスポート
 export type {
@@ -35,5 +40,11 @@ export type {
   GameModeSelectorProps,
   GameModeItemProps,
   GameModeStatsProps,
-  GameModeModifiersProps
+  GameModeModifiersProps,
+  ProgressDisplayProps,
+  ProgressHeaderProps,
+  ExperienceBarProps,
+  QuickStatsProps,
+  StatItemProps,
+  NotificationData
 } from '../../types/react/index';

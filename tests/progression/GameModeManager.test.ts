@@ -2,12 +2,17 @@ import { GameModeManager } from '../../src/progression/managers/GameModeManager'
 import { EventEmitter } from '../../src/events/EventEmitter';
 import { EventMap } from '../../src/events/EventType';
 import { PlayerProfile } from '../../src/progression/types/PlayerProfile';
-import { GameMode } from '../../src/progression/types/GameMode';
 
 // モックのLocalStorage実装
-const mockLocalStorage = {
+const mockLocalStorage: {
+    store: Record<string, string>;
+    getItem: jest.MockedFunction<(key: string) => string | null>;
+    setItem: jest.MockedFunction<(key: string, value: string) => void>;
+    removeItem: jest.MockedFunction<(key: string) => void>;
+    clear: jest.MockedFunction<() => void>;
+} = {
     store: {} as Record<string, string>,
-    getItem: jest.fn((key: string) => mockLocalStorage.store[key] || null),
+    getItem: jest.fn((key: string): string | null => mockLocalStorage.store[key] || null),
     setItem: jest.fn((key: string, value: string) => {
         mockLocalStorage.store[key] = value;
     }),
