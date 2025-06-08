@@ -555,6 +555,7 @@ export const TestComponent: React.FC = () => {
             <ProgressDisplay
               isVisible={true}
               playerProfile={mockPlayerProfile}
+              onClose={() => setShowProgressDisplay(false)}
               onNotificationShow={(notification) => {
                 console.log('通知表示:', notification);
                 setMessage(`通知: ${notification.title} - ${notification.message}`);

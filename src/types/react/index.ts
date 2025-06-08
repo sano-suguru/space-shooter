@@ -208,6 +208,7 @@ export interface GameModeModifiersProps extends BaseComponentProps {
 export interface ProgressDisplayProps extends BaseComponentProps {
   isVisible: boolean;
   playerProfile: PlayerProfile;
+  onClose: () => void;
   onNotificationShow?: (notification: NotificationData) => void;
 }
 

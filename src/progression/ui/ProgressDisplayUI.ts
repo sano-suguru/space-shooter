@@ -57,6 +57,7 @@ export class ProgressDisplayUI {
             const props = {
                 isVisible: !this.container.classList.contains('hidden'),
                 playerProfile: this.progressManager.getProfile(),
+                onClose: () => this.hide(),
                 onNotificationShow: (notification: any) => {
                     // 通知表示のハンドリング（必要に応じて実装）
                     console.log('Notification:', notification);
