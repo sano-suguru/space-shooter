@@ -3,7 +3,6 @@ import { Game } from './core/Game';
 import { GameStateManager } from './managers/GameStateManager';
 import { ScoreManager } from './managers/ScoreManager';
 import { UIManager } from './managers/UIManager';
-import { ProgressionUIManager } from './managers/ProgressionUIManager';
 import { ReactLazyUIManager } from './managers/ReactLazyUIManager';
 import { Player } from './entities/Player';
 import { EventEmitter } from './events/EventEmitter';
@@ -37,8 +36,6 @@ function initGame(): void {
     const scoreElement = getElementOrThrow<HTMLElement>('scoreValue');
     new UIManager(eventEmitter, scoreElement, levelElement, healthElement, healthBarElement, gameOverElement);
 
-    // プログレッションUIManagerを初期化（従来版）
-    new ProgressionUIManager(eventEmitter, domManager, progressManager);
     
     // React.lazy()システムを統合したUIManagerを初期化
     const reactLazyUIManager = new ReactLazyUIManager(eventEmitter, progressManager);

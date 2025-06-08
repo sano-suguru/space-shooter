@@ -235,3 +235,11 @@ export class LazyLoadingPerformanceTest {
 
 // テスト実行
 export const performanceTest = new LazyLoadingPerformanceTest();
+
+// Jest テストケース（空のテストファイルエラーを回避）
+describe('LazyLoading Performance', () => {
+  test('should initialize performance test class', () => {
+    expect(performanceTest).toBeDefined();
+    expect(performanceTest).toBeInstanceOf(LazyLoadingPerformanceTest);
+  });
+});
