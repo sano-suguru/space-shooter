@@ -9,16 +9,16 @@ export { ProgressBar } from './ProgressBar';
 export { PlayerStats } from './PlayerStats';
 export { CategoryTabs } from './CategoryTabs';
 export { UpgradeItem } from './UpgradeItem';
-export { UpgradeShop } from './UpgradeShop';
-export { AchievementPanel } from './AchievementPanel';
+// export { UpgradeShop } from './UpgradeShop'; // React.lazy()で動的インポートするためコメントアウト
+// export { AchievementPanel } from './AchievementPanel'; // React.lazy()で動的インポートするためコメントアウト
 export { AchievementItem } from './AchievementItem';
 export { AchievementStats } from './AchievementStats';
 export { AchievementCategoryTabs } from './AchievementCategoryTabs';
-export { GameModeSelector } from './GameModeSelector';
+// export { GameModeSelector } from './GameModeSelector'; // React.lazy()で動的インポートするためコメントアウト
 export { GameModeItem } from './GameModeItem';
 export { GameModeStats } from './GameModeStats';
 export { GameModeModifiers } from './GameModeModifiers';
-export { ProgressDisplay } from './ProgressDisplay';
+// export { ProgressDisplay } from './ProgressDisplay'; // React.lazy()で動的インポートするためコメントアウト
 export { ProgressHeader } from './ProgressHeader';
 export { ExperienceBar } from './ExperienceBar';
 export { QuickStats } from './QuickStats';
