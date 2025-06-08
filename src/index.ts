@@ -12,10 +12,6 @@ import { RealRandomProvider, RealTimeProvider } from './providers';
 import { InputManager, DOMManager, MessageManager } from './managers';
 import { ProgressManager } from './progression/managers/ProgressManager';
 
-// React関連のインポート
-import React from 'react';
-import { createRoot } from 'react-dom/client';
-import TestComponent from './components/common/TestComponent';
 
 function initGame(): void {
     const canvas = getElementOrThrow<HTMLCanvasElement>('gameCanvas');
@@ -44,9 +40,9 @@ function initGame(): void {
     // プログレッションUIManagerを初期化（従来版）
     new ProgressionUIManager(eventEmitter, domManager, progressManager);
     
-    // React.lazy()システムを統合したUIManagerを初期化（Phase 4.4テスト）
+    // React.lazy()システムを統合したUIManagerを初期化
     const reactLazyUIManager = new ReactLazyUIManager(eventEmitter, progressManager);
-    console.log('🚀 ReactLazyUIManager initialized for Phase 4.4 testing');
+    console.log('🚀 ReactLazyUIManager initialized with code splitting');
     console.log('Active UI Manager:', reactLazyUIManager.getActiveUI());
 
     const game = new Game(
@@ -66,23 +62,9 @@ function initGame(): void {
     game.start();
 }
 
-function initReact(): void {
-    // React環境テスト用コンポーネントのレンダリング
-    try {
-        const reactContainer = document.getElementById('react-test-container');
-        if (reactContainer) {
-            const root = createRoot(reactContainer);
-            root.render(React.createElement(TestComponent));
-            console.log('✅ React環境が正常に初期化されました');
-        }
-    } catch (error) {
-        console.error('❌ React初期化エラー:', error);
-    }
-}
 
 function initApplication(): void {
-    initGame();    // 既存のゲーム初期化
-    initReact();   // React環境初期化
+    initGame();    // ゲーム初期化（React.lazy()システム統合済み）
 }
 
 document.addEventListener('DOMContentLoaded', initApplication);
