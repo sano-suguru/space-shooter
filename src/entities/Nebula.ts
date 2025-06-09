@@ -1,49 +1,432 @@
 import { GAME_CONSTANTS } from "../constants/GameConstants";
 
+type NebulaType = 'emission' | 'reflection' | 'dark' | 'supernova-remnant' | 'planetary' | 'spiral';
+
+interface NebulaLayer {
+    width: number;
+    height: number;
+    color: string;
+    opacity: number;
+    rotation: number;
+    rotationSpeed: number;
+}
+
+interface NebulaParticle {
+    x: number;
+    y: number;
+    radius: number;
+    alpha: number;
+    color: string;
+    glowIntensity: number;
+    twinkleSpeed: number;
+    twinklePhase: number;
+}
+
+interface EnergyFilament {
+    points: Array<{ x: number; y: number }>;
+    color: string;
+    opacity: number;
+    thickness: number;
+    energy: number;
+}
+
 export class Nebula {
     private x: number;
     private y: number;
     private width: number;
     private height: number;
-    private color: string;
-    private particles: Array<{ x: number; y: number; radius: number; alpha: number }>;
+    private nebulaType: NebulaType;
+    private primaryColor!: string;
+    private secondaryColor!: string;
+    private layers: NebulaLayer[];
+    private particles: NebulaParticle[];
+    private filaments: EnergyFilament[];
+    private coreIntensity: number;
+    private pulsationPhase: number;
+    private pulsationSpeed: number;
+    private swirlingSpeed: number;
+    private energyLevel: number;
 
     constructor() {
         this.x = Math.random() * GAME_CONSTANTS.CANVAS.WIDTH;
         this.y = Math.random() * GAME_CONSTANTS.CANVAS.HEIGHT;
-        this.width = Math.random() * 200 + 100;
-        this.height = Math.random() * 200 + 100;
-        this.color = `hsla(${Math.random() * 360}, 70%, 50%, 0.2)`;
+        this.width = Math.random() * 300 + 150;
+        this.height = Math.random() * 300 + 150;
+        this.nebulaType = this.generateNebulaType();
+        this.generateNebulaColors();
+        this.coreIntensity = Math.random() * 0.6 + 0.4;
+        this.pulsationPhase = Math.random() * Math.PI * 2;
+        this.pulsationSpeed = Math.random() * 0.002 + 0.001;
+        this.swirlingSpeed = Math.random() * 0.001 + 0.0005;
+        this.energyLevel = Math.random() * 0.8 + 0.2;
+        
+        this.layers = this.generateLayers();
         this.particles = this.generateParticles();
+        this.filaments = this.generateFilaments();
     }
 
-    private generateParticles(): Array<{ x: number; y: number; radius: number; alpha: number }> {
-        return Array(50).fill(null).map(() => ({
-            x: (Math.random() - 0.5) * this.width,
-            y: (Math.random() - 0.5) * this.height,
-            radius: Math.random() * 3 + 1,
-            alpha: Math.random() * 0.5 + 0.2
-        }));
+    private generateNebulaType(): NebulaType {
+        const types: NebulaType[] = ['emission', 'reflection', 'dark', 'supernova-remnant', 'planetary', 'spiral'];
+        return types[Math.floor(Math.random() * types.length)];
+    }
+
+    private generateNebulaColors(): void {
+        switch (this.nebulaType) {
+            case 'emission':
+                this.primaryColor = `hsl(${Math.random() * 30 + 340}, 90%, 60%)`; // 赤系
+                this.secondaryColor = `hsl(${Math.random() * 60 + 280}, 70%, 70%)`; // 紫系
+                break;
+            case 'reflection':
+                this.primaryColor = `hsl(${Math.random() * 60 + 200}, 80%, 70%)`; // 青系
+                this.secondaryColor = `hsl(${Math.random() * 40 + 180}, 60%, 80%)`; // 青白系
+                break;
+            case 'dark':
+                this.primaryColor = `hsl(${Math.random() * 60 + 20}, 30%, 20%)`; // 暗い茶色
+                this.secondaryColor = `hsl(${Math.random() * 40 + 0}, 40%, 30%)`; // 暗い赤茶
+                break;
+            case 'supernova-remnant':
+                this.primaryColor = `hsl(${Math.random() * 60 + 0}, 100%, 60%)`; // 赤オレンジ
+                this.secondaryColor = `hsl(${Math.random() * 60 + 40}, 90%, 70%)`; // 黄色
+                break;
+            case 'planetary':
+                this.primaryColor = `hsl(${Math.random() * 60 + 160}, 90%, 60%)`; // 青緑
+                this.secondaryColor = `hsl(${Math.random() * 60 + 200}, 80%, 80%)`; // 明るい青
+                break;
+            case 'spiral':
+                this.primaryColor = `hsl(${Math.random() * 60 + 270}, 70%, 60%)`; // 紫系
+                this.secondaryColor = `hsl(${Math.random() * 60 + 300}, 80%, 70%)`; // ピンク系
+                break;
+        }
+    }
+
+    private generateLayers(): NebulaLayer[] {
+        const layerCount = Math.floor(Math.random() * 4) + 3;
+        const layers: NebulaLayer[] = [];
+        
+        for (let i = 0; i < layerCount; i++) {
+            const scale = 1 - (i * 0.15);
+            layers.push({
+                width: this.width * scale,
+                height: this.height * scale,
+                color: i % 2 === 0 ? this.primaryColor : this.secondaryColor,
+                opacity: (0.6 - i * 0.1) * this.coreIntensity,
+                rotation: Math.random() * Math.PI * 2,
+                rotationSpeed: (Math.random() - 0.5) * this.swirlingSpeed
+            });
+        }
+        
+        return layers;
+    }
+
+    private generateParticles(): NebulaParticle[] {
+        const particleCount = Math.floor(Math.random() * 200) + 100;
+        const particles: NebulaParticle[] = [];
+        
+        for (let i = 0; i < particleCount; i++) {
+            // より自然な分布を作成（ガウシアン分布に近い）
+            const distance = this.generateGaussianRandom() * Math.min(this.width, this.height) * 0.4;
+            const angle = Math.random() * Math.PI * 2;
+            
+            particles.push({
+                x: Math.cos(angle) * distance,
+                y: Math.sin(angle) * distance,
+                radius: Math.random() * 4 + 0.5,
+                alpha: Math.random() * 0.8 + 0.2,
+                color: Math.random() < 0.7 ? this.primaryColor : this.secondaryColor,
+                glowIntensity: Math.random() * 0.5 + 0.3,
+                twinkleSpeed: Math.random() * 0.005 + 0.002,
+                twinklePhase: Math.random() * Math.PI * 2
+            });
+        }
+        
+        return particles;
+    }
+
+    private generateFilaments(): EnergyFilament[] {
+        if (this.nebulaType === 'dark') return []; // 暗黒星雲にはフィラメントなし
+        
+        const filamentCount = Math.floor(Math.random() * 8) + 3;
+        const filaments: EnergyFilament[] = [];
+        
+        for (let i = 0; i < filamentCount; i++) {
+            const points: Array<{ x: number; y: number }> = [];
+            const segments = Math.floor(Math.random() * 8) + 5;
+            
+            // 螺旋状または波状のフィラメント生成
+            const baseAngle = (i / filamentCount) * Math.PI * 2;
+            const amplitude = Math.random() * 50 + 20;
+            
+            for (let j = 0; j < segments; j++) {
+                const t = j / (segments - 1);
+                const radius = (Math.random() * 0.3 + 0.2) * Math.min(this.width, this.height);
+                const spiralAngle = baseAngle + t * Math.PI * 4;
+                const waveOffset = Math.sin(t * Math.PI * 6) * amplitude;
+                
+                points.push({
+                    x: Math.cos(spiralAngle) * radius + waveOffset,
+                    y: Math.sin(spiralAngle) * radius + Math.cos(t * Math.PI * 4) * amplitude * 0.5
+                });
+            }
+            
+            filaments.push({
+                points,
+                color: this.nebulaType === 'supernova-remnant' ? this.secondaryColor : this.primaryColor,
+                opacity: Math.random() * 0.4 + 0.3,
+                thickness: Math.random() * 3 + 1,
+                energy: Math.random() * 0.8 + 0.2
+            });
+        }
+        
+        return filaments;
+    }
+
+    private generateGaussianRandom(): number {
+        // Box-Muller変換による正規分布乱数生成
+        let u = 0, v = 0;
+        while(u === 0) u = Math.random();
+        while(v === 0) v = Math.random();
+        return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+    }
+
+    public update(deltaTime: number): void {
+        this.pulsationPhase += this.pulsationSpeed * deltaTime;
+        
+        // レイヤーの回転更新
+        this.layers.forEach(layer => {
+            layer.rotation += layer.rotationSpeed * deltaTime;
+        });
+        
+        // パーティクルのトゥインクル更新
+        this.particles.forEach(particle => {
+            particle.twinklePhase += particle.twinkleSpeed * deltaTime;
+        });
     }
 
     public draw(ctx: CanvasRenderingContext2D): void {
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        // Draw nebula base
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.ellipse(0, 0, this.width / 2, this.height / 2, 0, 0, Math.PI * 2);
-        ctx.fill();
+        // パルセーション効果
+        const pulsation = 1 + Math.sin(this.pulsationPhase) * 0.1;
+        ctx.scale(pulsation, pulsation);
 
-        // Draw particles
-        ctx.fillStyle = this.color.replace('0.2', '1');
-        this.particles.forEach(particle => {
-            ctx.globalAlpha = particle.alpha;
-            ctx.beginPath();
-            ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
-            ctx.fill();
+        // エネルギーフィラメントの描画
+        this.drawFilaments(ctx);
+
+        // 星雲レイヤーの描画
+        this.drawNebulaLayers(ctx);
+
+        // パーティクルの描画
+        this.drawParticles(ctx);
+
+        // 中心部のコアエフェクト
+        this.drawCore(ctx);
+
+        ctx.restore();
+    }
+
+    private drawNebulaLayers(ctx: CanvasRenderingContext2D): void {
+        this.layers.forEach((layer, index) => {
+            ctx.save();
+            ctx.rotate(layer.rotation);
+            ctx.globalAlpha = layer.opacity;
+
+            // 複雑なグラデーションパターン
+            const gradient = this.createComplexGradient(ctx, layer);
+            ctx.fillStyle = gradient;
+
+            // 星雲タイプに応じた形状描画
+            this.drawNebulaShape(ctx, layer);
+
+            ctx.restore();
         });
+    }
+
+    private createComplexGradient(ctx: CanvasRenderingContext2D, layer: NebulaLayer): CanvasGradient {
+        let gradient: CanvasGradient;
+        
+        switch (this.nebulaType) {
+            case 'spiral':
+                // 螺旋状グラデーション
+                gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, layer.width / 2);
+                gradient.addColorStop(0, layer.color);
+                gradient.addColorStop(0.3, this.addAlphaToColor(layer.color, 0.5));
+                gradient.addColorStop(0.7, this.addAlphaToColor(layer.color, 0.25));
+                gradient.addColorStop(1, 'transparent');
+                break;
+            case 'planetary':
+                // 同心円状グラデーション
+                gradient = ctx.createRadialGradient(0, 0, layer.width * 0.1, 0, 0, layer.width / 2);
+                gradient.addColorStop(0, layer.color);
+                gradient.addColorStop(0.5, this.addAlphaToColor(layer.color, 0.5));
+                gradient.addColorStop(0.8, this.addAlphaToColor(layer.color, 0.25));
+                gradient.addColorStop(1, 'transparent');
+                break;
+            default:
+                // 標準的な放射グラデーション
+                gradient = ctx.createRadialGradient(-layer.width * 0.2, -layer.height * 0.2, 0, 0, 0, Math.max(layer.width, layer.height) / 2);
+                gradient.addColorStop(0, this.addAlphaToColor(layer.color, 0.75));
+                gradient.addColorStop(0.6, this.addAlphaToColor(layer.color, 0.375));
+                gradient.addColorStop(1, 'transparent');
+                break;
+        }
+        
+        return gradient;
+    }
+
+    private addAlphaToColor(color: string, alpha: number): string {
+        // HSL色をHSLA色に変換
+        if (color.startsWith('hsl(')) {
+            return color.replace('hsl(', 'hsla(').replace(')', `, ${alpha})`);
+        }
+        // RGBA色の場合、アルファ値を更新
+        if (color.startsWith('rgba(')) {
+            return color.replace(/[\d.]+(?=\))/, alpha.toString());
+        }
+        // RGB色をRGBA色に変換
+        if (color.startsWith('rgb(')) {
+            return color.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`);
+        }
+        // その他の場合はそのまま返す
+        return color;
+    }
+
+    private drawNebulaShape(ctx: CanvasRenderingContext2D, layer: NebulaLayer): void {
+        switch (this.nebulaType) {
+            case 'spiral':
+                this.drawSpiralShape(ctx, layer);
+                break;
+            case 'supernova-remnant':
+                this.drawExplosionShape(ctx, layer);
+                break;
+            default:
+                // 標準的な楕円形
+                ctx.beginPath();
+                ctx.ellipse(0, 0, layer.width / 2, layer.height / 2, 0, 0, Math.PI * 2);
+                ctx.fill();
+                break;
+        }
+    }
+
+    private drawSpiralShape(ctx: CanvasRenderingContext2D, layer: NebulaLayer): void {
+        ctx.beginPath();
+        const arms = 3;
+        const turns = 2;
+        
+        for (let arm = 0; arm < arms; arm++) {
+            const armOffset = (arm / arms) * Math.PI * 2;
+            ctx.moveTo(0, 0);
+            
+            for (let i = 0; i <= 100; i++) {
+                const t = i / 100;
+                const angle = armOffset + t * turns * Math.PI * 2;
+                const radius = t * layer.width / 2;
+                const x = Math.cos(angle) * radius;
+                const y = Math.sin(angle) * radius;
+                ctx.lineTo(x, y);
+            }
+        }
+        
+        ctx.fill();
+    }
+
+    private drawExplosionShape(ctx: CanvasRenderingContext2D, layer: NebulaLayer): void {
+        ctx.beginPath();
+        const spikes = 12;
+        
+        for (let i = 0; i <= spikes; i++) {
+            const angle = (i / spikes) * Math.PI * 2;
+            const radiusVariation = 0.7 + Math.random() * 0.6;
+            const radius = (layer.width / 2) * radiusVariation;
+            const x = Math.cos(angle) * radius;
+            const y = Math.sin(angle) * radius;
+            
+            if (i === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        }
+        
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    private drawFilaments(ctx: CanvasRenderingContext2D): void {
+        this.filaments.forEach(filament => {
+            ctx.save();
+            ctx.globalAlpha = filament.opacity * this.energyLevel;
+            ctx.strokeStyle = filament.color;
+            ctx.lineWidth = filament.thickness;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            // グロー効果
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = filament.color;
+
+            ctx.beginPath();
+            filament.points.forEach((point, index) => {
+                if (index === 0) {
+                    ctx.moveTo(point.x, point.y);
+                } else {
+                    ctx.lineTo(point.x, point.y);
+                }
+            });
+            ctx.stroke();
+
+            ctx.restore();
+        });
+    }
+
+    private drawParticles(ctx: CanvasRenderingContext2D): void {
+        this.particles.forEach(particle => {
+            ctx.save();
+            
+            // トゥインクル効果
+            const twinkle = 1 + Math.sin(particle.twinklePhase) * 0.3;
+            const alpha = particle.alpha * twinkle;
+            
+            ctx.globalAlpha = alpha;
+            ctx.translate(particle.x, particle.y);
+
+            // パーティクルのグロー効果
+            const glowGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, particle.radius * 3);
+            glowGradient.addColorStop(0, particle.color);
+            glowGradient.addColorStop(0.5, this.addAlphaToColor(particle.color, 0.5));
+            glowGradient.addColorStop(1, 'transparent');
+            
+            ctx.fillStyle = glowGradient;
+            ctx.beginPath();
+            ctx.arc(0, 0, particle.radius * 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // パーティクル本体
+            ctx.fillStyle = particle.color;
+            ctx.beginPath();
+            ctx.arc(0, 0, particle.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        });
+    }
+
+    private drawCore(ctx: CanvasRenderingContext2D): void {
+        if (this.nebulaType === 'dark') return; // 暗黒星雲にはコアなし
+        
+        ctx.save();
+        ctx.globalAlpha = this.coreIntensity * 0.8;
+
+        // 中心部の強い光
+        const coreGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, Math.min(this.width, this.height) * 0.1);
+        coreGradient.addColorStop(0, this.addAlphaToColor(this.primaryColor, 1.0));
+        coreGradient.addColorStop(0.5, this.addAlphaToColor(this.primaryColor, 0.5));
+        coreGradient.addColorStop(1, 'transparent');
+        
+        ctx.fillStyle = coreGradient;
+        ctx.beginPath();
+        ctx.arc(0, 0, Math.min(this.width, this.height) * 0.1, 0, Math.PI * 2);
+        ctx.fill();
 
         ctx.restore();
     }

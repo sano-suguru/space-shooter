@@ -38,9 +38,12 @@ export class SpaceDust {
         this.particleCount = 0;
         this.isActive = false;
         this.spawnTimer = 0;
-        this.spawnInterval = this.randomProvider.random() * 45000 + 30000; // 30-75秒間隔
+        this.spawnInterval = this.randomProvider.random() * 10000 + 5000; // 5-15秒間隔（短縮）
         this.cloudLifetime = 0;
         this.cloudAge = 0;
+        
+        // 初期雲をすぐに開始
+        this.initializeCloud();
     }
 
     private initializeCloud(): void {
@@ -117,7 +120,7 @@ export class SpaceDust {
             if (this.spawnTimer >= this.spawnInterval) {
                 this.initializeCloud();
                 this.spawnTimer = 0;
-                this.spawnInterval = this.randomProvider.random() * 60000 + 45000; // 次回の間隔
+                this.spawnInterval = this.randomProvider.random() * 20000 + 10000; // 10-30秒間隔（短縮）
             }
             return;
         }

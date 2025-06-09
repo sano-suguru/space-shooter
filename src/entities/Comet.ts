@@ -18,9 +18,9 @@ export class Comet {
 
     constructor(randomProvider: IRandomProvider) {
         this.randomProvider = randomProvider;
-        this.spawnInterval = this.randomProvider.random() * 20000 + 10000; // 10-30秒間隔
+        this.spawnInterval = this.randomProvider.random() * 5000 + 2000; // 2-7秒間隔（短縮）
         this.spawnTimer = 0;
-        this.isActive = false;
+        this.isActive = true; // 初期状態でアクティブに
         this.tailPositions = [];
         this.initializeComet();
     }
@@ -91,7 +91,7 @@ export class Comet {
             if (this.spawnTimer >= this.spawnInterval) {
                 this.isActive = true;
                 this.spawnTimer = 0;
-                this.spawnInterval = this.randomProvider.random() * 30000 + 15000; // 次回スポーン間隔
+                this.spawnInterval = this.randomProvider.random() * 8000 + 3000; // 3-11秒間隔（短縮）
             }
             return;
         }
@@ -146,8 +146,9 @@ export class Comet {
                 const gradient = ctx.createLinearGradient(
                     pos.x, pos.y, nextPos.x, nextPos.y
                 );
-                gradient.addColorStop(0, this.color.replace('#', 'rgba(') + `, ${pos.alpha * 0.8})`);
-                gradient.addColorStop(1, this.color.replace('#', 'rgba(') + `, ${pos.alpha * 0.3})`);
+                const rgb = this.hexToRgb(this.color);
+                gradient.addColorStop(0, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${pos.alpha * 0.8})`);
+                gradient.addColorStop(1, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${pos.alpha * 0.3})`);
                 
                 ctx.strokeStyle = gradient;
                 ctx.lineWidth = width;
@@ -167,8 +168,9 @@ export class Comet {
             this.x, this.y, 0,
             this.x, this.y, glowSize
         );
-        glowGradient.addColorStop(0, this.color.replace('#', 'rgba(') + ', 0.8)');
-        glowGradient.addColorStop(0.7, this.color.replace('#', 'rgba(') + ', 0.3)');
+        const rgb = this.hexToRgb(this.color);
+        glowGradient.addColorStop(0, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.8)`);
+        glowGradient.addColorStop(0.7, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)`);
         glowGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
         
         ctx.fillStyle = glowGradient;
@@ -184,6 +186,15 @@ export class Comet {
         ctx.fill();
 
         ctx.restore();
+    }
+
+    private hexToRgb(hex: string): { r: number; g: number; b: number } {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        } : { r: 255, g: 255, b: 255 };
     }
 
     public isVisible(): boolean {

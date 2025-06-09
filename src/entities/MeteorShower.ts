@@ -28,11 +28,14 @@ export class MeteorShower {
         this.meteors = [];
         this.isActive = false;
         this.spawnTimer = 0;
-        this.spawnInterval = this.randomProvider.random() * 60000 + 30000; // 30-90秒間隔
+        this.spawnInterval = this.randomProvider.random() * 8000 + 3000; // 3-11秒間隔（短縮）
         this.showerDuration = 0;
         this.showerTimer = 0;
         this.direction = { x: 0, y: 0 };
         this.intensity = 0;
+        
+        // 初期流星群をすぐに開始
+        this.startShower();
     }
 
     private startShower(): void {
@@ -99,7 +102,7 @@ export class MeteorShower {
             if (this.spawnTimer >= this.spawnInterval) {
                 this.startShower();
                 this.spawnTimer = 0;
-                this.spawnInterval = this.randomProvider.random() * 90000 + 60000; // 次回の間隔
+                this.spawnInterval = this.randomProvider.random() * 15000 + 8000; // 8-23秒間隔（短縮）
             }
             return;
         }

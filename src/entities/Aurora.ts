@@ -1,27 +1,260 @@
 import { GAME_CONSTANTS } from "../constants/GameConstants";
 
+type AuroraType = 'borealis' | 'australis' | 'cosmic' | 'plasma' | 'solar-storm';
+
+interface AuroraCurtain {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    baseOffset: number;
+    waveAmplitude: number;
+    waveFrequency: number;
+    speed: number;
+    intensity: number;
+    colorIndex: number;
+    opacity: number;
+    shimmerPhase: number;
+    shimmerSpeed: number;
+}
+
+interface AuroraParticle {
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    life: number;
+    maxLife: number;
+    size: number;
+    color: string;
+    alpha: number;
+    glowIntensity: number;
+}
+
+interface AuroraRay {
+    startX: number;
+    startY: number;
+    endX: number;
+    endY: number;
+    color: string;
+    intensity: number;
+    thickness: number;
+}
+
 export class Aurora {
-    private curves: { offset: number; amplitude: number; speed: number }[];
-    private colors: string[];
+    private auroraType: AuroraType;
+    private curtains: AuroraCurtain[];
+    private particles: AuroraParticle[];
+    private rays: AuroraRay[];
+    private colorPalettes!: { [key in AuroraType]: string[] };
+    private currentColors: string[];
+    private intensityPhase: number;
+    private intensitySpeed: number;
+    private globalIntensity: number;
+    private colorShiftPhase: number;
+    private colorShiftSpeed: number;
+    private stormMode: boolean;
+    private stormIntensity: number;
 
     constructor() {
-        this.curves = Array(5).fill(null).map(() => ({
-            offset: Math.random() * Math.PI * 2,
-            amplitude: Math.random() * 40 + 20,
-            speed: (Math.random() + 0.5) * 0.0005
-        }));
-        this.colors = [
-            'rgba(0, 255, 100, 0.1)',
-            'rgba(0, 200, 255, 0.1)',
-            'rgba(100, 0, 255, 0.1)',
-            'rgba(255, 100, 200, 0.1)',
-            'rgba(255, 200, 0, 0.1)'
-        ];
+        this.auroraType = this.generateAuroraType();
+        this.setupColorPalettes();
+        this.currentColors = [...this.colorPalettes[this.auroraType]];
+        this.intensityPhase = Math.random() * Math.PI * 2;
+        this.intensitySpeed = Math.random() * 0.001 + 0.0005;
+        this.globalIntensity = Math.random() * 0.6 + 0.4;
+        this.colorShiftPhase = Math.random() * Math.PI * 2;
+        this.colorShiftSpeed = Math.random() * 0.0003 + 0.0001;
+        this.stormMode = Math.random() < 0.3; // 30%の確率で嵐モード
+        this.stormIntensity = this.stormMode ? Math.random() * 0.5 + 0.5 : 0;
+        
+        this.curtains = this.generateCurtains();
+        this.particles = this.generateParticles();
+        this.rays = this.generateRays();
+    }
+
+    private generateAuroraType(): AuroraType {
+        const types: AuroraType[] = ['borealis', 'australis', 'cosmic', 'plasma', 'solar-storm'];
+        return types[Math.floor(Math.random() * types.length)];
+    }
+
+    private setupColorPalettes(): void {
+        this.colorPalettes = {
+            'borealis': [
+                'rgba(0, 255, 146, 0.8)',   // 明るい緑
+                'rgba(0, 191, 255, 0.7)',   // シアン
+                'rgba(148, 0, 211, 0.6)',   // 紫
+                'rgba(255, 20, 147, 0.5)',  // ピンク
+                'rgba(255, 165, 0, 0.4)'    // オレンジ
+            ],
+            'australis': [
+                'rgba(255, 0, 127, 0.8)',   // マゼンタ
+                'rgba(138, 43, 226, 0.7)',  // 青紫
+                'rgba(0, 255, 255, 0.6)',   // アクア
+                'rgba(50, 205, 50, 0.5)',   // ライムグリーン
+                'rgba(255, 215, 0, 0.4)'    // ゴールド
+            ],
+            'cosmic': [
+                'rgba(75, 0, 130, 0.8)',    // インディゴ
+                'rgba(138, 43, 226, 0.7)',  // バイオレット
+                'rgba(255, 0, 255, 0.6)',   // マゼンタ
+                'rgba(0, 255, 255, 0.5)',   // シアン
+                'rgba(255, 255, 255, 0.4)'  // ホワイト
+            ],
+            'plasma': [
+                'rgba(255, 69, 0, 0.8)',    // レッドオレンジ
+                'rgba(255, 140, 0, 0.7)',   // ダークオレンジ
+                'rgba(255, 215, 0, 0.6)',   // ゴールド
+                'rgba(255, 255, 0, 0.5)',   // イエロー
+                'rgba(255, 255, 255, 0.4)'  // ホワイト
+            ],
+            'solar-storm': [
+                'rgba(255, 0, 0, 0.9)',     // 赤
+                'rgba(255, 69, 0, 0.8)',    // オレンジレッド
+                'rgba(255, 165, 0, 0.7)',   // オレンジ
+                'rgba(255, 255, 0, 0.6)',   // イエロー
+                'rgba(255, 255, 255, 0.5)'  // ホワイト
+            ]
+        };
+    }
+
+    private generateCurtains(): AuroraCurtain[] {
+        const curtainCount = Math.floor(Math.random() * 6) + 4;
+        const curtains: AuroraCurtain[] = [];
+        
+        for (let i = 0; i < curtainCount; i++) {
+            curtains.push({
+                x: (i / curtainCount) * GAME_CONSTANTS.CANVAS.WIDTH + Math.random() * 100 - 50,
+                y: Math.random() * GAME_CONSTANTS.CANVAS.HEIGHT * 0.3 + 50,
+                width: Math.random() * 150 + 100,
+                height: Math.random() * 300 + 200,
+                baseOffset: Math.random() * Math.PI * 2,
+                waveAmplitude: Math.random() * 60 + 30,
+                waveFrequency: Math.random() * 0.02 + 0.01,
+                speed: (Math.random() + 0.3) * 0.0008,
+                intensity: Math.random() * 0.8 + 0.2,
+                colorIndex: i % this.currentColors.length,
+                opacity: Math.random() * 0.4 + 0.3,
+                shimmerPhase: Math.random() * Math.PI * 2,
+                shimmerSpeed: Math.random() * 0.005 + 0.002
+            });
+        }
+        
+        return curtains;
+    }
+
+    private generateParticles(): AuroraParticle[] {
+        const particleCount = this.stormMode ? 150 : 80;
+        const particles: AuroraParticle[] = [];
+        
+        for (let i = 0; i < particleCount; i++) {
+            particles.push({
+                x: Math.random() * GAME_CONSTANTS.CANVAS.WIDTH,
+                y: Math.random() * GAME_CONSTANTS.CANVAS.HEIGHT * 0.6,
+                vx: (Math.random() - 0.5) * 2,
+                vy: Math.random() * 3 + 1,
+                life: Math.random() * 180 + 120,
+                maxLife: Math.random() * 180 + 120,
+                size: Math.random() * 3 + 1,
+                color: this.currentColors[Math.floor(Math.random() * this.currentColors.length)],
+                alpha: Math.random() * 0.8 + 0.2,
+                glowIntensity: Math.random() * 0.6 + 0.4
+            });
+        }
+        
+        return particles;
+    }
+
+    private generateRays(): AuroraRay[] {
+        if (!this.stormMode) return [];
+        
+        const rayCount = Math.floor(Math.random() * 8) + 5;
+        const rays: AuroraRay[] = [];
+        
+        for (let i = 0; i < rayCount; i++) {
+            rays.push({
+                startX: Math.random() * GAME_CONSTANTS.CANVAS.WIDTH,
+                startY: Math.random() * 100,
+                endX: Math.random() * GAME_CONSTANTS.CANVAS.WIDTH,
+                endY: Math.random() * GAME_CONSTANTS.CANVAS.HEIGHT * 0.7 + 100,
+                color: this.currentColors[Math.floor(Math.random() * this.currentColors.length)],
+                intensity: Math.random() * 0.6 + 0.4,
+                thickness: Math.random() * 4 + 2
+            });
+        }
+        
+        return rays;
     }
 
     public update(deltaTime: number): void {
-        this.curves.forEach(curve => {
-            curve.offset += curve.speed * deltaTime;
+        this.intensityPhase += this.intensitySpeed * deltaTime;
+        this.colorShiftPhase += this.colorShiftSpeed * deltaTime;
+        
+        // グローバル強度の更新
+        this.globalIntensity = 0.6 + Math.sin(this.intensityPhase) * 0.3;
+        
+        // カーテンの更新
+        this.curtains.forEach(curtain => {
+            curtain.baseOffset += curtain.speed * deltaTime;
+            curtain.shimmerPhase += curtain.shimmerSpeed * deltaTime;
+        });
+        
+        // パーティクルの更新
+        this.updateParticles(deltaTime);
+        
+        // 嵐モードの場合、雷の更新
+        if (this.stormMode) {
+            this.updateRays(deltaTime);
+        }
+        
+        // 色彩シフト（宇宙系オーロラ）
+        if (this.auroraType === 'cosmic') {
+            this.updateColorShift();
+        }
+    }
+
+    private updateParticles(deltaTime: number): void {
+        this.particles.forEach((particle, index) => {
+            particle.x += particle.vx * deltaTime * 0.1;
+            particle.y -= particle.vy * deltaTime * 0.1;
+            particle.life -= deltaTime;
+            
+            // ライフサイクル管理
+            if (particle.life <= 0) {
+                // 新しいパーティクルを生成
+                particle.x = Math.random() * GAME_CONSTANTS.CANVAS.WIDTH;
+                particle.y = GAME_CONSTANTS.CANVAS.HEIGHT * 0.8 + Math.random() * 100;
+                particle.vx = (Math.random() - 0.5) * 2;
+                particle.vy = Math.random() * 3 + 1;
+                particle.life = particle.maxLife;
+                particle.color = this.currentColors[Math.floor(Math.random() * this.currentColors.length)];
+            }
+            
+            // アルファ値の調整
+            const lifeRatio = particle.life / particle.maxLife;
+            particle.alpha = lifeRatio * this.globalIntensity;
+        });
+    }
+
+    private updateRays(deltaTime: number): void {
+        // 雷の強度変化
+        this.rays.forEach(ray => {
+            ray.intensity = Math.random() * 0.8 + 0.2;
+            if (Math.random() < 0.1) { // 10%の確率で位置を変更
+                ray.startX = Math.random() * GAME_CONSTANTS.CANVAS.WIDTH;
+                ray.endX = Math.random() * GAME_CONSTANTS.CANVAS.WIDTH;
+            }
+        });
+    }
+
+    private updateColorShift(): void {
+        // 宇宙系オーロラの色彩シフト
+        const shiftIntensity = Math.sin(this.colorShiftPhase) * 0.5 + 0.5;
+        this.currentColors = this.colorPalettes[this.auroraType].map(color => {
+            if (color.startsWith('rgba(')) {
+                return color.replace(/[\d.]+(?=\))/, (shiftIntensity * 0.8 + 0.2).toString());
+            }
+            return color;
         });
     }
 
@@ -29,30 +262,149 @@ export class Aurora {
         ctx.save();
         ctx.globalCompositeOperation = 'screen';
 
-        this.curves.forEach((curve, index) => {
-            const gradient = ctx.createLinearGradient(0, 0, GAME_CONSTANTS.CANVAS.WIDTH, 0);
-            gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-            gradient.addColorStop(0.5, this.colors[index]);
-            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        // 雷の描画（嵐モード）
+        if (this.stormMode) {
+            this.drawRays(ctx);
+        }
 
-            ctx.fillStyle = gradient;
+        // カーテンの描画
+        this.drawCurtains(ctx);
 
-            const y = Math.sin(curve.offset) * curve.amplitude + GAME_CONSTANTS.CANVAS.HEIGHT / 3;
-            ctx.beginPath();
-            ctx.moveTo(0, y);
-
-            for (let x = 0; x <= GAME_CONSTANTS.CANVAS.WIDTH; x += 5) {
-                const relativeX = x / GAME_CONSTANTS.CANVAS.WIDTH;
-                const yOffset = Math.sin(curve.offset + relativeX * Math.PI * 4) * curve.amplitude;
-                ctx.lineTo(x, y + yOffset);
-            }
-
-            ctx.lineTo(GAME_CONSTANTS.CANVAS.WIDTH, GAME_CONSTANTS.CANVAS.HEIGHT);
-            ctx.lineTo(0, GAME_CONSTANTS.CANVAS.HEIGHT);
-            ctx.closePath();
-            ctx.fill();
-        });
+        // パーティクルの描画
+        this.drawParticles(ctx);
 
         ctx.restore();
+    }
+
+    private drawCurtains(ctx: CanvasRenderingContext2D): void {
+        this.curtains.forEach(curtain => {
+            ctx.save();
+            
+            // シマー効果
+            const shimmer = 1 + Math.sin(curtain.shimmerPhase) * 0.3;
+            const intensity = curtain.intensity * this.globalIntensity * shimmer;
+            
+            ctx.globalAlpha = curtain.opacity * intensity;
+
+            // 複雑なグラデーション作成
+            const gradient = this.createCurtainGradient(ctx, curtain);
+            ctx.fillStyle = gradient;
+
+            // カーテンの形状描画
+            this.drawCurtainShape(ctx, curtain);
+
+            ctx.restore();
+        });
+    }
+
+    private createCurtainGradient(ctx: CanvasRenderingContext2D, curtain: AuroraCurtain): CanvasGradient {
+        const gradient = ctx.createLinearGradient(
+            curtain.x - curtain.width / 2, 
+            curtain.y, 
+            curtain.x + curtain.width / 2, 
+            curtain.y + curtain.height
+        );
+        
+        const baseColor = this.currentColors[curtain.colorIndex];
+        const secondaryColor = this.currentColors[(curtain.colorIndex + 1) % this.currentColors.length];
+        
+        gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        gradient.addColorStop(0.1, baseColor);
+        gradient.addColorStop(0.3, secondaryColor);
+        gradient.addColorStop(0.7, baseColor);
+        gradient.addColorStop(0.9, 'rgba(0, 0, 0, 0)');
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        
+        return gradient;
+    }
+
+    private drawCurtainShape(ctx: CanvasRenderingContext2D, curtain: AuroraCurtain): void {
+        ctx.beginPath();
+        
+        const segments = 50;
+        for (let i = 0; i <= segments; i++) {
+            const t = i / segments;
+            const x = curtain.x + (t - 0.5) * curtain.width;
+            
+            // 複雑な波形計算
+            const wave1 = Math.sin(curtain.baseOffset + t * Math.PI * 4) * curtain.waveAmplitude;
+            const wave2 = Math.sin(curtain.baseOffset * 1.3 + t * Math.PI * 6) * curtain.waveAmplitude * 0.5;
+            const wave3 = Math.sin(curtain.baseOffset * 0.7 + t * Math.PI * 8) * curtain.waveAmplitude * 0.3;
+            
+            const y = curtain.y + wave1 + wave2 + wave3;
+            
+            if (i === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        }
+        
+        // カーテンの下部を描画
+        for (let i = segments; i >= 0; i--) {
+            const t = i / segments;
+            const x = curtain.x + (t - 0.5) * curtain.width;
+            const y = curtain.y + curtain.height + Math.sin(curtain.baseOffset * 0.5 + t * Math.PI * 3) * 20;
+            ctx.lineTo(x, y);
+        }
+        
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    private drawParticles(ctx: CanvasRenderingContext2D): void {
+        this.particles.forEach(particle => {
+            ctx.save();
+            ctx.globalAlpha = particle.alpha;
+            ctx.translate(particle.x, particle.y);
+
+            // パーティクルのグロー効果
+            const glowGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, particle.size * 4);
+            glowGradient.addColorStop(0, particle.color);
+            glowGradient.addColorStop(0.5, `${particle.color.replace(/[\d.]+(?=\))/, '0.3')}`);
+            glowGradient.addColorStop(1, 'transparent');
+            
+            ctx.fillStyle = glowGradient;
+            ctx.beginPath();
+            ctx.arc(0, 0, particle.size * 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // パーティクル本体
+            ctx.fillStyle = particle.color;
+            ctx.beginPath();
+            ctx.arc(0, 0, particle.size, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        });
+    }
+
+    private drawRays(ctx: CanvasRenderingContext2D): void {
+        this.rays.forEach(ray => {
+            ctx.save();
+            ctx.globalAlpha = ray.intensity * this.stormIntensity;
+            ctx.strokeStyle = ray.color;
+            ctx.lineWidth = ray.thickness;
+            ctx.lineCap = 'round';
+
+            // グロー効果
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = ray.color;
+
+            // ジグザグの雷描画
+            ctx.beginPath();
+            ctx.moveTo(ray.startX, ray.startY);
+            
+            const segments = 8;
+            for (let i = 1; i <= segments; i++) {
+                const t = i / segments;
+                const x = ray.startX + (ray.endX - ray.startX) * t + (Math.random() - 0.5) * 40;
+                const y = ray.startY + (ray.endY - ray.startY) * t;
+                ctx.lineTo(x, y);
+            }
+            
+            ctx.stroke();
+            ctx.restore();
+        });
     }
 }
