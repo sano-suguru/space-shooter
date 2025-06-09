@@ -10,33 +10,37 @@ import type { GameMode, GameModeModifiers } from '../types/GameMode';
 
 /**
  * プログレッションシステムの中核を管理するクラス
- * ScoreManagerを拡張し、既存機能を完全保持しつつプログレッション機能を追加
+ * ScoreManagerとは独立してプログレッション機能を提供（コンポジション使用）
  */
-export class ProgressManager extends ScoreManager {
+export class ProgressManager {
     private profile: PlayerProfile;
     private currentSession: GameSession;
     private upgradeManager: UpgradeManager;
     private achievementManager: AchievementManager;
     private gameModeManager: GameModeManager;
+    private eventEmitter: EventEmitter<EventMap>;
+    private scoreManager: ScoreManager;
 
     // レベルアップ計算用定数
     private static readonly BASE_EXP_REQUIREMENT = 100;
     private static readonly EXP_MULTIPLIER = 1.5;
-    
+
     // コイン獲得計算用定数
     private static readonly SCORE_TO_COINS_RATIO = 0.1;
     private static readonly WAVE_BONUS_COINS = 10;
     private static readonly BOSS_BONUS_COINS = 50;
 
-    constructor(eventEmitter: EventEmitter<EventMap>) {
-        super(eventEmitter);
-        
+    constructor(eventEmitter: EventEmitter<EventMap>, scoreManager?: ScoreManager) {
+        this.eventEmitter = eventEmitter;
+        // scoreManagerが渡されなければ内部で生成（テスト互換性のため）
+        this.scoreManager = scoreManager || new ScoreManager(eventEmitter);
+
         // プロファイル読み込み
         this.profile = PersistenceManager.loadProfile();
-        
+
         // アップグレードマネージャー初期化
         this.upgradeManager = new UpgradeManager(eventEmitter, this.profile);
-        
+
         // アチーブメントマネージャー初期化
         this.achievementManager = new AchievementManager(
             this.profile,
@@ -49,25 +53,37 @@ export class ProgressManager extends ScoreManager {
                 console.log(`🏆 アチーブメント達成: ${achievement.name}`);
             }
         );
-        
+
         // ゲームモードマネージャー初期化
-        this.gameModeManager = new GameModeManager(eventEmitter, this.profile);
-        
+        this.gameModeManager = new GameModeManager(this.eventEmitter, this.profile);
+
         // セッション初期化
         this.currentSession = this.initializeSession();
-        
+
         // レベルアップ通知の設定
         this.setupEventListeners();
     }
 
     /**
-     * 既存のaddScore機能を拡張してプログレッション要素を追加
+     * スコア更新時のプログレッション処理（ScoreManagerから呼び出される）
      */
-    addScore(points: number): void {
-        // 基本のスコア更新（親クラスの機能）
-        super.addScore(points);
-        
-        // プログレッション要素の更新
+    public onScoreUpdated(points: number): void {
+        this.updateProgression(points);
+    }
+
+    /**
+     * ScoreManagerの機能への委譲
+     */
+    public getScore(): number {
+        return this.scoreManager.getScore();
+    }
+
+    /**
+     * スコア追加メソッド（既存APIとの互換性のため）
+     * ScoreManagerに委譲し、プログレッション処理も実行
+     */
+    public addScore(points: number): void {
+        this.scoreManager.addScore(points);
         this.updateProgression(points);
     }
 
@@ -76,41 +92,41 @@ export class ProgressManager extends ScoreManager {
      */
     private updateProgression(points: number): void {
         const prevLevel = this.profile.level;
-        
+
         // ゲームモード報酬の適用
         const baseReward = {
             coins: Math.floor(points * ProgressManager.SCORE_TO_COINS_RATIO),
             experience: Math.floor(points * 0.05)
         };
-        
+
         const modifiedReward = this.gameModeManager.calculateReward(baseReward);
-        
+
         // コイン獲得計算（ゲームモード修正後）
         const coinsEarned = modifiedReward.coins || 0;
         this.profile.coins += coinsEarned;
-        
+
         // 経験値獲得計算（ゲームモード修正後）
         const experienceEarned = modifiedReward.experience || 0;
         this.profile.experience += experienceEarned;
-        
+
         // セッション統計の更新
         this.currentSession.score = this.getScore();
-        
+
         // イベント発行
         if (coinsEarned > 0) {
             this.eventEmitter.emit('coinsEarned', coinsEarned, this.profile.coins);
         }
-        
+
         if (experienceEarned > 0) {
             this.eventEmitter.emit('experienceGained', experienceEarned, this.profile.experience);
         }
-        
+
         // レベルアップチェック
         const newLevel = this.calculateLevel(this.profile.experience);
         if (newLevel > prevLevel) {
             this.handleLevelUp(prevLevel, newLevel);
         }
-        
+
         // プロファイル保存
         this.saveProfile();
     }
@@ -123,21 +139,21 @@ export class ProgressManager extends ScoreManager {
         if (experience < ProgressManager.BASE_EXP_REQUIREMENT) {
             return 1;
         }
-        
+
         let level = 1;
         let totalExpRequired = 0;
-        
+
         while (totalExpRequired <= experience) {
             const expForNextLevel = Math.floor(
                 ProgressManager.BASE_EXP_REQUIREMENT * Math.pow(ProgressManager.EXP_MULTIPLIER, level - 1)
             );
             totalExpRequired += expForNextLevel;
-            
+
             if (totalExpRequired <= experience) {
                 level++;
             }
         }
-        
+
         return level;
     }
 
@@ -147,12 +163,12 @@ export class ProgressManager extends ScoreManager {
     getExperienceToNextLevel(): number {
         const currentLevel = this.profile.level;
         const currentExp = this.profile.experience;
-        
+
         // 次のレベルに必要な経験値
         const expForNextLevel = Math.floor(
             ProgressManager.BASE_EXP_REQUIREMENT * Math.pow(ProgressManager.EXP_MULTIPLIER, currentLevel - 1)
         );
-        
+
         // 現在のレベルまでに必要だった総経験値を計算
         let totalExpForCurrentLevel = 0;
         for (let i = 1; i < currentLevel; i++) {
@@ -160,10 +176,10 @@ export class ProgressManager extends ScoreManager {
                 ProgressManager.BASE_EXP_REQUIREMENT * Math.pow(ProgressManager.EXP_MULTIPLIER, i - 1)
             );
         }
-        
+
         // 次のレベルまでに必要な総経験値
         const totalExpForNextLevel = totalExpForCurrentLevel + expForNextLevel;
-        
+
         return totalExpForNextLevel - currentExp;
     }
 
@@ -213,7 +229,7 @@ export class ProgressManager extends ScoreManager {
                 }
                 break;
         }
-        
+
         this.saveProfile();
     }
 
@@ -231,26 +247,26 @@ export class ProgressManager extends ScoreManager {
     endGame(): void {
         this.currentSession.endTime = Date.now();
         this.currentSession.playTime = this.currentSession.endTime - this.currentSession.startTime;
-        
+
         // プロファイルの基本統計を更新
         this.profile.totalGamesPlayed++;
         this.profile.totalScore += this.getScore();
         this.profile.totalPlayTime += this.currentSession.playTime;
         this.profile.lastPlayDate = new Date().toISOString();
-        
+
         if (this.getScore() > this.profile.highScore) {
             this.profile.highScore = this.getScore();
         }
-        
+
         // ゲームモード統計を記録
         this.gameModeManager.recordGameCompletion(this.getScore());
-        
+
         // アチーブメント判定を実行
         const unlockedAchievements = this.achievementManager.checkAchievements(this.currentSession);
-        
+
         // プロファイル保存
         this.saveProfile();
-        
+
         // アチーブメント解除通知
         if (unlockedAchievements.length > 0) {
             console.log(`🎉 ${unlockedAchievements.length}個のアチーブメントが解除されました！`);
@@ -258,7 +274,7 @@ export class ProgressManager extends ScoreManager {
                 console.log(`  - ${result.achievement.name}: +${result.achievement.reward.coins}コイン, +${result.achievement.reward.experience}経験値`);
             });
         }
-        
+
         // イベント発行
         this.eventEmitter.emit('profileUpdated');
         this.eventEmitter.emit('gameOver');
@@ -292,23 +308,23 @@ export class ProgressManager extends ScoreManager {
         this.eventEmitter.on('enemyDestroyed', () => {
             this.updateSessionStats('enemiesDestroyed', 1);
         });
-        
+
         this.eventEmitter.on('bossDefeated', () => {
             this.updateSessionStats('bossesDefeated', 1);
         });
-        
+
         this.eventEmitter.on('powerUpCollected', () => {
             this.updateSessionStats('powerupsCollected', 1);
         });
-        
+
         this.eventEmitter.on('playerShot', () => {
             this.updateSessionStats('bulletsShot', 1);
         });
-        
+
         this.eventEmitter.on('playerDamaged', (damage) => {
             this.updateSessionStats('damageTaken', damage);
         });
-        
+
         this.eventEmitter.on('waveCompleted', (waveNumber) => {
             this.updateSessionStats('waveReached', waveNumber);
         });
@@ -358,7 +374,7 @@ export class ProgressManager extends ScoreManager {
     }
 
     // アップグレード関連メソッド
-    
+
     /**
      * アップグレードを購入する
      */
@@ -387,7 +403,7 @@ export class ProgressManager extends ScoreManager {
     }
 
     // アチーブメント関連メソッド
-    
+
     /**
      * AchievementManagerのインスタンスを取得
      */
@@ -431,7 +447,7 @@ export class ProgressManager extends ScoreManager {
     }
 
     // ゲームモード関連メソッド
-    
+
     /**
      * GameModeManagerのインスタンスを取得
      */
@@ -497,18 +513,18 @@ export class ProgressManager extends ScoreManager {
      */
     private handleLevelUp(oldLevel: number, newLevel: number): void {
         this.profile.level = newLevel;
-        
+
         // レベルアップボーナスコイン
         const levelUpBonus = newLevel * 100;
         this.profile.coins += levelUpBonus;
-        
+
         // 各Managerにプロファイル変更を通知
         this.upgradeManager.updateProfile(this.profile);
         this.gameModeManager.updatePlayerProfile(this.profile);
-        
+
         // イベント発行
         this.eventEmitter.emit('playerLevelUp', newLevel, levelUpBonus);
-        
+
         console.log(`レベルアップ！ ${oldLevel} → ${newLevel} (ボーナス: ${levelUpBonus}コイン)`);
     }
 }

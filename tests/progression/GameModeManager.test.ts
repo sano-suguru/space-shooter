@@ -29,6 +29,9 @@ Object.defineProperty(window, 'localStorage', {
     value: mockLocalStorage
 });
 
+// Node.js環境用のglobal設定
+(globalThis as any).localStorage = mockLocalStorage;
+
 describe('GameModeManager', () => {
     let gameMode: GameModeManager;
     let eventEmitter: EventEmitter<EventMap>;
@@ -68,6 +71,7 @@ describe('GameModeManager', () => {
             }
         };
 
+        // GameModeManagerインスタンスを作成（各テストで個別に作成する場合はここではしない）
         gameMode = new GameModeManager(eventEmitter, mockProfile);
     });
 
@@ -88,7 +92,7 @@ describe('GameModeManager', () => {
                 }
             };
 
-            // localStorageに直接設定
+            // localStorageに直接設定（コンストラクタ呼び出し前に設定）
             mockLocalStorage.store['lastSelectedGameMode'] = 'hardcore';
             const manager = new GameModeManager(eventEmitter, advancedProfile);
             const currentMode = manager.getCurrentGameMode();
@@ -164,11 +168,19 @@ describe('GameModeManager', () => {
                 }
             };
             gameMode.updatePlayerProfile(advancedProfile);
-            gameMode.selectGameMode('hardcore'); // 先に別のモードを選択
             
-            // クリアしてからテスト
+            // モック呼び出しをクリア（初期化時の呼び出しを除外）
             jest.clearAllMocks();
-            gameMode.selectGameMode('normal');
+            
+            // ハードコアモードを選択（モード変更を発生させる）
+            const result = gameMode.selectGameMode('hardcore');
+            expect(result).toBe(true);
+            expect(mockLocalStorage.setItem).toHaveBeenCalledWith('lastSelectedGameMode', 'hardcore');
+            
+            // クリアしてからnormalモードを選択
+            jest.clearAllMocks();
+            const result2 = gameMode.selectGameMode('normal');
+            expect(result2).toBe(true);
             expect(mockLocalStorage.setItem).toHaveBeenCalledWith('lastSelectedGameMode', 'normal');
         });
     });

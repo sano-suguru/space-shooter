@@ -17,6 +17,7 @@ import { CollisionSystem } from '../systems/CollisionSystem';
 import { IGameEngine } from '../interfaces/IGameEngine';
 import { GameEngine } from './GameEngine';
 import { BackgroundRenderer } from '../rendering/BackgroundRenderer';
+import { GameRenderer } from '../rendering/GameRenderer';
 import { IInputManager } from '../interfaces/IInputManager';
 import { IRandomProvider } from '../providers/IRandomProvider';
 import { IDOMManager } from '../interfaces/IDOMManager';
@@ -35,9 +36,7 @@ export class Game implements IGameEngine {
     private collisionSystem!: CollisionSystem;
     private waveManager!: WaveManager;
     private backgroundRenderer!: BackgroundRenderer;
-
-    // 背景レンダリング最適化フラグ
-    private useOptimizedBackground = true;
+    private gameRenderer!: GameRenderer;
 
     constructor(
         private canvas: HTMLCanvasElement,
@@ -67,6 +66,9 @@ export class Game implements IGameEngine {
 
         // BackgroundRendererを初期化
         this.backgroundRenderer = new BackgroundRenderer();
+
+        // GameRendererを初期化
+        this.gameRenderer = new GameRenderer(this.ctx, this.backgroundRenderer);
 
         // GameEngineを初期化
         this.gameEngine = new GameEngine(
@@ -218,51 +220,8 @@ export class Game implements IGameEngine {
         this.collisionSystem.checkAllCollisions(this.player);
     }
 
-    /**
-     * 最適化された背景描画
-     */
-    private drawBackground(): void {
-        const stars = this.gameObjectManager.getStars();
-        const planets = this.gameObjectManager.getPlanets();
-        const nebulas = this.gameObjectManager.getNebulas();
-        const auroras = this.gameObjectManager.getAuroras();
-
-        if (this.useOptimizedBackground) {
-            // 最適化された背景描画を使用
-            this.backgroundRenderer.drawOptimizedBackground(
-                this.ctx,
-                stars,
-                planets,
-                nebulas,
-                auroras
-            );
-        } else {
-            // 従来の背景描画を使用（比較・デバッグ用）
-            this.backgroundRenderer.drawTraditionalBackground(
-                this.ctx,
-                stars,
-                planets,
-                nebulas,
-                auroras
-            );
-        }
-    }
-
     private draw(): void {
-        this.drawBackground();
-        this.player.draw(this.ctx);
-
-        // GameObjectManagerから各オブジェクトを取得して描画
-        this.gameObjectManager.getBullets().forEach(bullet => bullet.draw(this.ctx));
-        this.gameObjectManager.getEnemies().forEach(enemy => enemy.draw(this.ctx));
-        this.gameObjectManager.getPowerups().forEach(powerup => powerup.draw(this.ctx));
-        this.gameObjectManager.getExplosions().forEach(explosion => explosion.draw(this.ctx));
-
-        const boss = this.gameObjectManager.getBoss();
-        if (boss) {
-            boss.draw(this.ctx);
-            this.gameObjectManager.getBossBullets().forEach(bullet => bullet.draw(this.ctx));
-        }
+        this.gameRenderer.render(this.player, this.gameObjectManager);
     }
 
     private spawnEnemy = (): void => {
@@ -418,30 +377,29 @@ export class Game implements IGameEngine {
      * 背景レンダリング最適化の切り替え
      */
     public toggleBackgroundOptimization(): void {
-        this.useOptimizedBackground = !this.useOptimizedBackground;
-        console.log(`Background optimization: ${this.useOptimizedBackground ? 'ON' : 'OFF'}`);
+        this.gameRenderer.toggleBackgroundOptimization();
     }
 
     /**
      * 背景レンダリングパフォーマンス統計を取得
      */
     public getBackgroundPerformanceStats() {
-        return this.backgroundRenderer.getPerformanceStats();
+        return this.gameRenderer.getBackgroundPerformanceStats();
     }
 
     /**
      * 背景レンダリングパフォーマンス情報をコンソールに出力
      */
     public logBackgroundPerformance(): void {
-        this.backgroundRenderer.logPerformanceInfo();
+        this.gameRenderer.logBackgroundPerformance();
     }
 
     /**
      * リソースクリーンアップ
      */
     public dispose(): void {
-        if (this.backgroundRenderer) {
-            this.backgroundRenderer.dispose();
+        if (this.gameRenderer) {
+            this.gameRenderer.dispose();
         }
     }
 }

@@ -29,6 +29,14 @@ describe('PersistenceManager', () => {
     beforeEach(() => {
         localStorageMock.clear();
         jest.clearAllMocks();
+        // モックの実装をリセット
+        localStorageMock.getItem.mockImplementation((key: string) => mockStore[key] || null);
+        localStorageMock.setItem.mockImplementation((key: string, value: string) => {
+            mockStore[key] = value;
+        });
+        localStorageMock.removeItem.mockImplementation((key: string) => {
+            delete mockStore[key];
+        });
     });
 
     describe('プロファイル保存', () => {
@@ -71,6 +79,9 @@ describe('PersistenceManager', () => {
 
         it('保存エラー時にコンソール警告が出力される', () => {
             const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+            
+            // 一時的にsetItemをエラーを投げるようにオーバーライド
+            const originalSetItem = localStorageMock.setItem;
             localStorageMock.setItem.mockImplementation(() => {
                 throw new Error('Storage full');
             });
@@ -106,6 +117,8 @@ describe('PersistenceManager', () => {
                 expect.any(Error)
             );
 
+            // モックを元に戻す
+            localStorageMock.setItem.mockImplementation(originalSetItem);
             consoleSpy.mockRestore();
         });
     });
@@ -157,6 +170,9 @@ describe('PersistenceManager', () => {
 
         it('読み込みエラー時はデフォルトプロファイルを返す', () => {
             const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+            
+            // 一時的にgetItemをエラーを投げるようにオーバーライド
+            const originalGetItem = localStorageMock.getItem;
             localStorageMock.getItem.mockImplementation(() => {
                 throw new Error('Storage error');
             });
@@ -170,12 +186,16 @@ describe('PersistenceManager', () => {
                 expect.any(Error)
             );
 
+            // モックを元に戻す
+            localStorageMock.getItem.mockImplementation(originalGetItem);
             consoleSpy.mockRestore();
         });
 
         it('無効なJSONの場合はデフォルトプロファイルを返す', () => {
             const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
-            localStorageMock.setItem('space_shooter_profile', 'invalid json');
+            
+            // 直接mockStoreに無効なJSONを設定
+            mockStore['space_shooter_profile'] = 'invalid json';
 
             const profile = PersistenceManager.loadProfile();
 
@@ -349,12 +369,16 @@ describe('PersistenceManager', () => {
         it('LocalStorageの使用可否を判定できる', () => {
             expect(PersistenceManager.isStorageAvailable()).toBe(true);
 
-            // setItemが失敗する場合
+            // 一時的にsetItemをエラーを投げるようにオーバーライド
+            const originalSetItem = localStorageMock.setItem;
             localStorageMock.setItem.mockImplementation(() => {
                 throw new Error('Storage disabled');
             });
 
             expect(PersistenceManager.isStorageAvailable()).toBe(false);
+
+            // モックを元に戻す
+            localStorageMock.setItem.mockImplementation(originalSetItem);
         });
     });
 });

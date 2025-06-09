@@ -25,8 +25,8 @@ function initGame(): void {
     const scoreManager = new ScoreManager(eventEmitter);
     const stateManager = new GameStateManager(eventEmitter);
 
-    // プログレッションシステムを初期化
-    const progressManager = new ProgressManager(eventEmitter);
+    // プログレッションシステムを初期化（ScoreManagerを渡してコンポジション実現）
+    const progressManager = new ProgressManager(eventEmitter, scoreManager);
     
     // 既存UIManagerを初期化
     const levelElement = getElementOrThrow<HTMLElement>('levelValue');

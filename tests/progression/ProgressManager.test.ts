@@ -1,5 +1,6 @@
 import { ProgressManager } from '../../src/progression/managers/ProgressManager';
 import { PersistenceManager } from '../../src/progression/managers/PersistenceManager';
+import { ScoreManager } from '../../src/managers/ScoreManager';
 import { EventEmitter } from '../../src/events/EventEmitter';
 import { EventMap } from '../../src/events/EventType';
 import { PlayerProfile } from '../../src/progression/types/PlayerProfile';
@@ -30,6 +31,7 @@ Object.defineProperty(window, 'localStorage', {
 
 describe('ProgressManager', () => {
     let progressManager: ProgressManager;
+    let scoreManager: ScoreManager;
     let eventEmitter: EventEmitter<EventMap>;
 
     beforeEach(() => {
@@ -38,7 +40,8 @@ describe('ProgressManager', () => {
         jest.clearAllMocks();
         
         eventEmitter = new EventEmitter<EventMap>();
-        progressManager = new ProgressManager(eventEmitter);
+        scoreManager = new ScoreManager(eventEmitter);
+        progressManager = new ProgressManager(eventEmitter, scoreManager);
     });
 
     describe('初期化', () => {
@@ -83,7 +86,8 @@ describe('ProgressManager', () => {
 
             PersistenceManager.saveProfile(existingProfile);
             
-            const newProgressManager = new ProgressManager(eventEmitter);
+            const newScoreManager = new ScoreManager(eventEmitter);
+            const newProgressManager = new ProgressManager(eventEmitter, newScoreManager);
             const loadedProfile = newProgressManager.getProfile();
             
             expect(loadedProfile.totalGamesPlayed).toBe(5);

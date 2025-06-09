@@ -4,79 +4,20 @@ import { EventMap } from "../events/EventType";
 import { GameObjectFactory } from "../factories/GameObjectFactory";
 import { FormationType, Vector2D, WaveConfig, WaveEnemyConfig } from "../types";
 import { Game } from "../core/Game";
+import { WaveConfiguration } from "../data/WaveConfiguration";
 
 export class WaveManager {
     private currentWave: number = 0;
     private waveActive: boolean = false;
     private enemiesRemaining: number = 0;
     private spawnQueue: { enemy: WaveEnemyConfig; position: Vector2D; spawnTime: number }[] = [];
-    private waveConfig: WaveConfig[] = [];
 
     constructor(
         private eventEmitter: EventEmitter<EventMap>,
         private gameObjectFactory: GameObjectFactory,
         private game: Game
     ) {
-        this.initializeWaveConfigs();
         this.setupEventListeners();
-    }
-
-    private initializeWaveConfigs(): void {
-        this.waveConfig = [
-            // Wave 1: 小敵の基本フォーメーション
-            {
-                id: 1,
-                name: "偵察隊",
-                enemies: [
-                    { type: 'SMALL', count: 5, formation: 'line', delay: 300 }
-                ],
-                bonusScore: 50,
-                nextWaveDelay: 2000
-            },
-            // Wave 2: V字フォーメーション
-            {
-                id: 2,
-                name: "V編隊",
-                enemies: [
-                    { type: 'SMALL', count: 7, formation: 'vformation', delay: 250 }
-                ],
-                bonusScore: 75,
-                nextWaveDelay: 2500
-            },
-            // Wave 3: 混合フォーメーション
-            {
-                id: 3,
-                name: "混合部隊",
-                enemies: [
-                    { type: 'SMALL', count: 4, formation: 'line', delay: 200 },
-                    { type: 'MEDIUM', count: 2, formation: 'circle', delay: 400, offsetY: 80 }
-                ],
-                bonusScore: 100,
-                nextWaveDelay: 3000
-            },
-            // Wave 4: ダイヤモンドフォーメーション
-            {
-                id: 4,
-                name: "ダイヤモンド編隊",
-                enemies: [
-                    { type: 'MEDIUM', count: 5, formation: 'diamond', delay: 350 }
-                ],
-                bonusScore: 125,
-                nextWaveDelay: 3000
-            },
-            // Wave 5: 大規模攻撃
-            {
-                id: 5,
-                name: "大侵攻",
-                enemies: [
-                    { type: 'SMALL', count: 8, formation: 'arrow', delay: 150 },
-                    { type: 'MEDIUM', count: 3, formation: 'line', delay: 300, offsetY: 60 },
-                    { type: 'LARGE', count: 1, formation: 'circle', delay: 500, offsetY: 120 }
-                ],
-                bonusScore: 200,
-                nextWaveDelay: 4000
-            }
-        ];
     }
 
     private setupEventListeners(): void {
@@ -97,15 +38,20 @@ export class WaveManager {
             return false;
         }
 
-        if (this.currentWave >= this.waveConfig.length) {
-            // 最後のウェーブを超えた場合は、難易度を上げて繰り返し
-            this.generateDynamicWave();
+        this.currentWave++;
+        
+        // 定義済みウェーブの範囲内かチェック
+        if (this.currentWave <= WaveConfiguration.getWaveCount()) {
+            const wave = WaveConfiguration.getWaveConfig(this.currentWave);
+            if (wave) {
+                this.prepareWave(wave);
+            }
         } else {
-            const wave = this.waveConfig[this.currentWave];
-            this.prepareWave(wave);
+            // 動的ウェーブを生成
+            const dynamicWave = WaveConfiguration.generateDynamicWave(this.currentWave);
+            this.prepareWave(dynamicWave);
         }
 
-        this.currentWave++;
         this.waveActive = true;
         return true;
     }
@@ -210,44 +156,6 @@ export class WaveManager {
         return positions;
     }
 
-    private generateDynamicWave(): void {
-        const waveLevel = this.currentWave - this.waveConfig.length + 1;
-        const difficulty = Math.min(waveLevel * 0.2, 2.0); // 最大2倍まで
-
-        const dynamicWave: WaveConfig = {
-            id: this.currentWave + 1,
-            name: `猛攻 ${waveLevel}`,
-            enemies: [
-                {
-                    type: 'SMALL',
-                    count: Math.floor(6 + difficulty * 3),
-                    formation: ['line', 'vformation', 'circle'][Math.floor(Math.random() * 3)] as FormationType,
-                    delay: Math.max(100, 300 - difficulty * 50)
-                },
-                {
-                    type: 'MEDIUM',
-                    count: Math.floor(2 + difficulty),
-                    formation: ['diamond', 'arrow'][Math.floor(Math.random() * 2)] as FormationType,
-                    delay: Math.max(200, 400 - difficulty * 50),
-                    offsetY: 80
-                }
-            ],
-            bonusScore: Math.floor(150 + difficulty * 50),
-            nextWaveDelay: 3000
-        };
-
-        if (waveLevel > 3) {
-            dynamicWave.enemies.push({
-                type: 'LARGE',
-                count: Math.floor(1 + difficulty * 0.5),
-                formation: 'circle',
-                delay: Math.max(300, 500 - difficulty * 50),
-                offsetY: 140
-            });
-        }
-
-        this.prepareWave(dynamicWave);
-    }
 
     public update(): void {
         if (!this.waveActive || this.spawnQueue.length === 0) return;
@@ -276,7 +184,12 @@ export class WaveManager {
 
     private completeWave(): void {
         this.waveActive = false;
-        const completedWave = this.waveConfig[this.currentWave - 1] || { bonusScore: 100, nextWaveDelay: 2000 };
+        
+        // 現在のウェーブ設定を取得（動的ウェーブの場合は最低値を使用）
+        let completedWave = WaveConfiguration.getWaveConfig(this.currentWave);
+        if (!completedWave) {
+            completedWave = { bonusScore: 100, nextWaveDelay: 2000 } as WaveConfig;
+        }
 
         // ウェーブクリアボーナス
         const bonusScore = completedWave.bonusScore * GAME_CONSTANTS.WAVE.CLEAR_BONUS_MULTIPLIER;

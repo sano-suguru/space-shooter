@@ -8,6 +8,7 @@ import { IGameEngine } from "../interfaces/IGameEngine";
 import { IInputManager } from "../interfaces/IInputManager";
 import { IRandomProvider } from "../providers/IRandomProvider";
 import { UpgradeEffect } from "../progression/types/Upgrade";
+import { PlayerRenderer } from "../rendering/PlayerRenderer";
 
 export class Player extends GameObject {
     private velocity: Vector2D = { x: 0, y: 0 };
@@ -22,6 +23,7 @@ export class Player extends GameObject {
     private lastHitTime = 0;
     private lastFireTime = 0;
     private thrusterParticles: Array<{ x: number; y: number; speed: number; life: number }> = [];
+    private playerRenderer: PlayerRenderer;
     
     // アップグレード効果関連
     private currentUpgradeEffect: UpgradeEffect = {};
@@ -49,6 +51,7 @@ export class Player extends GameObject {
         this.health = GAME_CONSTANTS.PLAYER.MAX_HEALTH;
         this.maxHealth = GAME_CONSTANTS.PLAYER.MAX_HEALTH;
         this.fireRate = GAME_CONSTANTS.PLAYER.FIRE_RATE;
+        this.playerRenderer = new PlayerRenderer();
     }
 
     public setKeyState(_key: string, _isPressed: boolean): void {
@@ -232,96 +235,17 @@ export class Player extends GameObject {
     }
 
     public draw(ctx: CanvasRenderingContext2D): void {
-        this.drawThrusterParticles(ctx);
-        this.drawShip(ctx);
-        this.drawShield(ctx);
-    }
-
-    private drawShip(ctx: CanvasRenderingContext2D): void {
-        ctx.save();
-        ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
-
-        // メインボディ
-        ctx.fillStyle = this.invincible ? 'rgba(255, 0, 0, 0.5)' : GAME_CONSTANTS.PLAYER.COLORS.PRIMARY;
-        ctx.beginPath();
-        ctx.moveTo(0, -this.height / 2);
-        ctx.lineTo(-this.width / 2, this.height / 2);
-        ctx.lineTo(this.width / 2, this.height / 2);
-        ctx.closePath();
-        ctx.fill();
-
-        // 補助翼
-        ctx.fillStyle = GAME_CONSTANTS.PLAYER.COLORS.SECONDARY;
-        ctx.beginPath();
-        ctx.moveTo(-this.width / 4, 0);
-        ctx.lineTo(-this.width / 2, this.height / 2);
-        ctx.lineTo(0, this.height / 4);
-        ctx.closePath();
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.moveTo(this.width / 4, 0);
-        ctx.lineTo(this.width / 2, this.height / 2);
-        ctx.lineTo(0, this.height / 4);
-        ctx.closePath();
-        ctx.fill();
-
-        // コックピット
-        ctx.fillStyle = GAME_CONSTANTS.PLAYER.COLORS.ACCENT;
-        ctx.beginPath();
-        ctx.ellipse(0, -this.height / 6, this.width / 6, this.height / 6, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        // エンジンの輝き
-        const engineGlowSize = 10 + Math.sin(this.engineAnimationPhase) * 3;
-        const gradient = ctx.createRadialGradient(
-            0, this.height / 2,
-            0, 0, this.height / 2, engineGlowSize
+        this.playerRenderer.render(
+            ctx,
+            this.x,
+            this.y,
+            this.width,
+            this.height,
+            this.invincible,
+            this.shieldActive,
+            this.engineAnimationPhase,
+            this.thrusterParticles
         );
-        gradient.addColorStop(0, GAME_CONSTANTS.PLAYER.COLORS.ENGINE);
-        gradient.addColorStop(0.5, 'rgba(255, 100, 0, 0.5)');
-        gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(0, this.height / 2, engineGlowSize, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.restore();
-    }
-
-    private drawThrusterParticles(ctx: CanvasRenderingContext2D): void {
-        ctx.save();
-        for (const particle of this.thrusterParticles) {
-            const alpha = particle.life;
-            const size = 5 * particle.life;
-            ctx.fillStyle = `rgba(255, 100, 0, ${alpha})`;
-            ctx.beginPath();
-            ctx.arc(particle.x, particle.y, size, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        ctx.restore();
-    }
-
-    private drawShield(ctx: CanvasRenderingContext2D): void {
-        if (this.shieldActive) {
-            ctx.save();
-            ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.width / 2 + 10, 0, Math.PI * 2);
-            ctx.stroke();
-
-            const gradient = ctx.createRadialGradient(
-                this.x + this.width / 2, this.y + this.height / 2, this.width / 2,
-                this.x + this.width / 2, this.y + this.height / 2, this.width / 2 + 15
-            );
-            gradient.addColorStop(0, 'rgba(0, 255, 255, 0.1)');
-            gradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
-            ctx.fillStyle = gradient;
-            ctx.fill();
-
-            ctx.restore();
-        }
     }
 
     public takeDamage(amount: number): void {
