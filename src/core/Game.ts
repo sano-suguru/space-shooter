@@ -14,17 +14,14 @@ import { ScoreManager } from '../managers/ScoreManager';
 import { WaveManager } from '../managers/WaveManager';
 import { EnemyType } from '../types';
 import { CollisionSystem } from '../systems/CollisionSystem';
-import { IGameEngine } from '../interfaces/IGameEngine';
 import { GameEngine } from './GameEngine';
 import { BackgroundRenderer } from '../rendering/BackgroundRenderer';
 import { GameRenderer } from '../rendering/GameRenderer';
 import { IInputManager } from '../interfaces/IInputManager';
 import { IRandomProvider } from '../providers/IRandomProvider';
-import { IDOMManager } from '../interfaces/IDOMManager';
 import { IMessageManager } from '../interfaces/IMessageManager';
-import { ITimeProvider } from '../providers/ITimeProvider';
 
-export class Game implements IGameEngine {
+export class Game {
     private ctx: CanvasRenderingContext2D;
     private level = 1;
     private bossSpawnScore: number = 1000;
@@ -47,9 +44,7 @@ export class Game implements IGameEngine {
         private stateManager: GameStateManager,
         private inputManager: IInputManager,
         private randomProvider: IRandomProvider,
-        private _domManager: IDOMManager, // TODO: Phase 4 - DOM操作抽象化で使用予定
-        private messageManager: IMessageManager,
-        private _timeProvider: ITimeProvider
+        private messageManager: IMessageManager
     ) {
         this.ctx = this.canvas.getContext('2d') as CanvasRenderingContext2D;
         this.canvas.width = GAME_CONSTANTS.CANVAS.WIDTH;
@@ -77,9 +72,7 @@ export class Game implements IGameEngine {
         );
 
         this.stateManager.setState('STARTING', this);
-
-        // Phase 4 テスタビリティ改善: 将来のDOM操作抽象化のために保持
-        void this._domManager;    }
+    }
 
     private initializeGameObjects(): void {
         // GameObjectManagerを初期化
@@ -174,7 +167,7 @@ export class Game implements IGameEngine {
     public start(): void {
         this.eventEmitter.emit('gameStarted');
         this.gameEngine.start();
-        this._timeProvider.setInterval(this.spawnEnemy, GAME_CONSTANTS.ENEMY.SPAWN_INTERVAL);
+        setInterval(this.spawnEnemy, GAME_CONSTANTS.ENEMY.SPAWN_INTERVAL);
     }
 
     /**
@@ -266,7 +259,7 @@ export class Game implements IGameEngine {
         this.level++;
         this.eventEmitter.emit('levelUpdated', this.level);
 
-        this._timeProvider.setTimeout(() => {
+        setTimeout(() => {
             this.startNextLevel();
         }, 3000);
         this.bossSpawnScore = this.currentScore + 1000;

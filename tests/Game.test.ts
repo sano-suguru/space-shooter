@@ -53,9 +53,7 @@ describe('Game', () => {
       stateManager,
       mockInputManager,
       mockRandomProvider,
-      mockDOMManager,
-      mockMessageManager,
-      mockTimeProvider
+      mockMessageManager
     );
   });
 
@@ -66,8 +64,8 @@ describe('Game', () => {
       expect(game.createBullet).toBeDefined();
     });
 
-    test('IGameEngineインターフェースが正しく実装されている', () => {
-      // IGameEngine のメソッドが存在することを確認
+    test('主要なメソッドが正しく実装されている', () => {
+      // 主要なメソッドが存在することを確認
       expect(typeof game.addBossBullet).toBe('function');
       expect(typeof game.getDifficultyFactor).toBe('function');
       expect(typeof game.createBullet).toBe('function');

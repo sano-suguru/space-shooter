@@ -51,9 +51,7 @@ function initGame(): void {
         stateManager,
         inputManager,
         randomProvider,
-        domManager,
-        messageManager,
-        timeProvider
+        messageManager
     );
 
     game.start();
