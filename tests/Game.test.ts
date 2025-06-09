@@ -5,8 +5,8 @@ import { EventMap } from '../src/events/EventType';
 import { GameObjectFactory } from '../src/factories/GameObjectFactory';
 import { GameStateManager } from '../src/managers/GameStateManager';
 import { ScoreManager } from '../src/managers/ScoreManager';
-import { MockInputManager, MockDOMManager, MockMessageManager } from '../src/managers';
-import { MockRandomProvider, MockTimeProvider } from '../src/providers';
+import { MockInputManager, MockMessageManager } from '../src/managers';
+import { MockRandomProvider } from '../src/providers';
 
 describe('Game', () => {
   let game: Game;
@@ -18,9 +18,7 @@ describe('Game', () => {
   let stateManager: GameStateManager;
   let mockInputManager: MockInputManager;
   let mockRandomProvider: MockRandomProvider;
-  let mockDOMManager: MockDOMManager;
   let mockMessageManager: MockMessageManager;
-  let mockTimeProvider: MockTimeProvider;
 
   beforeEach(() => {
     // Canvas と Context のモック
@@ -33,8 +31,6 @@ describe('Game', () => {
     mockInputManager = new MockInputManager();
     mockRandomProvider = new MockRandomProvider();
     mockRandomProvider.setValues([0.5, 0.3, 0.7, 0.2, 0.8]);
-    mockDOMManager = new MockDOMManager();
-    mockTimeProvider = new MockTimeProvider();
     mockMessageManager = new MockMessageManager();
 
     // Game依存オブジェクトの作成

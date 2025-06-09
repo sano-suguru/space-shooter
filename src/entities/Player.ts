@@ -177,7 +177,7 @@ export class Player extends GameObject {
         }
     }
 
-    private updateEngineAnimation(deltaTime: number): void {
+    private updateEngineAnimation(_deltaTime: number): void {
         // エンジンアニメーションは削除してシンプル化
     }
 

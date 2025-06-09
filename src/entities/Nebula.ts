@@ -226,7 +226,7 @@ export class Nebula {
     }
 
     private drawNebulaLayers(ctx: CanvasRenderingContext2D): void {
-        this.layers.forEach((layer, index) => {
+        this.layers.forEach((layer, _index) => {
             ctx.save();
             ctx.rotate(layer.rotation);
             ctx.globalAlpha = layer.opacity;

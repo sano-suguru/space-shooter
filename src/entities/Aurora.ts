@@ -194,7 +194,7 @@ export class Aurora {
         this.globalIntensity = 0.6 + Math.sin(this.intensityPhase) * 0.3;
         
         // カーテンの更新
-        this.curtains.forEach(curtain => {
+        this.curtains.forEach((curtain, _index) => {
             curtain.baseOffset += curtain.speed * deltaTime;
             curtain.shimmerPhase += curtain.shimmerSpeed * deltaTime;
         });
@@ -214,7 +214,7 @@ export class Aurora {
     }
 
     private updateParticles(deltaTime: number): void {
-        this.particles.forEach((particle, index) => {
+        this.particles.forEach((particle, _index) => {
             particle.x += particle.vx * deltaTime * 0.1;
             particle.y -= particle.vy * deltaTime * 0.1;
             particle.life -= deltaTime;
@@ -236,7 +236,7 @@ export class Aurora {
         });
     }
 
-    private updateRays(deltaTime: number): void {
+    private updateRays(_deltaTime: number): void {
         // 雷の強度変化
         this.rays.forEach(ray => {
             ray.intensity = Math.random() * 0.8 + 0.2;

@@ -33,11 +33,8 @@ export class Explosion {
     private shockWaves: ShockWave[] = [];
     private duration: number = GAME_CONSTANTS.EXPLOSION.DURATION;
     private currentFrame: number = 0;
-    private maxRadius: number = 30;
     private active: boolean = false;
     private size: number = 1;
-    private flashIntensity: number = 1;
-    private coreGlow: number = 1;
 
     constructor() {
         // デフォルトコンストラクタ（オブジェクトプール用）
@@ -50,7 +47,6 @@ export class Explosion {
         this.x = x;
         this.y = y;
         this.size = size;
-        this.maxRadius = 30 * size;
         this.duration = GAME_CONSTANTS.EXPLOSION.DURATION;
         this.currentFrame = 0;
         this.active = true;
@@ -65,7 +61,6 @@ export class Explosion {
         this.y = 0;
         this.particles = [];
         this.currentFrame = 0;
-        this.maxRadius = 30;
         this.active = false;
         this.size = 1;
     }
@@ -143,7 +138,6 @@ export class Explosion {
 
     public update(deltaTime: number): void {
         this.currentFrame++;
-        const progress = this.currentFrame / this.duration;
         
         // 衝撃波の更新（負の値を防ぐ）
         this.shockWaves.forEach(shockWave => {
