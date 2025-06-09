@@ -27,24 +27,34 @@ export class GameRenderer {
     }
 
     /**
-     * 最適化された背景描画
+     * 最適化された背景描画（新しい幻想的なエンティティを含む）
      */
     private drawBackground(gameObjectManager: GameObjectManager): void {
         const stars = gameObjectManager.getStars();
         const planets = gameObjectManager.getPlanets();
         const nebulas = gameObjectManager.getNebulas();
         const auroras = gameObjectManager.getAuroras();
+        
+        // 新しい幻想的なエンティティを取得
+        const comets = gameObjectManager.getComets();
+        const meteorShowers = gameObjectManager.getMeteorShowers();
+        const spaceDusts = gameObjectManager.getSpaceDusts();
 
         if (this.useOptimizedBackground) {
-            this.backgroundRenderer.drawOptimizedBackground(
+            // 改良された背景描画を使用
+            this.backgroundRenderer.drawEnhancedBackground(
                 this.ctx,
                 stars,
                 planets,
                 nebulas,
-                auroras
+                auroras,
+                comets,
+                meteorShowers,
+                spaceDusts
             );
         } else {
-            this.backgroundRenderer.drawTraditionalBackground(
+            // 従来の背景描画（互換性維持）
+            this.backgroundRenderer.drawOptimizedBackground(
                 this.ctx,
                 stars,
                 planets,

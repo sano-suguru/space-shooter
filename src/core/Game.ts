@@ -78,13 +78,20 @@ export class Game {
         // GameObjectManagerを初期化
         this.gameObjectManager = new GameObjectManager(this.eventEmitter);
 
-        // 背景オブジェクトを作成してGameObjectManagerに設定
+        // 従来の背景オブジェクトを作成
         const stars = Array.from({ length: GAME_CONSTANTS.BACKGROUND.STAR_COUNT }, () => this.gameObjectFactory.createStar());
         const planets = Array.from({ length: GAME_CONSTANTS.BACKGROUND.PLANET_COUNT }, () => this.gameObjectFactory.createPlanet());
         const nebulas = Array.from({ length: GAME_CONSTANTS.BACKGROUND.NEBULA_COUNT }, () => this.gameObjectFactory.createNebula());
         const auroras = Array.from({ length: 2 }, () => this.gameObjectFactory.createAurora());
 
+        // 新しい幻想的なエンティティを作成
+        const comets = Array.from({ length: 3 }, () => this.gameObjectFactory.createComet());
+        const meteorShowers = Array.from({ length: 2 }, () => this.gameObjectFactory.createMeteorShower());
+        const spaceDusts = Array.from({ length: 4 }, () => this.gameObjectFactory.createSpaceDust());
+
+        // 背景オブジェクトを設定
         this.gameObjectManager.setBackgroundObjects(stars, planets, nebulas, auroras);
+        this.gameObjectManager.setEnhancedBackgroundObjects(comets, meteorShowers, spaceDusts);
     }
 
     /**

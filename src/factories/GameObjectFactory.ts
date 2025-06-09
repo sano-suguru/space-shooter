@@ -5,6 +5,9 @@ import { Nebula } from "../entities/Nebula";
 import { Planet } from "../entities/Planet";
 import { PowerUp } from "../entities/PowerUp";
 import { Star } from "../entities/Star";
+import { Comet } from "../entities/Comet";
+import { MeteorShower } from "../entities/MeteorShower";
+import { SpaceDust } from "../entities/SpaceDust";
 import { EnemyType } from "../types";
 import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { randomRange } from "../utils/RandomUtils";
@@ -31,6 +34,18 @@ export class GameObjectFactory {
 
     createAurora(): Aurora {
         return new Aurora();
+    }
+
+    createComet(): Comet {
+        return new Comet(this.randomProvider);
+    }
+
+    createMeteorShower(): MeteorShower {
+        return new MeteorShower(this.randomProvider);
+    }
+
+    createSpaceDust(): SpaceDust {
+        return new SpaceDust(this.randomProvider);
     }
 
     createEnemy(type: EnemyType, game: IGameEngine): Enemy {

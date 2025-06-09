@@ -9,6 +9,9 @@ import { Star } from '../entities/Star';
 import { Planet } from '../entities/Planet';
 import { Nebula } from '../entities/Nebula';
 import { Aurora } from '../entities/Aurora';
+import { Comet } from '../entities/Comet';
+import { MeteorShower } from '../entities/MeteorShower';
+import { SpaceDust } from '../entities/SpaceDust';
 import { EventEmitter } from '../events/EventEmitter';
 import { EventMap } from '../events/EventType';
 import { ObjectPool, PoolManager } from '../utils/ObjectPool';
@@ -32,6 +35,11 @@ export class GameObjectManager {
     private planets: Planet[] = [];
     private nebulas: Nebula[] = [];
     private auroras: Aurora[] = [];
+    
+    // 新しい幻想的なエンティティ
+    private comets: Comet[] = [];
+    private meteorShowers: MeteorShower[] = [];
+    private spaceDusts: SpaceDust[] = [];
 
     // オブジェクトプール管理
     private poolManager: PoolManager;
@@ -103,6 +111,11 @@ export class GameObjectManager {
         this.stars.forEach(star => star.update(deltaTime));
         this.planets.forEach(planet => planet.update(deltaTime));
         this.auroras.forEach(aurora => aurora.update(deltaTime));
+        
+        // 新しい幻想的なエンティティの更新
+        this.comets.forEach(comet => comet.update(deltaTime));
+        this.meteorShowers.forEach(shower => shower.update(deltaTime));
+        this.spaceDusts.forEach(dust => dust.update(deltaTime));
     }
 
     /**
@@ -181,6 +194,19 @@ export class GameObjectManager {
     }
 
     /**
+     * 新しい幻想的な背景エンティティを設定
+     */
+    public setEnhancedBackgroundObjects(
+        comets: Comet[],
+        meteorShowers: MeteorShower[],
+        spaceDusts: SpaceDust[]
+    ): void {
+        this.comets = comets;
+        this.meteorShowers = meteorShowers;
+        this.spaceDusts = spaceDusts;
+    }
+
+    /**
      * ゲームをリセット
      */
     public reset(): void {
@@ -250,6 +276,18 @@ export class GameObjectManager {
 
     public getAuroras(): Aurora[] {
         return this.auroras;
+    }
+
+    public getComets(): Comet[] {
+        return this.comets;
+    }
+
+    public getMeteorShowers(): MeteorShower[] {
+        return this.meteorShowers;
+    }
+
+    public getSpaceDusts(): SpaceDust[] {
+        return this.spaceDusts;
     }
 
     public addEnemy(enemy: Enemy): void {

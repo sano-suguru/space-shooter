@@ -3,6 +3,9 @@ import { Star } from '../entities/Star';
 import { Planet } from '../entities/Planet';
 import { Nebula } from '../entities/Nebula';
 import { Aurora } from '../entities/Aurora';
+import { Comet } from '../entities/Comet';
+import { MeteorShower } from '../entities/MeteorShower';
+import { SpaceDust } from '../entities/SpaceDust';
 
 /**
  * 背景レンダリング最適化クラス
@@ -81,6 +84,55 @@ export class BackgroundRenderer {
     }
 
     /**
+     * 改良された背景グラデーションを事前レンダリング
+     */
+    private renderEnhancedBackgroundToCache(): void {
+        const ctx = this.backgroundCacheCtx;
+        
+        // より深い宇宙感のある多層グラデーション
+        const gradient = ctx.createRadialGradient(
+            GAME_CONSTANTS.CANVAS.WIDTH * 0.3, GAME_CONSTANTS.CANVAS.HEIGHT * 0.2, 0,
+            GAME_CONSTANTS.CANVAS.WIDTH * 0.5, GAME_CONSTANTS.CANVAS.HEIGHT * 0.5, 
+            Math.max(GAME_CONSTANTS.CANVAS.WIDTH, GAME_CONSTANTS.CANVAS.HEIGHT)
+        );
+        
+        gradient.addColorStop(0, 'rgba(25, 25, 60, 1)');    // 中心部 - 深い青紫
+        gradient.addColorStop(0.3, 'rgba(15, 15, 45, 1)');  // 中間 - 暗い青
+        gradient.addColorStop(0.7, 'rgba(8, 8, 25, 1)');    // 外側 - 深い暗闇
+        gradient.addColorStop(1, 'rgba(5, 5, 15, 1)');      // 最外層 - ほぼ黒
+
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, GAME_CONSTANTS.CANVAS.WIDTH, GAME_CONSTANTS.CANVAS.HEIGHT);
+
+        // 微細な星の輝きをオーバーレイとして追加
+        this.addStardustOverlay(ctx);
+
+        this.backgroundCacheValid = true;
+    }
+
+    /**
+     * 微細な星屑オーバーレイを追加
+     */
+    private addStardustOverlay(ctx: CanvasRenderingContext2D): void {
+        ctx.globalCompositeOperation = 'screen';
+        
+        // ランダムな微細な光点を散りばめる
+        for (let i = 0; i < 200; i++) {
+            const x = Math.random() * GAME_CONSTANTS.CANVAS.WIDTH;
+            const y = Math.random() * GAME_CONSTANTS.CANVAS.HEIGHT;
+            const size = Math.random() * 0.8 + 0.2;
+            const alpha = Math.random() * 0.3 + 0.1;
+            
+            ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        ctx.globalCompositeOperation = 'source-over';
+    }
+
+    /**
      * 星雲を事前レンダリング
      */
     private renderNebulaToCache(nebulas: Nebula[]): void {
@@ -110,7 +162,69 @@ export class BackgroundRenderer {
     }
 
     /**
-     * 最適化された背景描画
+     * 最適化された背景描画（新しいエンティティ対応）
+     * @param ctx メインキャンバスのコンテキスト
+     * @param stars 星の配列
+     * @param planets 惑星の配列
+     * @param nebulas 星雲の配列
+     * @param auroras オーロラの配列
+     * @param comets 彗星の配列
+     * @param meteorShowers 流星群の配列
+     * @param spaceDusts 宇宙塵雲の配列
+     */
+    public drawEnhancedBackground(
+        ctx: CanvasRenderingContext2D,
+        stars: Star[],
+        planets: Planet[],
+        nebulas: Nebula[],
+        auroras: Aurora[],
+        comets: Comet[],
+        meteorShowers: MeteorShower[],
+        spaceDusts: SpaceDust[]
+    ): void {
+        const startTime = performance.now();
+
+        // 1. 背景グラデーション（改良版 - より深い宇宙感）
+        if (!this.backgroundCacheValid) {
+            this.renderEnhancedBackgroundToCache();
+        }
+        ctx.drawImage(this.backgroundCache, 0, 0);
+
+        // 2. 星雲（キャッシュ使用 - 完全静的）
+        if (!this.nebulaCacheValid) {
+            this.renderNebulaToCache(nebulas);
+        }
+        ctx.drawImage(this.nebulaCache, 0, 0);
+
+        // 3. 宇宙塵雲（遠景エフェクト）
+        spaceDusts.forEach(dust => dust.draw(ctx));
+
+        // 4. 惑星（定期更新キャッシュ使用）
+        this.planetCacheFrameCounter++;
+        if (!this.planetCacheValid || this.planetCacheFrameCounter >= this.planetCacheUpdateInterval) {
+            this.renderPlanetsToCache(planets);
+        }
+        ctx.drawImage(this.planetCache, 0, 0);
+
+        // 5. 星（毎フレーム描画 - 改良されたバリエーション）
+        stars.forEach(star => star.draw(ctx));
+
+        // 6. 流星群（中景エフェクト）
+        meteorShowers.forEach(shower => shower.draw(ctx));
+
+        // 7. 彗星（動的エフェクト）
+        comets.forEach(comet => comet.draw(ctx));
+
+        // 8. オーロラ（前景エフェクト）
+        auroras.forEach(aurora => aurora.draw(ctx));
+
+        // パフォーマンス測定
+        const endTime = performance.now();
+        this.recordRenderTime(endTime - startTime);
+    }
+
+    /**
+     * 最適化された背景描画（従来版との互換性維持）
      * @param ctx メインキャンバスのコンテキスト
      * @param stars 星の配列
      * @param planets 惑星の配列
