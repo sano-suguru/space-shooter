@@ -1,4 +1,5 @@
 import { GAME_CONSTANTS } from "../constants/GameConstants";
+import { PooledParticle, globalParticlePoolManager } from "../utils/ParticlePoolManager";
 
 type AuroraType = 'borealis' | 'australis' | 'cosmic' | 'plasma' | 'solar-storm';
 
@@ -18,9 +19,7 @@ interface AuroraCurtain {
     shimmerSpeed: number;
 }
 
-interface AuroraParticle {
-    x: number;
-    y: number;
+interface AuroraParticle extends PooledParticle {
     vx: number;
     vy: number;
     life: number;
@@ -29,6 +28,78 @@ interface AuroraParticle {
     color: string;
     alpha: number;
     glowIntensity: number;
+}
+
+class AuroraParticleImpl implements AuroraParticle {
+    public x: number = 0;
+    public y: number = 0;
+    public active: boolean = false;
+    public vx: number = 0;
+    public vy: number = 0;
+    public life: number = 0;
+    public maxLife: number = 0;
+    public size: number = 0;
+    public color: string = '';
+    public alpha: number = 0;
+    public glowIntensity: number = 0;
+
+    public reset(): void {
+        this.x = 0;
+        this.y = 0;
+        this.active = false;
+        this.vx = 0;
+        this.vy = 0;
+        this.life = 0;
+        this.maxLife = 0;
+        this.size = 0;
+        this.color = '';
+        this.alpha = 0;
+        this.glowIntensity = 0;
+    }
+
+    public update(deltaTime: number): void {
+        if (!this.active) return;
+        
+        this.x += this.vx * deltaTime * 0.1;
+        this.y -= this.vy * deltaTime * 0.1;
+        this.life -= deltaTime;
+        
+        // ライフサイクル管理
+        if (this.life <= 0) {
+            this.active = false;
+        } else {
+            // アルファ値の調整
+            const lifeRatio = this.life / this.maxLife;
+            this.alpha = lifeRatio * this.glowIntensity;
+        }
+    }
+
+    public draw(ctx: CanvasRenderingContext2D): void {
+        if (!this.active || this.alpha <= 0) return;
+        
+        ctx.save();
+        ctx.globalAlpha = this.alpha;
+        ctx.translate(this.x, this.y);
+
+        // パーティクルのグロー効果
+        const glowGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, this.size * 4);
+        glowGradient.addColorStop(0, this.color);
+        glowGradient.addColorStop(0.5, `${this.color.replace(/[\d.]+(?=\))/, '0.3')}`);
+        glowGradient.addColorStop(1, 'transparent');
+        
+        ctx.fillStyle = glowGradient;
+        ctx.beginPath();
+        ctx.arc(0, 0, this.size * 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        // パーティクル本体
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(0, 0, this.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+    }
 }
 
 interface AuroraRay {
@@ -55,6 +126,8 @@ export class Aurora {
     private colorShiftSpeed: number;
     private stormMode: boolean;
     private stormIntensity: number;
+    private particleCount: number;
+    private poolName: string;
 
     constructor() {
         this.auroraType = this.generateAuroraType();
@@ -67,10 +140,28 @@ export class Aurora {
         this.colorShiftSpeed = Math.random() * 0.0003 + 0.0001;
         this.stormMode = Math.random() < 0.3; // 30%の確率で嵐モード
         this.stormIntensity = this.stormMode ? Math.random() * 0.5 + 0.5 : 0;
+        this.particleCount = this.stormMode ? 150 : 80;
+        this.poolName = `aurora-${Date.now()}-${Math.random()}`;
         
         this.curtains = this.generateCurtains();
-        this.particles = this.generateParticles();
+        this.particles = [];
         this.rays = this.generateRays();
+        
+        this.initializeParticlePool();
+        this.generateParticles();
+    }
+
+    private initializeParticlePool(): void {
+        // パーティクルプールを登録
+        globalParticlePoolManager.registerPool(
+            this.poolName,
+            () => new AuroraParticleImpl(),
+            {
+                initialSize: this.particleCount,
+                maxSize: this.particleCount * 2,
+                particleType: 'aurora'
+            }
+        );
     }
 
     private generateAuroraType(): AuroraType {
@@ -143,26 +234,26 @@ export class Aurora {
         return curtains;
     }
 
-    private generateParticles(): AuroraParticle[] {
-        const particleCount = this.stormMode ? 150 : 80;
-        const particles: AuroraParticle[] = [];
-        
-        for (let i = 0; i < particleCount; i++) {
-            particles.push({
-                x: Math.random() * GAME_CONSTANTS.CANVAS.WIDTH,
-                y: Math.random() * GAME_CONSTANTS.CANVAS.HEIGHT * 0.6,
-                vx: (Math.random() - 0.5) * 2,
-                vy: Math.random() * 3 + 1,
-                life: Math.random() * 180 + 120,
-                maxLife: Math.random() * 180 + 120,
-                size: Math.random() * 3 + 1,
-                color: this.currentColors[Math.floor(Math.random() * this.currentColors.length)],
-                alpha: Math.random() * 0.8 + 0.2,
-                glowIntensity: Math.random() * 0.6 + 0.4
-            });
+    private generateParticles(): void {
+        // プールからパーティクルを取得して初期化
+        for (let i = 0; i < this.particleCount; i++) {
+            const particle = globalParticlePoolManager.getParticle<AuroraParticle>(this.poolName);
+            if (particle) {
+                particle.x = Math.random() * GAME_CONSTANTS.CANVAS.WIDTH;
+                particle.y = Math.random() * GAME_CONSTANTS.CANVAS.HEIGHT * 0.6;
+                particle.vx = (Math.random() - 0.5) * 2;
+                particle.vy = Math.random() * 3 + 1;
+                particle.life = Math.random() * 180 + 120;
+                particle.maxLife = particle.life;
+                particle.size = Math.random() * 3 + 1;
+                particle.color = this.currentColors[Math.floor(Math.random() * this.currentColors.length)];
+                particle.alpha = Math.random() * 0.8 + 0.2;
+                particle.glowIntensity = Math.random() * 0.6 + 0.4;
+                particle.active = true;
+                
+                this.particles.push(particle);
+            }
         }
-        
-        return particles;
     }
 
     private generateRays(): AuroraRay[] {
@@ -215,24 +306,24 @@ export class Aurora {
 
     private updateParticles(deltaTime: number): void {
         this.particles.forEach((particle, _index) => {
-            particle.x += particle.vx * deltaTime * 0.1;
-            particle.y -= particle.vy * deltaTime * 0.1;
-            particle.life -= deltaTime;
-            
-            // ライフサイクル管理
-            if (particle.life <= 0) {
-                // 新しいパーティクルを生成
-                particle.x = Math.random() * GAME_CONSTANTS.CANVAS.WIDTH;
-                particle.y = GAME_CONSTANTS.CANVAS.HEIGHT * 0.8 + Math.random() * 100;
-                particle.vx = (Math.random() - 0.5) * 2;
-                particle.vy = Math.random() * 3 + 1;
-                particle.life = particle.maxLife;
-                particle.color = this.currentColors[Math.floor(Math.random() * this.currentColors.length)];
+            if (particle.active) {
+                particle.update(deltaTime);
+                
+                // ライフサイクル管理 - パーティクルが非アクティブになった場合の再生成
+                if (!particle.active) {
+                    // 新しいパーティクルを生成
+                    particle.x = Math.random() * GAME_CONSTANTS.CANVAS.WIDTH;
+                    particle.y = GAME_CONSTANTS.CANVAS.HEIGHT * 0.8 + Math.random() * 100;
+                    particle.vx = (Math.random() - 0.5) * 2;
+                    particle.vy = Math.random() * 3 + 1;
+                    particle.life = particle.maxLife;
+                    particle.color = this.currentColors[Math.floor(Math.random() * this.currentColors.length)];
+                    particle.active = true;
+                }
+                
+                // グローバル強度の適用
+                particle.alpha = (particle.life / particle.maxLife) * this.globalIntensity;
             }
-            
-            // アルファ値の調整
-            const lifeRatio = particle.life / particle.maxLife;
-            particle.alpha = lifeRatio * this.globalIntensity;
         });
     }
 
@@ -354,28 +445,9 @@ export class Aurora {
 
     private drawParticles(ctx: CanvasRenderingContext2D): void {
         this.particles.forEach(particle => {
-            ctx.save();
-            ctx.globalAlpha = particle.alpha;
-            ctx.translate(particle.x, particle.y);
-
-            // パーティクルのグロー効果
-            const glowGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, particle.size * 4);
-            glowGradient.addColorStop(0, particle.color);
-            glowGradient.addColorStop(0.5, `${particle.color.replace(/[\d.]+(?=\))/, '0.3')}`);
-            glowGradient.addColorStop(1, 'transparent');
-            
-            ctx.fillStyle = glowGradient;
-            ctx.beginPath();
-            ctx.arc(0, 0, particle.size * 4, 0, Math.PI * 2);
-            ctx.fill();
-
-            // パーティクル本体
-            ctx.fillStyle = particle.color;
-            ctx.beginPath();
-            ctx.arc(0, 0, particle.size, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.restore();
+            if (particle.active) {
+                particle.draw(ctx);
+            }
         });
     }
 
@@ -406,5 +478,37 @@ export class Aurora {
             ctx.stroke();
             ctx.restore();
         });
+    }
+
+    /**
+     * パーティクルプールのリソースをクリーンアップ
+     */
+    public dispose(): void {
+        // アクティブなパーティクルをプールに返却
+        this.particles.forEach(particle => {
+            if (particle.active) {
+                globalParticlePoolManager.releaseParticle(this.poolName, particle);
+            }
+        });
+        
+        // パーティクル配列をクリア
+        this.particles = [];
+        
+        // プールをクリア
+        globalParticlePoolManager.clearPool(this.poolName);
+    }
+
+    /**
+     * パーティクル数を取得（デバッグ用）
+     */
+    public getParticleCount(): number {
+        return this.particles.filter(p => p.active).length;
+    }
+
+    /**
+     * プール統計情報を取得（デバッグ用）
+     */
+    public getPoolStats() {
+        return globalParticlePoolManager.getPoolStats(this.poolName);
     }
 }

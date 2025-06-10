@@ -1,4 +1,5 @@
 import { GAME_CONSTANTS } from "../constants/GameConstants";
+import { PooledParticle, globalParticlePoolManager } from "../utils/ParticlePoolManager";
 
 type NebulaType = 'emission' | 'reflection' | 'dark' | 'supernova-remnant' | 'planetary' | 'spiral';
 
@@ -11,15 +12,97 @@ interface NebulaLayer {
     rotationSpeed: number;
 }
 
-interface NebulaParticle {
-    x: number;
-    y: number;
+interface NebulaParticle extends PooledParticle {
     radius: number;
-    alpha: number;
     color: string;
     glowIntensity: number;
     twinkleSpeed: number;
     twinklePhase: number;
+    baseX: number;
+    baseY: number;
+    alpha: number;
+}
+
+class NebulaParticleImpl implements NebulaParticle {
+    public x: number = 0;
+    public y: number = 0;
+    public active: boolean = false;
+    public radius: number = 0;
+    public color: string = '';
+    public glowIntensity: number = 0;
+    public twinkleSpeed: number = 0;
+    public twinklePhase: number = 0;
+    public baseX: number = 0;
+    public baseY: number = 0;
+    public alpha: number = 0;
+
+    public reset(): void {
+        this.x = 0;
+        this.y = 0;
+        this.active = false;
+        this.radius = 0;
+        this.color = '';
+        this.glowIntensity = 0;
+        this.twinkleSpeed = 0;
+        this.twinklePhase = 0;
+        this.baseX = 0;
+        this.baseY = 0;
+        this.alpha = 0;
+    }
+
+    public update(deltaTime: number): void {
+        if (!this.active) return;
+        this.twinklePhase += this.twinkleSpeed * deltaTime;
+    }
+
+    public draw(ctx: CanvasRenderingContext2D): void {
+        if (!this.active) return;
+        
+        ctx.save();
+        
+        // トゥインクル効果
+        const twinkle = 1 + Math.sin(this.twinklePhase) * 0.3;
+        const alpha = this.alpha * twinkle;
+        
+        ctx.globalAlpha = alpha;
+        ctx.translate(this.x, this.y);
+
+        // パーティクルのグロー効果
+        const glowGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, this.radius * 3);
+        glowGradient.addColorStop(0, this.color);
+        glowGradient.addColorStop(0.5, this.addAlphaToColor(this.color, 0.5));
+        glowGradient.addColorStop(1, 'transparent');
+        
+        ctx.fillStyle = glowGradient;
+        ctx.beginPath();
+        ctx.arc(0, 0, this.radius * 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // パーティクル本体
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    private addAlphaToColor(color: string, alpha: number): string {
+        // HSL色をHSLA色に変換
+        if (color.startsWith('hsl(')) {
+            return color.replace('hsl(', 'hsla(').replace(')', `, ${alpha})`);
+        }
+        // RGBA色の場合、アルファ値を更新
+        if (color.startsWith('rgba(')) {
+            return color.replace(/[\d.]+(?=\))/, alpha.toString());
+        }
+        // RGB色をRGBA色に変換
+        if (color.startsWith('rgb(')) {
+            return color.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`);
+        }
+        // その他の場合はそのまま返す
+        return color;
+    }
 }
 
 interface EnergyFilament {
@@ -46,6 +129,8 @@ export class Nebula {
     private pulsationSpeed: number;
     private swirlingSpeed: number;
     private energyLevel: number;
+    private particleCount: number;
+    private poolName: string;
 
     constructor() {
         this.x = Math.random() * GAME_CONSTANTS.CANVAS.WIDTH;
@@ -59,10 +144,28 @@ export class Nebula {
         this.pulsationSpeed = Math.random() * 0.002 + 0.001;
         this.swirlingSpeed = Math.random() * 0.001 + 0.0005;
         this.energyLevel = Math.random() * 0.8 + 0.2;
+        this.particleCount = Math.floor(Math.random() * 200) + 100;
+        this.poolName = `nebula-${Date.now()}-${Math.random()}`;
         
         this.layers = this.generateLayers();
-        this.particles = this.generateParticles();
+        this.particles = [];
         this.filaments = this.generateFilaments();
+        
+        this.initializeParticlePool();
+        this.generateParticles();
+    }
+
+    private initializeParticlePool(): void {
+        // パーティクルプールを登録
+        globalParticlePoolManager.registerPool(
+            this.poolName,
+            () => new NebulaParticleImpl(),
+            {
+                initialSize: this.particleCount,
+                maxSize: this.particleCount * 2,
+                particleType: 'nebula'
+            }
+        );
     }
 
     private generateNebulaType(): NebulaType {
@@ -118,28 +221,30 @@ export class Nebula {
         return layers;
     }
 
-    private generateParticles(): NebulaParticle[] {
-        const particleCount = Math.floor(Math.random() * 200) + 100;
-        const particles: NebulaParticle[] = [];
-        
-        for (let i = 0; i < particleCount; i++) {
-            // より自然な分布を作成（ガウシアン分布に近い）
-            const distance = this.generateGaussianRandom() * Math.min(this.width, this.height) * 0.4;
-            const angle = Math.random() * Math.PI * 2;
-            
-            particles.push({
-                x: Math.cos(angle) * distance,
-                y: Math.sin(angle) * distance,
-                radius: Math.random() * 4 + 0.5,
-                alpha: Math.random() * 0.8 + 0.2,
-                color: Math.random() < 0.7 ? this.primaryColor : this.secondaryColor,
-                glowIntensity: Math.random() * 0.5 + 0.3,
-                twinkleSpeed: Math.random() * 0.005 + 0.002,
-                twinklePhase: Math.random() * Math.PI * 2
-            });
+    private generateParticles(): void {
+        // プールからパーティクルを取得して初期化
+        for (let i = 0; i < this.particleCount; i++) {
+            const particle = globalParticlePoolManager.getParticle<NebulaParticle>(this.poolName);
+            if (particle) {
+                // より自然な分布を作成（ガウシアン分布に近い）
+                const distance = this.generateGaussianRandom() * Math.min(this.width, this.height) * 0.4;
+                const angle = Math.random() * Math.PI * 2;
+                
+                particle.baseX = Math.cos(angle) * distance;
+                particle.baseY = Math.sin(angle) * distance;
+                particle.x = particle.baseX;
+                particle.y = particle.baseY;
+                particle.radius = Math.random() * 4 + 0.5;
+                particle.alpha = Math.random() * 0.8 + 0.2;
+                particle.color = Math.random() < 0.7 ? this.primaryColor : this.secondaryColor;
+                particle.glowIntensity = Math.random() * 0.5 + 0.3;
+                particle.twinkleSpeed = Math.random() * 0.005 + 0.002;
+                particle.twinklePhase = Math.random() * Math.PI * 2;
+                particle.active = true;
+                
+                this.particles.push(particle);
+            }
         }
-        
-        return particles;
     }
 
     private generateFilaments(): EnergyFilament[] {
@@ -196,9 +301,11 @@ export class Nebula {
             layer.rotation += layer.rotationSpeed * deltaTime;
         });
         
-        // パーティクルのトゥインクル更新
+        // パーティクルの更新（プール対応）
         this.particles.forEach(particle => {
-            particle.twinklePhase += particle.twinkleSpeed * deltaTime;
+            if (particle.active) {
+                particle.update(deltaTime);
+            }
         });
     }
 
@@ -380,35 +487,16 @@ export class Nebula {
     }
 
     private drawParticles(ctx: CanvasRenderingContext2D): void {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        
         this.particles.forEach(particle => {
-            ctx.save();
-            
-            // トゥインクル効果
-            const twinkle = 1 + Math.sin(particle.twinklePhase) * 0.3;
-            const alpha = particle.alpha * twinkle;
-            
-            ctx.globalAlpha = alpha;
-            ctx.translate(particle.x, particle.y);
-
-            // パーティクルのグロー効果
-            const glowGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, particle.radius * 3);
-            glowGradient.addColorStop(0, particle.color);
-            glowGradient.addColorStop(0.5, this.addAlphaToColor(particle.color, 0.5));
-            glowGradient.addColorStop(1, 'transparent');
-            
-            ctx.fillStyle = glowGradient;
-            ctx.beginPath();
-            ctx.arc(0, 0, particle.radius * 3, 0, Math.PI * 2);
-            ctx.fill();
-
-            // パーティクル本体
-            ctx.fillStyle = particle.color;
-            ctx.beginPath();
-            ctx.arc(0, 0, particle.radius, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.restore();
+            if (particle.active) {
+                particle.draw(ctx);
+            }
         });
+        
+        ctx.restore();
     }
 
     private drawCore(ctx: CanvasRenderingContext2D): void {
@@ -429,5 +517,37 @@ export class Nebula {
         ctx.fill();
 
         ctx.restore();
+    }
+
+    /**
+     * パーティクルプールのリソースをクリーンアップ
+     */
+    public dispose(): void {
+        // アクティブなパーティクルをプールに返却
+        this.particles.forEach(particle => {
+            if (particle.active) {
+                globalParticlePoolManager.releaseParticle(this.poolName, particle);
+            }
+        });
+        
+        // パーティクル配列をクリア
+        this.particles = [];
+        
+        // プールをクリア
+        globalParticlePoolManager.clearPool(this.poolName);
+    }
+
+    /**
+     * パーティクル数を取得（デバッグ用）
+     */
+    public getParticleCount(): number {
+        return this.particles.filter(p => p.active).length;
+    }
+
+    /**
+     * プール統計情報を取得（デバッグ用）
+     */
+    public getPoolStats() {
+        return globalParticlePoolManager.getPoolStats(this.poolName);
     }
 }

@@ -6,6 +6,8 @@ import { Aurora } from '../entities/Aurora';
 import { Comet } from '../entities/Comet';
 import { MeteorShower } from '../entities/MeteorShower';
 import { SpaceDust } from '../entities/SpaceDust';
+import { PerformanceMonitor, PerformanceMetrics } from '../utils/PerformanceMonitor';
+import { LODManager, LODLevel } from './LODManager';
 
 /**
  * 背景レンダリング最適化クラス
@@ -24,12 +26,17 @@ export class BackgroundRenderer {
     private planetCache!: HTMLCanvasElement;
     private planetCacheCtx!: CanvasRenderingContext2D;
 
+    // 静的要素専用キャッシュ（Phase 2追加）
+    private staticElementsCache!: HTMLCanvasElement;
+    private staticElementsCacheCtx!: CanvasRenderingContext2D;
+
     // キャッシュ状態管理
     private backgroundCacheValid = false;
     private nebulaCacheValid = false;
     private planetCacheValid = false;
+    private staticElementsCacheValid = false;
 
-    // パフォーマンス測定
+    // パフォーマンス測定（レガシー）
     private renderTimes: number[] = [];
     private maxRenderTimeHistory = 100;
 
@@ -37,8 +44,16 @@ export class BackgroundRenderer {
     private planetCacheUpdateInterval = 16; // ~60FPS時に16フレームごと
     private planetCacheFrameCounter = 0;
 
+    // 新しいパフォーマンス監視・LODシステム
+    private performanceMonitor: PerformanceMonitor;
+    private lodManager: LODManager;
+    private lastUpdateTime = 0;
+
     constructor() {
         this.initializeCaches();
+        this.performanceMonitor = new PerformanceMonitor();
+        this.lodManager = new LODManager(this.performanceMonitor);
+        this.lastUpdateTime = performance.now();
     }
 
     /**
@@ -65,6 +80,12 @@ export class BackgroundRenderer {
         this.planetCache.width = width;
         this.planetCache.height = height;
         this.planetCacheCtx = this.planetCache.getContext('2d')!;
+
+        // 静的要素統合キャッシュ（Phase 2追加）
+        this.staticElementsCache = document.createElement('canvas');
+        this.staticElementsCache.width = width;
+        this.staticElementsCache.height = height;
+        this.staticElementsCacheCtx = this.staticElementsCache.getContext('2d')!;
     }
 
     /**
@@ -162,6 +183,36 @@ export class BackgroundRenderer {
     }
 
     /**
+     * 静的要素を統合キャッシュに事前レンダリング（Phase 2追加）
+     * 背景グラデーション、星雲、惑星を一つのキャッシュに統合
+     */
+    private renderStaticElementsToCache(nebulas: Nebula[], planets: Planet[]): void {
+        const ctx = this.staticElementsCacheCtx;
+        ctx.clearRect(0, 0, GAME_CONSTANTS.CANVAS.WIDTH, GAME_CONSTANTS.CANVAS.HEIGHT);
+
+        // 1. 背景グラデーション
+        if (!this.backgroundCacheValid) {
+            this.renderEnhancedBackgroundToCache();
+        }
+        ctx.drawImage(this.backgroundCache, 0, 0);
+
+        // 2. 星雲（完全静的）
+        if (!this.nebulaCacheValid) {
+            this.renderNebulaToCache(nebulas);
+        }
+        ctx.drawImage(this.nebulaCache, 0, 0);
+
+        // 3. 惑星（定期更新が必要だが、静的キャッシュに含める）
+        this.planetCacheFrameCounter++;
+        if (!this.planetCacheValid || this.planetCacheFrameCounter >= this.planetCacheUpdateInterval) {
+            this.renderPlanetsToCache(planets);
+        }
+        ctx.drawImage(this.planetCache, 0, 0);
+
+        this.staticElementsCacheValid = true;
+    }
+
+    /**
      * 最適化された背景描画（新しいエンティティ対応）
      * @param ctx メインキャンバスのコンテキスト
      * @param stars 星の配列
@@ -221,6 +272,84 @@ export class BackgroundRenderer {
         // パフォーマンス測定
         const endTime = performance.now();
         this.recordRenderTime(endTime - startTime);
+        this.performanceMonitor.recordRenderTime(endTime - startTime);
+    }
+
+    /**
+     * LOD対応の最適化された背景描画（Phase 2改良版）
+     * パフォーマンスに基づいて動的に品質を調整 + 静的キャッシュ統合
+     */
+    public drawOptimizedBackgroundWithLOD(
+        ctx: CanvasRenderingContext2D,
+        stars: Star[],
+        planets: Planet[],
+        nebulas: Nebula[],
+        auroras: Aurora[],
+        comets: Comet[],
+        meteorShowers: MeteorShower[],
+        spaceDusts: SpaceDust[],
+        deltaTime: number
+    ): void {
+        // パフォーマンス監視開始
+        this.performanceMonitor.startFrame();
+        const startTime = performance.now();
+
+        // LODシステム更新
+        this.lodManager.updateLOD(deltaTime);
+        const lodSettings = this.lodManager.getCurrentSettings();
+        const currentLOD = this.lodManager.getCurrentLevel();
+
+        // メモリ使用量更新
+        this.performanceMonitor.updateMemoryUsage();
+
+        // Phase 2: 静的要素統合キャッシュの使用
+        if (!this.staticElementsCacheValid || this.planetCacheFrameCounter >= this.planetCacheUpdateInterval) {
+            this.renderStaticElementsToCache(nebulas, planets);
+        }
+        
+        // 静的要素を一括描画（背景、星雲、惑星）
+        if (currentLOD !== LODLevel.LOW) {
+            ctx.globalAlpha = lodSettings.effectIntensity;
+            ctx.drawImage(this.staticElementsCache, 0, 0);
+            ctx.globalAlpha = 1.0;
+        } else {
+            // 低品質モードでは背景のみ
+            if (!this.backgroundCacheValid) {
+                this.renderEnhancedBackgroundToCache();
+            }
+            ctx.drawImage(this.backgroundCache, 0, 0);
+        }
+
+        // 動的要素の描画
+        // 3. 宇宙塵雲（LOD調整）
+        const adjustedSpaceDusts = this.getAdjustedEntityArray(spaceDusts, lodSettings.particleMultiplier);
+        adjustedSpaceDusts.forEach(dust => dust.draw(ctx));
+
+        // 5. 星（LOD調整）
+        const adjustedStars = this.getAdjustedEntityArray(stars, lodSettings.particleMultiplier);
+        adjustedStars.forEach(star => star.draw(ctx));
+
+        // 6. 流星群（中品質以上で描画）
+        if (currentLOD !== LODLevel.LOW) {
+            const adjustedMeteorShowers = this.getAdjustedEntityArray(meteorShowers, lodSettings.particleMultiplier);
+            adjustedMeteorShowers.forEach(shower => shower.draw(ctx));
+        }
+
+        // 7. 彗星（LOD調整）
+        const adjustedComets = this.getAdjustedEntityArray(comets, lodSettings.particleMultiplier);
+        adjustedComets.forEach(comet => comet.draw(ctx));
+
+        // 8. オーロラ（LOD調整）
+        const adjustedAuroras = this.getAdjustedEntityArray(auroras, lodSettings.particleMultiplier);
+        ctx.globalAlpha = lodSettings.effectIntensity;
+        adjustedAuroras.forEach(aurora => aurora.draw(ctx));
+        ctx.globalAlpha = 1.0;
+
+        // パフォーマンス測定終了
+        const endTime = performance.now();
+        const renderTime = endTime - startTime;
+        this.recordRenderTime(renderTime);
+        this.performanceMonitor.recordRenderTime(renderTime);
     }
 
     /**
@@ -268,6 +397,7 @@ export class BackgroundRenderer {
         // パフォーマンス測定
         const endTime = performance.now();
         this.recordRenderTime(endTime - startTime);
+        this.performanceMonitor.recordRenderTime(endTime - startTime);
     }
 
     /**
@@ -299,6 +429,7 @@ export class BackgroundRenderer {
         // パフォーマンス測定
         const endTime = performance.now();
         this.recordRenderTime(endTime - startTime);
+        this.performanceMonitor.recordRenderTime(endTime - startTime);
     }
 
     /**
@@ -312,7 +443,7 @@ export class BackgroundRenderer {
     }
 
     /**
-     * パフォーマンス統計を取得
+     * パフォーマンス統計を取得（レガシー）
      */
     public getPerformanceStats(): {
         averageRenderTime: number;
@@ -354,12 +485,122 @@ export class BackgroundRenderer {
     }
 
     /**
+     * 詳細なパフォーマンス統計を取得（新システム）
+     */
+    public getDetailedPerformanceStats(): {
+        performanceMetrics: PerformanceMetrics;
+        lodStats: any;
+        cacheUtilization: {
+            background: boolean;
+            nebula: boolean;
+            planet: boolean;
+        };
+        renderingStats: {
+            totalFrames: number;
+            averageRenderTime: number;
+            cacheHitRate: number;
+        };
+    } {
+        return {
+            performanceMetrics: this.performanceMonitor.getMetrics(),
+            lodStats: this.lodManager.getLODStats(),
+            cacheUtilization: {
+                background: this.backgroundCacheValid,
+                nebula: this.nebulaCacheValid,
+                planet: this.planetCacheValid
+            },
+            renderingStats: {
+                totalFrames: this.renderTimes.length,
+                averageRenderTime: this.renderTimes.length > 0
+                    ? this.renderTimes.reduce((a, b) => a + b, 0) / this.renderTimes.length
+                    : 0,
+                cacheHitRate: this.calculateCacheHitRate()
+            }
+        };
+    }
+
+    /**
+     * パフォーマンスベースの設定更新
+     */
+    public updatePerformanceBasedSettings(): void {
+        const now = performance.now();
+        const deltaTime = now - this.lastUpdateTime;
+        this.lastUpdateTime = now;
+
+        // LODシステム更新
+        this.lodManager.updateLOD(deltaTime);
+        
+        // メモリ使用量更新
+        this.performanceMonitor.updateMemoryUsage();
+        
+        // 動的な惑星キャッシュ更新間隔調整
+        const lodSettings = this.lodManager.getCurrentSettings();
+        this.planetCacheUpdateInterval = Math.floor(16 / lodSettings.updateFrequency);
+    }
+
+    /**
+     * LOD対応のエンティティ配列調整
+     */
+    private getAdjustedEntityArray<T>(entities: T[], multiplier: number): T[] {
+        if (multiplier >= 1.0) {
+            return entities;
+        }
+        
+        const targetCount = Math.floor(entities.length * multiplier);
+        if (targetCount >= entities.length) {
+            return entities;
+        }
+        
+        // 均等に間引く
+        const step = entities.length / targetCount;
+        const result: T[] = [];
+        
+        for (let i = 0; i < targetCount; i++) {
+            const index = Math.floor(i * step);
+            if (index < entities.length) {
+                result.push(entities[index]);
+            }
+        }
+        
+        return result;
+    }
+
+    /**
+     * キャッシュヒット率を計算
+     */
+    private calculateCacheHitRate(): number {
+        const totalCaches = 3;
+        let hitCount = 0;
+        
+        if (this.backgroundCacheValid) hitCount++;
+        if (this.nebulaCacheValid) hitCount++;
+        if (this.planetCacheValid) hitCount++;
+        
+        return hitCount / totalCaches;
+    }
+
+    /**
+     * パフォーマンス監視システムへのアクセス
+     */
+    public getPerformanceMonitor(): PerformanceMonitor {
+        return this.performanceMonitor;
+    }
+
+    /**
+     * LOD管理システムへのアクセス
+     */
+    public getLODManager(): LODManager {
+        return this.lodManager;
+    }
+
+    /**
      * キャッシュを無効化（画面サイズ変更時など）
      */
     public invalidateCache(): void {
         this.backgroundCacheValid = false;
         this.nebulaCacheValid = false;
         this.planetCacheValid = false;
+        this.staticElementsCacheValid = false;
         this.planetCacheFrameCounter = 0;
     }
 
@@ -372,9 +613,46 @@ export class BackgroundRenderer {
     }
 
     /**
-     * デバッグ情報を表示
+     * デバッグ情報を表示（拡張版）
      */
     public logPerformanceInfo(): void {
+        const legacyStats = this.getPerformanceStats();
+        const detailedStats = this.getDetailedPerformanceStats();
+        
+        console.group('🎨 Background Renderer Performance');
+        
+        // レガシー統計
+        console.group('📊 Legacy Stats');
+        console.log(`⏱️ Average Render Time: ${legacyStats.averageRenderTime.toFixed(2)}ms`);
+        console.log(`📈 Min/Max Render Time: ${legacyStats.minRenderTime.toFixed(2)}ms / ${legacyStats.maxRenderTime.toFixed(2)}ms`);
+        console.log(`📋 Sample Count: ${legacyStats.sampleCount}`);
+        console.log(`💾 Cache Status:`, legacyStats.cacheUtilization);
+        console.groupEnd();
+        
+        // 詳細パフォーマンス統計
+        console.group('🚀 Advanced Performance Metrics');
+        this.performanceMonitor.logPerformanceInfo();
+        console.groupEnd();
+        
+        // LOD統計
+        console.group('🎯 LOD System Stats');
+        this.lodManager.logLODInfo();
+        console.groupEnd();
+        
+        // レンダリング統計
+        console.group('🎨 Rendering Stats');
+        console.log(`🖼️ Total Frames: ${detailedStats.renderingStats.totalFrames}`);
+        console.log(`⚡ Cache Hit Rate: ${(detailedStats.renderingStats.cacheHitRate * 100).toFixed(1)}%`);
+        console.log(`🔄 Planet Cache Update Interval: ${this.planetCacheUpdateInterval} frames`);
+        console.groupEnd();
+        
+        console.groupEnd();
+    }
+
+    /**
+     * 簡易パフォーマンス情報を表示
+     */
+    public logSimplePerformanceInfo(): void {
         const stats = this.getPerformanceStats();
         console.log('Background Renderer Performance:', {
             'Average Render Time': `${stats.averageRenderTime.toFixed(2)}ms`,

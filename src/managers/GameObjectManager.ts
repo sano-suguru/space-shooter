@@ -15,6 +15,7 @@ import { SpaceDust } from '../entities/SpaceDust';
 import { EventEmitter } from '../events/EventEmitter';
 import { EventMap } from '../events/EventType';
 import { ObjectPool, PoolManager } from '../utils/ObjectPool';
+import { ParticlePoolManager, globalParticlePoolManager } from '../utils/ParticlePoolManager';
 
 /**
  * ゲームオブジェクトの管理を担当するクラス
@@ -43,11 +44,13 @@ export class GameObjectManager {
 
     // オブジェクトプール管理
     private poolManager: PoolManager;
+    private particlePoolManager: ParticlePoolManager;
 
     constructor(
         private eventEmitter: EventEmitter<EventMap>
     ) {
         this.poolManager = new PoolManager();
+        this.particlePoolManager = globalParticlePoolManager;
         this.initializeObjectPools();
         this.setupEventListeners();
     }
@@ -221,6 +224,17 @@ export class GameObjectManager {
             if (explosionPool) explosionPool.release(explosion);
         });
 
+        // 背景エンティティのパーティクルプールをクリーンアップ
+        this.nebulas.forEach(nebula => {
+            if (nebula.dispose) nebula.dispose();
+        });
+        this.auroras.forEach(aurora => {
+            if (aurora.dispose) aurora.dispose();
+        });
+        this.spaceDusts.forEach(dust => {
+            if (dust.dispose) dust.dispose();
+        });
+
         // 配列をクリア
         this.bullets = [];
         this.enemies = [];
@@ -352,6 +366,50 @@ export class GameObjectManager {
      */
     public getPoolStats(): { [key: string]: number } {
         return this.poolManager.getStats();
+    }
+
+    /**
+     * パーティクルプールの統計情報を取得（デバッグ用）
+     */
+    public getParticlePoolStats() {
+        return this.particlePoolManager.getStats();
+    }
+
+    /**
+     * 全プール統計情報を取得（デバッグ用）
+     */
+    public getAllPoolStats(): {
+        objectPools: { [key: string]: number };
+        particlePools: any;
+        backgroundEntities: {
+            nebulas: number;
+            auroras: number;
+            spaceDusts: number;
+        };
+    } {
+        return {
+            objectPools: this.poolManager.getStats(),
+            particlePools: this.particlePoolManager.getStats(),
+            backgroundEntities: {
+                nebulas: this.nebulas.length,
+                auroras: this.auroras.length,
+                spaceDusts: this.spaceDusts.length
+            }
+        };
+    }
+
+    /**
+     * パーティクルプールの最適化を実行
+     */
+    public optimizeParticlePools(): void {
+        this.particlePoolManager.optimizePools();
+    }
+
+    /**
+     * パーティクルプール統計をログ出力
+     */
+    public logParticlePoolStats(): void {
+        this.particlePoolManager.logStats();
     }
 
     /**

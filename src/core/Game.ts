@@ -34,6 +34,7 @@ export class Game {
     private waveManager!: WaveManager;
     private backgroundRenderer!: BackgroundRenderer;
     private gameRenderer!: GameRenderer;
+    private lastDrawTime: number = 0;
 
     constructor(
         private canvas: HTMLCanvasElement,
@@ -221,7 +222,11 @@ export class Game {
     }
 
     private draw(): void {
-        this.gameRenderer.render(this.player, this.gameObjectManager);
+        const now = performance.now();
+        const deltaTime = now - (this.lastDrawTime || now);
+        this.lastDrawTime = now;
+        
+        this.gameRenderer.render(this.player, this.gameObjectManager, deltaTime);
     }
 
     private spawnEnemy = (): void => {
@@ -381,10 +386,31 @@ export class Game {
     }
 
     /**
-     * 背景レンダリングパフォーマンス統計を取得
+     * 背景レンダリングパフォーマンス統計を取得（レガシー）
      */
     public getBackgroundPerformanceStats() {
         return this.gameRenderer.getBackgroundPerformanceStats();
+    }
+
+    /**
+     * 詳細な背景レンダリングパフォーマンス統計を取得
+     */
+    public getDetailedBackgroundPerformanceStats() {
+        return this.gameRenderer.getDetailedBackgroundPerformanceStats();
+    }
+
+    /**
+     * パフォーマンス監視システムへのアクセス
+     */
+    public getPerformanceMonitor() {
+        return this.gameRenderer.getPerformanceMonitor();
+    }
+
+    /**
+     * LOD管理システムへのアクセス
+     */
+    public getLODManager() {
+        return this.gameRenderer.getLODManager();
     }
 
     /**
@@ -392,6 +418,31 @@ export class Game {
      */
     public logBackgroundPerformance(): void {
         this.gameRenderer.logBackgroundPerformance();
+    }
+
+    /**
+     * 全パフォーマンス統計を取得（統合）
+     */
+    public getAllPerformanceStats() {
+        return {
+            background: this.getDetailedBackgroundPerformanceStats(),
+            pools: this.gameObjectManager.getAllPoolStats(),
+            performance: this.getPerformanceMonitor().getDetailedStats(),
+            lod: this.getLODManager().getLODStats()
+        };
+    }
+
+    /**
+     * パフォーマンス最適化を実行
+     */
+    public optimizePerformance(): void {
+        // パーティクルプールの最適化
+        this.gameObjectManager.optimizeParticlePools();
+        
+        // 背景レンダリングの設定更新
+        this.backgroundRenderer.updatePerformanceBasedSettings();
+        
+        console.log('🚀 パフォーマンス最適化を実行しました');
     }
 
     /**

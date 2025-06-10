@@ -19,16 +19,17 @@ export class GameRenderer {
      */
     public render(
         player: Player,
-        gameObjectManager: GameObjectManager
+        gameObjectManager: GameObjectManager,
+        deltaTime: number = 16.67
     ): void {
-        this.drawBackground(gameObjectManager);
+        this.drawBackground(gameObjectManager, deltaTime);
         this.drawGameObjects(player, gameObjectManager);
     }
 
     /**
-     * 最適化された背景描画（新しい幻想的なエンティティを含む）
+     * 最適化された背景描画（LOD対応・新しい幻想的なエンティティを含む）
      */
-    private drawBackground(gameObjectManager: GameObjectManager): void {
+    private drawBackground(gameObjectManager: GameObjectManager, deltaTime: number = 16.67): void {
         const stars = gameObjectManager.getStars();
         const planets = gameObjectManager.getPlanets();
         const nebulas = gameObjectManager.getNebulas();
@@ -40,7 +41,20 @@ export class GameRenderer {
         const spaceDusts = gameObjectManager.getSpaceDusts();
 
         if (this.useOptimizedBackground) {
-            // 改良された背景描画を使用
+            // Phase 2: LOD対応の最適化描画を使用（推奨）
+            this.backgroundRenderer.drawOptimizedBackgroundWithLOD(
+                this.ctx,
+                stars,
+                planets,
+                nebulas,
+                auroras,
+                comets,
+                meteorShowers,
+                spaceDusts,
+                deltaTime
+            );
+        } else {
+            // Phase 1: 基本的な最適化描画（互換性維持）
             this.backgroundRenderer.drawEnhancedBackground(
                 this.ctx,
                 stars,
@@ -50,15 +64,6 @@ export class GameRenderer {
                 comets,
                 meteorShowers,
                 spaceDusts
-            );
-        } else {
-            // 従来の背景描画（互換性維持）
-            this.backgroundRenderer.drawOptimizedBackground(
-                this.ctx,
-                stars,
-                planets,
-                nebulas,
-                auroras
             );
         }
     }
@@ -96,10 +101,31 @@ export class GameRenderer {
     }
 
     /**
-     * 背景レンダリングパフォーマンス統計を取得
+     * 背景レンダリングパフォーマンス統計を取得（レガシー）
      */
     public getBackgroundPerformanceStats() {
         return this.backgroundRenderer.getPerformanceStats();
+    }
+
+    /**
+     * 詳細な背景レンダリングパフォーマンス統計を取得
+     */
+    public getDetailedBackgroundPerformanceStats() {
+        return this.backgroundRenderer.getDetailedPerformanceStats();
+    }
+
+    /**
+     * パフォーマンス監視システムへのアクセス
+     */
+    public getPerformanceMonitor() {
+        return this.backgroundRenderer.getPerformanceMonitor();
+    }
+
+    /**
+     * LOD管理システムへのアクセス
+     */
+    public getLODManager() {
+        return this.backgroundRenderer.getLODManager();
     }
 
     /**
