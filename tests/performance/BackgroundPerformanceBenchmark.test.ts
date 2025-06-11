@@ -374,14 +374,6 @@ describe('BackgroundPerformanceBenchmark', () => {
             backgroundRenderer.drawTraditionalBackground(traditionalCtx, stars, planets, nebulas, auroras);
             backgroundRenderer.drawOptimizedBackground(optimizedCtx, stars, planets, nebulas, auroras);
 
-            // 基本的な描画が実行されたことを確認
-            const traditionalImageData = traditionalCtx.getImageData(0, 0, 100, 100);
-            const optimizedImageData = optimizedCtx.getImageData(0, 0, 100, 100);
-
-            // 両方の描画で何らかのピクセルが描画されていることを確認
-            const traditionalHasContent = traditionalImageData.data.some(value => value > 0);
-            const optimizedHasContent = optimizedImageData.data.some(value => value > 0);
-
             // 描画が実行されたことを確認（Canvas APIが呼ばれたかをチェック）
             // fillRectまたは他の描画メソッドが呼ばれていることを確認
             const traditionalDrawCalled = (traditionalCtx.fillRect as jest.Mock).mock.calls.length > 0 ||
