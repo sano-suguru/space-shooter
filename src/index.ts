@@ -21,7 +21,7 @@ function initGame(): void {
     const domManager = new DOMManager();
     const messageManager = new MessageManager(domManager, timeProvider);
     const player = new Player(eventEmitter, inputManager, randomProvider);
-    const gameObjectFactory = new GameObjectFactory(randomProvider);
+    const gameObjectFactory = new GameObjectFactory(randomProvider, eventEmitter);
     const scoreManager = new ScoreManager(eventEmitter);
     const stateManager = new GameStateManager(eventEmitter);
 

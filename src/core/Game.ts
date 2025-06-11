@@ -57,8 +57,15 @@ export class Game {
         // PlayerにGameインスタンスを設定（循環依存回避）
         this.player.setGame(this);
 
+        // 動的敵生成システムを有効化
+        this.gameObjectFactory.setDynamicEnemyEnabled(true);
+
         // WaveManagerを初期化
         this.waveManager = new WaveManager(this.eventEmitter, this.gameObjectFactory, this);
+        
+        // WaveManagerで動的敵生成を有効化し、プレイヤーレベルを設定
+        this.waveManager.setUseDynamicEnemies(true);
+        this.waveManager.setPlayerLevel(this.level);
 
         // BackgroundRendererを初期化
         this.backgroundRenderer = new BackgroundRenderer();
@@ -233,7 +240,21 @@ export class Game {
         if (this.stateManager.isPlaying() && !this.gameObjectManager.getBoss()) {
             const enemyTypes = Object.keys(GAME_CONSTANTS.ENEMY.TYPES) as EnemyType[];
             const randomType = enemyTypes[Math.floor(this.randomProvider.random() * enemyTypes.length)];
-            const enemy = this.gameObjectFactory.createEnemy(randomType, this);
+            
+            // 動的敵生成を使用（フォールバック機能付き）
+            const difficultyFactors = {
+                playerLevel: this.level,
+                currentWave: this.waveManager?.getCurrentWave() || 1,
+                baseMultiplier: 1.0,
+                levelScaling: 0.1,
+                waveScaling: 0.05
+            };
+            
+            const enemy = this.gameObjectFactory.createDynamicEnemySafe(
+                randomType,
+                this,
+                difficultyFactors
+            );
             this.gameObjectManager.addEnemy(enemy);
 
             if (this.randomProvider.random() < GAME_CONSTANTS.POWERUP.SPAWN_CHANCE) {
@@ -270,6 +291,9 @@ export class Game {
 
         this.level++;
         this.eventEmitter.emit('levelUpdated', this.level);
+        
+        // WaveManagerのプレイヤーレベルを更新
+        this.waveManager.setPlayerLevel(this.level);
 
         setTimeout(() => {
             this.startNextLevel();

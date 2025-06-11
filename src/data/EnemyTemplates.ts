@@ -153,7 +153,7 @@ export const VARIATION_RANGES = {
     scoreValue: { min: 1.0, max: 1.5 }
   },
   appearance: {
-    size: { min: 0.8, max: 1.5 },
+    size: { min: 0.9, max: 1.3 },
     glowIntensity: { min: 0.3, max: 1.0 },
     animationSpeed: { min: 0.5, max: 2.0 }
   },
@@ -183,7 +183,7 @@ export const ELITE_MODIFIERS = {
     scoreMultiplier: 5.0
   },
   appearance: {
-    sizeMultiplier: 1.4,
+    sizeMultiplier: 1.2,
     glowIntensityBonus: 0.3,
     specialEffects: ['enhanced_glow', 'particle_trail']
   },

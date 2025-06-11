@@ -1,4 +1,5 @@
 import { Enemy } from "./Enemy";
+import { BossBullet } from "./BossBullet";
 import { DynamicEnemyConfig, AppearanceConfig, BehaviorConfig, AttackAbility } from "../systems/types/EnemyGeneration";
 import { AppearanceComponent } from "../systems/enemy-generation/components/AppearanceComponent";
 import { BehaviorComponent } from "../systems/enemy-generation/components/BehaviorComponent";
@@ -16,12 +17,14 @@ export class DynamicEnemy extends Enemy {
     private dynamicAnimationPhase: number = 0;
     private flockCenter?: Vector2D;
     private nearbyEnemies: Vector2D[] = [];
+    private game?: IGameEngine;
 
     constructor(config: DynamicEnemyConfig, game?: IGameEngine) {
         // 基本的なEnemyクラスの初期化
         super(config.position.x, config.position.y, config.baseType, game);
         
         this.dynamicConfig = config;
+        this.game = game;
         
         // コンポーネントの初期化
         const randomProvider = new RealRandomProvider();
@@ -203,8 +206,15 @@ export class DynamicEnemy extends Enemy {
      * プレイヤー位置を取得（ゲームエンジンから）
      */
     private getPlayerPosition(): Vector2D | undefined {
-        // 実際の実装では、ゲームエンジンからプレイヤー位置を取得
-        // ここでは簡略化
+        // ゲームエンジンが利用可能な場合、プレイヤー位置を取得
+        if (this.game) {
+            // Gameクラスから直接プレイヤー位置を取得する方法を実装
+            // 現在は簡略化のため、画面中央下部を返す
+            return {
+                x: 200, // キャンバス幅の中央
+                y: 500  // 画面下部
+            };
+        }
         return undefined;
     }
 
@@ -212,8 +222,11 @@ export class DynamicEnemy extends Enemy {
      * 弾丸をゲームに追加（ゲームエンジン経由）
      */
     private addBulletToGame(x: number, y: number, velocityX: number, velocityY: number): void {
-        // 実際の実装では、ゲームエンジンに弾丸を追加
-        // ここでは簡略化
+        if (this.game) {
+            // BossBulletを使用して敵の弾丸を作成
+            const bullet = new BossBullet(x, y, velocityX, velocityY);
+            this.game.addBossBullet(bullet);
+        }
     }
 
     /**
