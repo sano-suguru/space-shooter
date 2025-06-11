@@ -285,13 +285,34 @@ describe('BackgroundRenderer', () => {
 
   describe('デバッグ機能', () => {
     test('パフォーマンス情報ログが正常に動作する', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const consoleGroupSpy = jest.spyOn(console, 'group').mockImplementation();
+      const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+      const consoleGroupEndSpy = jest.spyOn(console, 'groupEnd').mockImplementation();
 
       // 統計データを蓄積
       renderer.drawOptimizedBackground(mockContext, [], [], [], []);
 
       // ログ出力
       renderer.logPerformanceInfo();
+
+      // 複雑なグループ化されたログ出力を確認
+      expect(consoleGroupSpy).toHaveBeenCalledWith('🎨 Background Renderer Performance');
+      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Average Render Time'));
+      expect(consoleGroupEndSpy).toHaveBeenCalled();
+
+      consoleGroupSpy.mockRestore();
+      consoleLogSpy.mockRestore();
+      consoleGroupEndSpy.mockRestore();
+    });
+
+    test('簡易パフォーマンス情報ログが正常に動作する', () => {
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+
+      // 統計データを蓄積
+      renderer.drawOptimizedBackground(mockContext, [], [], [], []);
+
+      // 簡易ログ出力（テスト用）
+      renderer.logSimplePerformanceInfo();
 
       expect(consoleSpy).toHaveBeenCalledWith(
         'Background Renderer Performance:',

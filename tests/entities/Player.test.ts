@@ -49,11 +49,18 @@ describe('Player', () => {
             lineTo: jest.fn(),
             arc: jest.fn(),
             ellipse: jest.fn(),
+            rect: jest.fn(),
             fill: jest.fn(),
             stroke: jest.fn(),
             createRadialGradient: jest.fn(() => ({
                 addColorStop: jest.fn()
-            }))
+            })),
+            createLinearGradient: jest.fn(() => ({
+                addColorStop: jest.fn()
+            })),
+            quadraticCurveTo: jest.fn(),
+            bezierCurveTo: jest.fn(),
+            arcTo: jest.fn()
         } as any;
 
         // Date.nowのモック

@@ -122,7 +122,7 @@ describe('ParticlePoolManager', () => {
 
             // パーティクルを取得
             const particle1 = poolManager.getParticle<TestParticle>('test-pool');
-            const particle2 = poolManager.getParticle<TestParticle>('test-pool');
+            poolManager.getParticle<TestParticle>('test-pool'); // 2つ目のパーティクル取得
 
             const stats = poolManager.getStats();
             expect(stats.activeParticles).toBe(2);

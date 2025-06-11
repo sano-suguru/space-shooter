@@ -31,6 +31,9 @@ Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
     arc: jest.fn(),
     ellipse: jest.fn(),
     rect: jest.fn(),
+    quadraticCurveTo: jest.fn(),
+    bezierCurveTo: jest.fn(),
+    arcTo: jest.fn(),
     fill: jest.fn(),
     stroke: jest.fn(),
     
@@ -113,6 +116,9 @@ const createMockContext = () => ({
   arc: jest.fn(),
   ellipse: jest.fn(),
   rect: jest.fn(),
+  quadraticCurveTo: jest.fn(),
+  bezierCurveTo: jest.fn(),
+  arcTo: jest.fn(),
   fill: jest.fn(),
   stroke: jest.fn(),
   

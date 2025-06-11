@@ -137,6 +137,10 @@ export class ParticlePoolManager {
     public getActiveParticles<T extends PooledParticle>(poolName: string): T[] {
         // 実際の実装では、各エンティティが自身のアクティブパーティクルリストを管理
         // ここでは統計情報のみを提供
+        // プールの存在確認
+        if (!this.pools.has(poolName)) {
+            console.warn(`ParticlePool '${poolName}' not found`);
+        }
         return [];
     }
 
