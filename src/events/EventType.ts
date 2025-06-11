@@ -6,6 +6,7 @@ import { WaveConfig } from "../types";
 import { GameCommandMap } from "./GameCommands";
 import type { Achievement } from "../progression/types/Achievement";
 import type { GameMode } from "../progression/types/GameMode";
+import type { DynamicEnemyConfig } from "../systems/types/EnemyGeneration";
 
 // Event type constants
 export const EventType = {
@@ -52,4 +53,10 @@ export type EventMap = Readonly<{
     'gameModeChanged': (newMode: GameMode, previousMode: GameMode) => void;
     'gameModeUnlocked': (gameMode: GameMode) => void;
     'gameModeHighScore': (gameMode: GameMode, score: number) => void;
+    
+    // 敵生成システムイベント
+    'dynamicEnemyGenerated': (enemy: DynamicEnemyConfig) => void;
+    'enemyBatchGenerated': (enemies: DynamicEnemyConfig[], stats: any) => void;
+    'flockDestroyed': (flockId: string) => void;
+    'enemyGenerationSystemReset': () => void;
 }> & GameCommandMap;
