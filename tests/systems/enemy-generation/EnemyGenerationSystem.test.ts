@@ -2,7 +2,7 @@ import { EnemyGenerationSystem } from '../../../src/systems/enemy-generation/Ene
 import { MockRandomProvider } from '../../../src/providers/MockRandomProvider';
 import { EventEmitter } from '../../../src/events/EventEmitter';
 import { EventMap } from '../../../src/events/EventType';
-import { EnemyGenerationRequest, DifficultyFactors } from '../../../src/systems/types/EnemyGeneration';
+import { EnemyGenerationRequest } from '../../../src/systems/types/EnemyGeneration';
 import { EnemyType } from '../../../src/types';
 
 describe('EnemyGenerationSystem', () => {

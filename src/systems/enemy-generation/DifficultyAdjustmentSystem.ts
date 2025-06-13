@@ -1,4 +1,4 @@
-import { DifficultyFactors, DifficultyModifiers, EnemyStats } from "../types/EnemyGeneration";
+import { DifficultyFactors, DifficultyModifiers } from "../types/EnemyGeneration";
 import { IRandomProvider } from "../../providers/IRandomProvider";
 
 export class DifficultyAdjustmentSystem {

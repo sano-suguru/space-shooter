@@ -14,7 +14,7 @@ import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { randomRange } from "../utils/RandomUtils";
 import { IRandomProvider } from "../providers";
 import { EnemyGenerationSystem } from "../systems/enemy-generation/EnemyGenerationSystem";
-import { EnemyGenerationRequest, DynamicEnemyConfig, DifficultyFactors } from "../systems/types/EnemyGeneration";
+import { EnemyGenerationRequest, DifficultyFactors } from "../systems/types/EnemyGeneration";
 import { EventEmitter } from "../events/EventEmitter";
 import { EventMap } from "../events/EventType";
 

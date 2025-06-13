@@ -207,8 +207,6 @@ export class ProgressManager {
     } {
         const level = this.profile.level;
         const gamesPlayed = this.profile.totalGamesPlayed;
-        const averageScore = this.profile.totalGamesPlayed > 0 ?
-            this.profile.totalScore / this.profile.totalGamesPlayed : 0;
 
         // 熟練度の計算
         const skillLevel = Math.min(level + Math.floor(gamesPlayed / 10), 50);

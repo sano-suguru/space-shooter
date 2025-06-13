@@ -222,10 +222,10 @@ export class AppearanceComponent {
      * トレイル効果を描画
      */
     private drawTrailEffect(
-        ctx: CanvasRenderingContext2D, 
-        config: AppearanceConfig, 
+        ctx: CanvasRenderingContext2D,
+        config: AppearanceConfig,
         size: number,
-        animationPhase: number
+        _animationPhase: number
     ): void {
         const trailLength = 3;
         const trailSpacing = 8;

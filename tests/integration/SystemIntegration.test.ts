@@ -1,12 +1,9 @@
 import { GameObjectFactory } from '../../src/factories/GameObjectFactory';
 import { WaveManager } from '../../src/managers/WaveManager';
 import { ProgressManager } from '../../src/progression/managers/ProgressManager';
-import { EnemyGenerationSystem } from '../../src/systems/enemy-generation/EnemyGenerationSystem';
 import { EventEmitter } from '../../src/events/EventEmitter';
 import { EventMap } from '../../src/events/EventType';
 import { RealRandomProvider } from '../../src/providers/RealRandomProvider';
-import { ScoreManager } from '../../src/managers/ScoreManager';
-import { Game } from '../../src/core/Game';
 import { DynamicEnemy } from '../../src/entities/DynamicEnemy';
 import { Enemy } from '../../src/entities/Enemy';
 

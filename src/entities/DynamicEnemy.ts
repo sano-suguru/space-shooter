@@ -1,6 +1,6 @@
 import { Enemy } from "./Enemy";
 import { BossBullet } from "./BossBullet";
-import { DynamicEnemyConfig, AppearanceConfig, BehaviorConfig, AttackAbility } from "../systems/types/EnemyGeneration";
+import { DynamicEnemyConfig } from "../systems/types/EnemyGeneration";
 import { AppearanceComponent } from "../systems/enemy-generation/components/AppearanceComponent";
 import { BehaviorComponent } from "../systems/enemy-generation/components/BehaviorComponent";
 import { AttackAbilityComponent } from "../systems/enemy-generation/components/AttackAbilityComponent";
@@ -372,11 +372,11 @@ export class DynamicEnemy extends Enemy {
     }
 
     // 既存のEnemyクラスのメソッドで必要に応じてオーバーライド
-    private setHealth(health: number): void {
+    private setHealth(_health: number): void {
         // 実際の実装では、Enemyクラスの体力設定メソッドを呼び出し
     }
 
-    private setSpeed(speed: number): void {
+    private setSpeed(_speed: number): void {
         // 実際の実装では、Enemyクラスの速度設定メソッドを呼び出し
     }
 

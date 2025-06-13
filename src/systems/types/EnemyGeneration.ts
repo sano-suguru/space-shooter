@@ -1,4 +1,4 @@
-import { EnemyType, MovementPattern, Vector2D } from "../../types";
+import { EnemyType, Vector2D } from "../../types";
 
 // 外見設定
 export interface AppearanceConfig {

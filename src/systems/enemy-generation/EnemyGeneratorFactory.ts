@@ -114,7 +114,7 @@ export class EnemyGeneratorFactory {
         });
 
         // 群れのリーダーを設定
-        flockGroups.forEach((flockMembers, flockId) => {
+        flockGroups.forEach((flockMembers, _flockId) => {
             if (flockMembers.length > 1) {
                 this.assignFlockLeader(flockMembers);
             }
