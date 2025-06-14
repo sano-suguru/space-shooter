@@ -1,4 +1,5 @@
 import React from 'react';
+
 import { GameModeModifiersProps } from '../../types/react/index';
 
 /**

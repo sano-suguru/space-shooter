@@ -1,5 +1,7 @@
 import React from 'react';
+
 import { QuickStatsProps } from '../../types/react/index';
+
 import { StatItem } from './StatItem';
 
 /**

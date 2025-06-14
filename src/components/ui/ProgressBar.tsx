@@ -1,4 +1,5 @@
 import React from 'react';
+
 import { ProgressBarProps } from '../../types/react/index';
 
 /**

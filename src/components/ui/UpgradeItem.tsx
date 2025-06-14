@@ -1,7 +1,9 @@
 import React, { useMemo } from 'react';
+
 import { UpgradeItemProps } from '../../types/react/index';
-import { Card } from './Card';
+
 import { Button } from './Button';
+import { Card } from './Card';
 import { ProgressBar } from './ProgressBar';
 
 /**

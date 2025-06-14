@@ -1,5 +1,7 @@
 import React from 'react';
+
 import { CategoryTabsProps } from '../../types/react/index';
+
 import { Button } from './Button';
 
 /**

@@ -1,8 +1,10 @@
 import React from 'react';
+
 import { GameModeItemProps } from '../../types/react/index';
-import { GameModeStats } from './GameModeStats';
-import { GameModeModifiers } from './GameModeModifiers';
+
 import { Button } from './Button';
+import { GameModeModifiers } from './GameModeModifiers';
+import { GameModeStats } from './GameModeStats';
 
 /**
  * ゲームモードアイテムコンポーネント

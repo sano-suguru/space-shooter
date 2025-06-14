@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { GameModeSelectorProps } from '../../types/react/index';
-import { GameModeItem } from './GameModeItem';
-import { Button } from './Button';
+
 import { GameMode } from '../../progression/types/GameMode';
+import { GameModeSelectorProps } from '../../types/react/index';
+
+import { Button } from './Button';
+import { GameModeItem } from './GameModeItem';
 
 /**
  * ゲームモードセレクターコンポーネント

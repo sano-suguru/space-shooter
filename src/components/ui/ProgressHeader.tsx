@@ -1,4 +1,5 @@
 import React from 'react';
+
 import { ProgressHeaderProps } from '../../types/react/index';
 
 /**

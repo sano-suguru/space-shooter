@@ -1,5 +1,7 @@
 import React from 'react';
+
 import { AchievementItemProps } from '../../types/react';
+
 import { ProgressBar } from './ProgressBar';
 
 /**

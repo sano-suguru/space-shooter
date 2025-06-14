@@ -1,7 +1,9 @@
 import React from 'react';
+
 import { ProgressDisplayProps } from '../../types/react/index';
-import { ProgressHeader } from './ProgressHeader';
+
 import { ExperienceBar } from './ExperienceBar';
+import { ProgressHeader } from './ProgressHeader';
 import { QuickStats } from './QuickStats';
 
 /**

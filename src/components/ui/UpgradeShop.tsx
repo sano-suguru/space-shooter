@@ -1,9 +1,11 @@
 import React, { useState, useMemo, useCallback } from 'react';
+
 import { UpgradeShopProps, UpgradeCategory } from '../../types/react/index';
-import { Card } from './Card';
+
 import { Button } from './Button';
-import { PlayerStats } from './PlayerStats';
+import { Card } from './Card';
 import { CategoryTabs } from './CategoryTabs';
+import { PlayerStats } from './PlayerStats';
 import { UpgradeItem } from './UpgradeItem';
 
 /**

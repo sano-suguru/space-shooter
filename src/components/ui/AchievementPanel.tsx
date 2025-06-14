@@ -1,9 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { AchievementPanelProps, AchievementCategory } from '../../types/react';
+
 import { Achievement } from '../../progression/types/Achievement';
-import { AchievementStats } from './AchievementStats';
+import { AchievementPanelProps, AchievementCategory } from '../../types/react';
+
 import { AchievementCategoryTabs } from './AchievementCategoryTabs';
 import { AchievementItem } from './AchievementItem';
+import { AchievementStats } from './AchievementStats';
 
 /**
  * アチーブメントパネルコンポーネント

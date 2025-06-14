@@ -1,4 +1,5 @@
 import React from 'react';
+
 import { ExperienceBarProps } from '../../types/react/index';
 
 /**
