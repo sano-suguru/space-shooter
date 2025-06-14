@@ -5,9 +5,38 @@ import {
 import { PowerUp } from '../../src/entities/PowerUp';
 import { PowerUpType } from '../../src/types';
 
+// 型定義の追加
+interface MockCanvasRenderingContext2D
+  extends Partial<CanvasRenderingContext2D> {
+  save: jest.Mock;
+  restore: jest.Mock;
+  translate: jest.Mock;
+  rotate: jest.Mock;
+  scale: jest.Mock;
+  beginPath: jest.Mock;
+  closePath: jest.Mock;
+  moveTo: jest.Mock;
+  lineTo: jest.Mock;
+  arc: jest.Mock;
+  fill: jest.Mock;
+  stroke: jest.Mock;
+  fillRect: jest.Mock;
+  strokeRect: jest.Mock;
+  createRadialGradient: jest.Mock;
+  createLinearGradient: jest.Mock;
+  fillStyle: string;
+  strokeStyle: string;
+  lineWidth: number;
+  globalAlpha: number;
+  font: string;
+  textAlign: CanvasTextAlign;
+  textBaseline: CanvasTextBaseline;
+  fillText: jest.Mock;
+}
+
 describe('PowerUp', () => {
   let powerUp: PowerUp;
-  let mockContext: CanvasRenderingContext2D;
+  let mockContext: MockCanvasRenderingContext2D;
   let testConfig: GameConfig;
 
   beforeEach(() => {
@@ -39,10 +68,10 @@ describe('PowerUp', () => {
       lineWidth: 1,
       globalAlpha: 1,
       font: '',
-      textAlign: '',
-      textBaseline: '',
+      textAlign: 'center' as CanvasTextAlign,
+      textBaseline: 'middle' as CanvasTextBaseline,
       fillText: jest.fn(),
-    } as unknown as CanvasRenderingContext2D;
+    };
 
     powerUp = new PowerUp(100, 50, testConfig);
   });
@@ -123,11 +152,15 @@ describe('PowerUp', () => {
   describe('回転システム', () => {
     test('時間経過で回転が更新される', () => {
       // 回転は内部変数なので、描画が正常に実行されることで確認
-      expect(() => powerUp.draw(mockContext)).not.toThrow();
+      expect(() =>
+        powerUp.draw(mockContext as unknown as CanvasRenderingContext2D)
+      ).not.toThrow();
 
       powerUp.update(100);
 
-      expect(() => powerUp.draw(mockContext)).not.toThrow();
+      expect(() =>
+        powerUp.draw(mockContext as unknown as CanvasRenderingContext2D)
+      ).not.toThrow();
     });
 
     test('継続的な回転更新', () => {
@@ -136,17 +169,19 @@ describe('PowerUp', () => {
         powerUp.update(16.67); // 60fps
       }
 
-      expect(() => powerUp.draw(mockContext)).not.toThrow();
+      expect(() =>
+        powerUp.draw(mockContext as unknown as CanvasRenderingContext2D)
+      ).not.toThrow();
     });
   });
 
   describe('グロー効果システム', () => {
     test('グロー効果が更新される', () => {
       // グロー効果は描画で確認
-      powerUp.draw(mockContext);
+      powerUp.draw(mockContext as unknown as CanvasRenderingContext2D);
 
       powerUp.update(100);
-      powerUp.draw(mockContext);
+      powerUp.draw(mockContext as unknown as CanvasRenderingContext2D);
 
       // グラデーション作成が呼ばれている
       expect(mockContext.createRadialGradient).toHaveBeenCalled();
@@ -158,7 +193,9 @@ describe('PowerUp', () => {
         powerUp.update(10);
       }
 
-      expect(() => powerUp.draw(mockContext)).not.toThrow();
+      expect(() =>
+        powerUp.draw(mockContext as unknown as CanvasRenderingContext2D)
+      ).not.toThrow();
     });
   });
 
@@ -167,7 +204,9 @@ describe('PowerUp', () => {
       // トレイル更新間隔をテスト
       powerUp.update(60); // 60ms > 50ms threshold
 
-      expect(() => powerUp.draw(mockContext)).not.toThrow();
+      expect(() =>
+        powerUp.draw(mockContext as unknown as CanvasRenderingContext2D)
+      ).not.toThrow();
     });
 
     test('トレイルの最大長制限', () => {
@@ -176,7 +215,9 @@ describe('PowerUp', () => {
         powerUp.update(60); // 60ms per update
       }
 
-      expect(() => powerUp.draw(mockContext)).not.toThrow();
+      expect(() =>
+        powerUp.draw(mockContext as unknown as CanvasRenderingContext2D)
+      ).not.toThrow();
     });
 
     test('トレイルのフェードアウト', () => {
@@ -185,7 +226,9 @@ describe('PowerUp', () => {
       powerUp.update(60);
       powerUp.update(60);
 
-      expect(() => powerUp.draw(mockContext)).not.toThrow();
+      expect(() =>
+        powerUp.draw(mockContext as unknown as CanvasRenderingContext2D)
+      ).not.toThrow();
     });
 
     test('短い更新間隔でのトレイル処理', () => {
@@ -193,13 +236,17 @@ describe('PowerUp', () => {
       powerUp.update(30); // < 50ms
       powerUp.update(40); // < 50ms
 
-      expect(() => powerUp.draw(mockContext)).not.toThrow();
+      expect(() =>
+        powerUp.draw(mockContext as unknown as CanvasRenderingContext2D)
+      ).not.toThrow();
     });
   });
 
   describe('描画システム', () => {
     test('基本描画が正常に実行される', () => {
-      expect(() => powerUp.draw(mockContext)).not.toThrow();
+      expect(() =>
+        powerUp.draw(mockContext as unknown as CanvasRenderingContext2D)
+      ).not.toThrow();
 
       expect(mockContext.save).toHaveBeenCalled();
       expect(mockContext.restore).toHaveBeenCalled();
@@ -208,7 +255,7 @@ describe('PowerUp', () => {
     });
 
     test('グロー効果の描画', () => {
-      powerUp.draw(mockContext);
+      powerUp.draw(mockContext as unknown as CanvasRenderingContext2D);
 
       expect(mockContext.createRadialGradient).toHaveBeenCalled();
       expect(mockContext.arc).toHaveBeenCalled();
@@ -216,7 +263,7 @@ describe('PowerUp', () => {
     });
 
     test('円形オブジェクトの描画', () => {
-      powerUp.draw(mockContext);
+      powerUp.draw(mockContext as unknown as CanvasRenderingContext2D);
 
       // 外側と内側の円が描画される
       expect(mockContext.beginPath).toHaveBeenCalled();
@@ -225,7 +272,7 @@ describe('PowerUp', () => {
     });
 
     test('シンボルテキストの描画', () => {
-      powerUp.draw(mockContext);
+      powerUp.draw(mockContext as unknown as CanvasRenderingContext2D);
 
       expect(mockContext.fillText).toHaveBeenCalled();
       expect(mockContext.font).toBe('20px Arial');
@@ -240,7 +287,7 @@ describe('PowerUp', () => {
       jest.spyOn(Math, 'random').mockReturnValue(0); // 最初のタイプを選択
       const rapidFirePowerUp = new PowerUp(0, 0, testConfig);
 
-      rapidFirePowerUp.draw(mockContext);
+      rapidFirePowerUp.draw(mockContext as unknown as CanvasRenderingContext2D);
 
       expect(mockContext.fillText).toHaveBeenCalledWith('R', 0, 0);
 
@@ -251,7 +298,9 @@ describe('PowerUp', () => {
       jest.spyOn(Math, 'random').mockReturnValue(0.4); // 2番目のタイプを選択
       const tripleShotPowerUp = new PowerUp(0, 0, testConfig);
 
-      tripleShotPowerUp.draw(mockContext);
+      tripleShotPowerUp.draw(
+        mockContext as unknown as CanvasRenderingContext2D
+      );
 
       expect(mockContext.fillText).toHaveBeenCalledWith('T', 0, 0);
 
@@ -262,7 +311,7 @@ describe('PowerUp', () => {
       jest.spyOn(Math, 'random').mockReturnValue(0.8); // 3番目のタイプを選択
       const shieldPowerUp = new PowerUp(0, 0, testConfig);
 
-      shieldPowerUp.draw(mockContext);
+      shieldPowerUp.draw(mockContext as unknown as CanvasRenderingContext2D);
 
       expect(mockContext.fillText).toHaveBeenCalledWith('S', 0, 0);
 
@@ -276,7 +325,7 @@ describe('PowerUp', () => {
       powerUp.update(60);
       powerUp.update(60);
 
-      powerUp.draw(mockContext);
+      powerUp.draw(mockContext as unknown as CanvasRenderingContext2D);
 
       // トレイルの描画でsave/restoreが呼ばれる
       expect(mockContext.save).toHaveBeenCalled();
@@ -289,12 +338,14 @@ describe('PowerUp', () => {
         powerUp.update(60);
       }
 
-      expect(() => powerUp.draw(mockContext)).not.toThrow();
+      expect(() =>
+        powerUp.draw(mockContext as unknown as CanvasRenderingContext2D)
+      ).not.toThrow();
     });
 
     test('トレイルの色設定', () => {
       powerUp.update(60);
-      powerUp.draw(mockContext);
+      powerUp.draw(mockContext as unknown as CanvasRenderingContext2D);
 
       // fillStyleが設定されている（色の解析は複雑なので実行のみ確認）
       expect(mockContext.fillStyle).toBeDefined();
@@ -346,7 +397,7 @@ describe('PowerUp', () => {
       const initialType = powerUp.getType();
 
       powerUp.update(100);
-      powerUp.draw(mockContext);
+      powerUp.draw(mockContext as unknown as CanvasRenderingContext2D);
       powerUp.update(100);
 
       expect(powerUp.getType()).toBe(initialType);
@@ -374,7 +425,7 @@ describe('PowerUp', () => {
       const startTime = performance.now();
 
       for (let i = 0; i < 100; i++) {
-        powerUp.draw(mockContext);
+        powerUp.draw(mockContext as unknown as CanvasRenderingContext2D);
       }
 
       const endTime = performance.now();
@@ -384,7 +435,9 @@ describe('PowerUp', () => {
 
   describe('エラーハンドリング', () => {
     test('null contextで描画してもエラーが発生する', () => {
-      expect(() => powerUp.draw(null as any)).toThrow();
+      expect(() =>
+        powerUp.draw(null as unknown as CanvasRenderingContext2D)
+      ).toThrow();
     });
 
     test('極端なdeltaTimeでも正常に動作する', () => {
@@ -410,7 +463,7 @@ describe('PowerUp', () => {
       // 移動と更新
       while (powerUp.isOnScreen()) {
         powerUp.update(100);
-        powerUp.draw(mockContext);
+        powerUp.draw(mockContext as unknown as CanvasRenderingContext2D);
 
         // 無限ループ防止
         if (powerUp.getY() > testConfig.canvas.height + 1000) {
@@ -432,9 +485,9 @@ describe('PowerUp', () => {
         powerUp2.update(50);
         powerUp3.update(50);
 
-        powerUp1.draw(mockContext);
-        powerUp2.draw(mockContext);
-        powerUp3.draw(mockContext);
+        powerUp1.draw(mockContext as unknown as CanvasRenderingContext2D);
+        powerUp2.draw(mockContext as unknown as CanvasRenderingContext2D);
+        powerUp3.draw(mockContext as unknown as CanvasRenderingContext2D);
       }
 
       // すべて異なる位置にある
@@ -472,7 +525,9 @@ describe('PowerUp', () => {
     test('回転速度のランダム性', () => {
       jest.spyOn(Math, 'random').mockReturnValue(0.5);
       const testPowerUp = new PowerUp(0, 0, testConfig);
-      expect(() => testPowerUp.draw(mockContext)).not.toThrow();
+      expect(() =>
+        testPowerUp.draw(mockContext as unknown as CanvasRenderingContext2D)
+      ).not.toThrow();
       jest.restoreAllMocks();
     });
   });

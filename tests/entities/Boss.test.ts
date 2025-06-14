@@ -4,9 +4,10 @@ import {
 } from '../../src/config/GameConfigFactory';
 import { Boss } from '../../src/entities/Boss';
 import { BossBullet } from '../../src/entities/BossBullet';
+import { IGame } from '../../src/interfaces/IGame';
 
 // MockGameEngineの定義
-class MockGameEngine {
+class MockGameEngine implements Partial<IGame> {
   private bullets: BossBullet[] = [];
 
   addBossBullet(bullet: BossBullet): void {
@@ -20,12 +21,44 @@ class MockGameEngine {
   clearBullets(): void {
     this.bullets = [];
   }
+
+  // IGameインターフェースの必要なメソッドを追加
+  createBullet = jest.fn();
+  addEnemy = jest.fn();
+  showMessage = jest.fn();
+  getDifficultyFactor = jest.fn().mockReturnValue(1);
+  getCurrentBossHealth = jest.fn().mockReturnValue(100);
+}
+
+// 型定義の追加
+interface MockCanvasRenderingContext2D
+  extends Partial<CanvasRenderingContext2D> {
+  save: jest.Mock;
+  restore: jest.Mock;
+  translate: jest.Mock;
+  rotate: jest.Mock;
+  scale: jest.Mock;
+  beginPath: jest.Mock;
+  closePath: jest.Mock;
+  moveTo: jest.Mock;
+  lineTo: jest.Mock;
+  arc: jest.Mock;
+  fill: jest.Mock;
+  stroke: jest.Mock;
+  fillRect: jest.Mock;
+  strokeRect: jest.Mock;
+  createRadialGradient: jest.Mock;
+  createLinearGradient: jest.Mock;
+  fillStyle: string;
+  strokeStyle: string;
+  lineWidth: number;
+  globalAlpha: number;
 }
 
 describe('Boss', () => {
   let boss: Boss;
   let mockGameEngine: MockGameEngine;
-  let mockContext: CanvasRenderingContext2D;
+  let mockContext: MockCanvasRenderingContext2D;
   let testConfig: GameConfig;
 
   beforeEach(() => {
@@ -56,12 +89,10 @@ describe('Boss', () => {
       strokeStyle: '',
       lineWidth: 1,
       globalAlpha: 1,
-    } as unknown as CanvasRenderingContext2D;
+    };
 
     mockGameEngine = new MockGameEngine();
-    // 診断ログ: any型使用の問題を特定
-    console.log('DEBUG: Boss test - any型使用箇所を特定');
-    boss = new Boss(mockGameEngine as any, testConfig);
+    boss = new Boss(mockGameEngine as unknown as IGame, testConfig);
   });
 
   describe('初期化', () => {
@@ -174,7 +205,9 @@ describe('Boss', () => {
       boss.update(deltaTime);
 
       // アニメーションフェーズは内部変数なので、描画が正常に実行されることで確認
-      expect(() => boss.draw(mockContext)).not.toThrow();
+      expect(() =>
+        boss.draw(mockContext as unknown as CanvasRenderingContext2D)
+      ).not.toThrow();
     });
 
     test('複数のアニメーション要素が同期して更新される', () => {
@@ -186,7 +219,9 @@ describe('Boss', () => {
       }
 
       // 描画が正常に実行される
-      expect(() => boss.draw(mockContext)).not.toThrow();
+      expect(() =>
+        boss.draw(mockContext as unknown as CanvasRenderingContext2D)
+      ).not.toThrow();
     });
 
     test('長時間実行後も安定している', () => {
@@ -198,7 +233,9 @@ describe('Boss', () => {
         boss.update(deltaTime);
       }
 
-      expect(() => boss.draw(mockContext)).not.toThrow();
+      expect(() =>
+        boss.draw(mockContext as unknown as CanvasRenderingContext2D)
+      ).not.toThrow();
     });
   });
 
@@ -292,11 +329,11 @@ describe('Boss', () => {
 
     test('体力変化が描画に反映される', () => {
       // 初期状態
-      boss.draw(mockContext);
+      boss.draw(mockContext as unknown as CanvasRenderingContext2D);
 
       // ダメージ後
       boss.takeDamage();
-      boss.draw(mockContext);
+      boss.draw(mockContext as unknown as CanvasRenderingContext2D);
 
       // 描画が実行されることを確認
       expect(mockContext.fillRect).toHaveBeenCalled();
@@ -305,7 +342,9 @@ describe('Boss', () => {
 
   describe('描画システム', () => {
     test('基本描画が正常に実行される', () => {
-      expect(() => boss.draw(mockContext)).not.toThrow();
+      expect(() =>
+        boss.draw(mockContext as unknown as CanvasRenderingContext2D)
+      ).not.toThrow();
 
       // 基本的な描画メソッドが呼ばれている
       expect(mockContext.save).toHaveBeenCalled();
@@ -317,7 +356,7 @@ describe('Boss', () => {
     });
 
     test('メインボディの描画', () => {
-      boss.draw(mockContext);
+      boss.draw(mockContext as unknown as CanvasRenderingContext2D);
 
       // グラデーション作成が呼ばれている
       expect(mockContext.createRadialGradient).toHaveBeenCalled();
@@ -327,7 +366,7 @@ describe('Boss', () => {
     });
 
     test('シールドレイヤーの描画', () => {
-      boss.draw(mockContext);
+      boss.draw(mockContext as unknown as CanvasRenderingContext2D);
 
       // 複数のシールドレイヤーの描画
       expect(mockContext.beginPath).toHaveBeenCalled();
@@ -335,7 +374,7 @@ describe('Boss', () => {
     });
 
     test('幾何学的パネルの描画', () => {
-      boss.draw(mockContext);
+      boss.draw(mockContext as unknown as CanvasRenderingContext2D);
 
       // パネルの描画処理
       expect(mockContext.save).toHaveBeenCalled();
@@ -343,7 +382,7 @@ describe('Boss', () => {
     });
 
     test('スラスターノードの描画', () => {
-      boss.draw(mockContext);
+      boss.draw(mockContext as unknown as CanvasRenderingContext2D);
 
       // スラスターの描画
       expect(mockContext.arc).toHaveBeenCalled();
@@ -351,7 +390,7 @@ describe('Boss', () => {
     });
 
     test('エネルギービームの描画', () => {
-      boss.draw(mockContext);
+      boss.draw(mockContext as unknown as CanvasRenderingContext2D);
 
       // ビームの描画
       expect(mockContext.moveTo).toHaveBeenCalled();
@@ -360,7 +399,7 @@ describe('Boss', () => {
     });
 
     test('中央コアの描画', () => {
-      boss.draw(mockContext);
+      boss.draw(mockContext as unknown as CanvasRenderingContext2D);
 
       // コアの描画
       expect(mockContext.createRadialGradient).toHaveBeenCalled();
@@ -369,7 +408,7 @@ describe('Boss', () => {
     });
 
     test('体力バーの描画', () => {
-      boss.draw(mockContext);
+      boss.draw(mockContext as unknown as CanvasRenderingContext2D);
 
       // 体力バーの描画
       expect(mockContext.fillRect).toHaveBeenCalled();
@@ -389,7 +428,7 @@ describe('Boss', () => {
         boss.takeDamage();
       }
 
-      boss.draw(mockContext);
+      boss.draw(mockContext as unknown as CanvasRenderingContext2D);
 
       // グローバルアルファが設定される
       expect(mockContext.globalAlpha).toBeDefined();
@@ -406,7 +445,9 @@ describe('Boss', () => {
       }
 
       // 描画が正常に実行される
-      expect(() => boss.draw(mockContext)).not.toThrow();
+      expect(() =>
+        boss.draw(mockContext as unknown as CanvasRenderingContext2D)
+      ).not.toThrow();
     });
 
     test('アニメーション同期テスト', () => {
@@ -417,7 +458,9 @@ describe('Boss', () => {
       boss.update(deltaTime);
       boss.update(deltaTime);
 
-      expect(() => boss.draw(mockContext)).not.toThrow();
+      expect(() =>
+        boss.draw(mockContext as unknown as CanvasRenderingContext2D)
+      ).not.toThrow();
     });
   });
 
@@ -438,7 +481,9 @@ describe('Boss', () => {
 
   describe('エラーハンドリング', () => {
     test('null contextで描画してもエラーが発生しない', () => {
-      expect(() => boss.draw(null as any)).toThrow();
+      expect(() =>
+        boss.draw(null as unknown as CanvasRenderingContext2D)
+      ).toThrow();
     });
 
     test('極端なdeltaTimeでも正常に動作する', () => {
@@ -463,19 +508,19 @@ describe('Boss', () => {
       // 降下フェーズ
       while (boss.getY() < 50) {
         boss.update(100);
-        boss.draw(mockContext);
+        boss.draw(mockContext as unknown as CanvasRenderingContext2D);
       }
 
       // 水平移動フェーズ
       for (let i = 0; i < 10; i++) {
         boss.update(100);
-        boss.draw(mockContext);
+        boss.draw(mockContext as unknown as CanvasRenderingContext2D);
       }
 
       // ダメージフェーズ
       while (!boss.takeDamage()) {
         boss.update(100);
-        boss.draw(mockContext);
+        boss.draw(mockContext as unknown as CanvasRenderingContext2D);
       }
 
       // 全プロセスでエラーが発生しない
@@ -495,7 +540,9 @@ describe('Boss', () => {
       boss.update(100);
 
       expect(mockGameEngine.getBullets().length).toBeGreaterThan(0);
-      expect(() => boss.draw(mockContext)).not.toThrow();
+      expect(() =>
+        boss.draw(mockContext as unknown as CanvasRenderingContext2D)
+      ).not.toThrow();
     });
   });
 });

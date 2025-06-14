@@ -1,3 +1,4 @@
+import { createTestConfig } from '../src/config/GameConfigFactory';
 import { Aurora } from '../src/entities/Aurora';
 import { Boss } from '../src/entities/Boss';
 import { BossBullet } from '../src/entities/BossBullet';
@@ -16,13 +17,19 @@ describe('GameObjectManager', () => {
   let gameObjectManager: GameObjectManager;
   let eventEmitter: EventEmitter<EventMap>;
   let mockRandomProvider: MockRandomProvider;
-  let mockGameEngine: any;
+  let mockGameEngine: {
+    addBossBullet: jest.Mock;
+    getDifficultyFactor: jest.Mock;
+    createBullet: jest.Mock;
+  };
+  let testConfig: ReturnType<typeof createTestConfig>;
 
   beforeEach(() => {
     eventEmitter = new EventEmitter<EventMap>();
     gameObjectManager = new GameObjectManager(eventEmitter);
     mockRandomProvider = new MockRandomProvider();
     mockRandomProvider.setValues([0.5, 0.3, 0.7, 0.2, 0.8]);
+    testConfig = createTestConfig();
 
     // Mock IGameEngine
     mockGameEngine = {
@@ -105,7 +112,7 @@ describe('GameObjectManager', () => {
 
   describe('敵オブジェクト管理', () => {
     test('敵が正常に追加・削除される', () => {
-      const enemy = new Enemy(100, 100);
+      const enemy = new Enemy(100, 100, 'SMALL', mockGameEngine, testConfig);
 
       gameObjectManager.addEnemy(enemy);
       expect(gameObjectManager.getEnemies()).toContain(enemy);
@@ -116,9 +123,9 @@ describe('GameObjectManager', () => {
 
     test('複数の敵を管理できる', () => {
       const enemies = [
-        new Enemy(100, 100),
-        new Enemy(200, 200),
-        new Enemy(300, 300),
+        new Enemy(100, 100, 'SMALL', mockGameEngine, testConfig),
+        new Enemy(200, 200, 'SMALL', mockGameEngine, testConfig),
+        new Enemy(300, 300, 'SMALL', mockGameEngine, testConfig),
       ];
 
       enemies.forEach(enemy => gameObjectManager.addEnemy(enemy));
@@ -130,7 +137,7 @@ describe('GameObjectManager', () => {
     });
 
     test('存在しない敵の削除でエラーが発生しない', () => {
-      const enemy = new Enemy(100, 100);
+      const enemy = new Enemy(100, 100, 'SMALL', mockGameEngine, testConfig);
 
       expect(() => {
         gameObjectManager.removeEnemy(enemy);
@@ -140,7 +147,7 @@ describe('GameObjectManager', () => {
 
   describe('PowerUp管理', () => {
     test('PowerUpが正常に追加・削除される', () => {
-      const powerUp = new PowerUp(100, 100);
+      const powerUp = new PowerUp(100, 100, testConfig);
 
       gameObjectManager.addPowerUp(powerUp);
       expect(gameObjectManager.getPowerups()).toContain(powerUp);
@@ -150,8 +157,8 @@ describe('GameObjectManager', () => {
     });
 
     test('異なるタイプのPowerUpを管理できる', () => {
-      const healthPowerUp = new PowerUp(100, 100);
-      const weaponPowerUp = new PowerUp(200, 200);
+      const healthPowerUp = new PowerUp(100, 100, testConfig);
+      const weaponPowerUp = new PowerUp(200, 200, testConfig);
 
       gameObjectManager.addPowerUp(healthPowerUp);
       gameObjectManager.addPowerUp(weaponPowerUp);
@@ -165,7 +172,7 @@ describe('GameObjectManager', () => {
 
   describe('ボス管理', () => {
     test('ボスが正常に設定・取得される', () => {
-      const boss = new Boss(mockGameEngine);
+      const boss = new Boss(mockGameEngine, testConfig);
 
       gameObjectManager.setBoss(boss);
       expect(gameObjectManager.getBoss()).toBe(boss);
@@ -175,7 +182,7 @@ describe('GameObjectManager', () => {
     });
 
     test('ボス弾丸が正常に管理される', () => {
-      const bossBullet = new BossBullet(100, 100, 5, 5);
+      const bossBullet = new BossBullet(100, 100, 5, 5, testConfig);
 
       gameObjectManager.addBossBullet(bossBullet);
       expect(gameObjectManager.getBossBullets()).toContain(bossBullet);
@@ -222,10 +229,10 @@ describe('GameObjectManager', () => {
 
   describe('全オブジェクト更新', () => {
     test('全ての動的オブジェクトが更新される', () => {
-      const enemy = new Enemy(100, 100);
-      const powerUp = new PowerUp(200, 200);
-      const boss = new Boss(mockGameEngine);
-      const bossBullet = new BossBullet(300, 300, 5, 5);
+      const enemy = new Enemy(100, 100, 'SMALL', mockGameEngine, testConfig);
+      const powerUp = new PowerUp(200, 200, testConfig);
+      const boss = new Boss(mockGameEngine, testConfig);
+      const bossBullet = new BossBullet(300, 300, 5, 5, testConfig);
 
       gameObjectManager.addEnemy(enemy);
       gameObjectManager.addPowerUp(powerUp);
@@ -265,9 +272,9 @@ describe('GameObjectManager', () => {
 
   describe('衝突判定用オブジェクト取得', () => {
     test('全ての衝突可能オブジェクトが取得される', () => {
-      const enemy = new Enemy(100, 100);
+      const enemy = new Enemy(100, 100, 'SMALL', mockGameEngine, testConfig);
       const powerUp = new PowerUp(200, 200);
-      const boss = new Boss(mockGameEngine);
+      const boss = new Boss(mockGameEngine, testConfig);
       const bullet = gameObjectManager.createBullet(100, 100);
 
       gameObjectManager.addEnemy(enemy);
@@ -285,7 +292,7 @@ describe('GameObjectManager', () => {
     });
 
     test('ボスが存在しない場合の処理', () => {
-      const enemy = new Enemy(100, 100);
+      const enemy = new Enemy(100, 100, 'SMALL', mockGameEngine, testConfig);
       gameObjectManager.addEnemy(enemy);
 
       const collidableObjects = gameObjectManager.getAllCollidableObjects();
@@ -298,9 +305,9 @@ describe('GameObjectManager', () => {
   describe('リセット機能', () => {
     test('ゲーム状態が正常にリセットされる', () => {
       // オブジェクトを追加
-      const enemy = new Enemy(100, 100);
-      const powerUp = new PowerUp(200, 200);
-      const boss = new Boss(mockGameEngine);
+      const enemy = new Enemy(100, 100, 'SMALL', mockGameEngine, testConfig);
+      const powerUp = new PowerUp(200, 200, testConfig);
+      const boss = new Boss(mockGameEngine, testConfig);
 
       // 弾丸を作成してプールをテスト
       gameObjectManager.createBullet(100, 100);
@@ -342,7 +349,7 @@ describe('GameObjectManager', () => {
 
   describe('イベント統合', () => {
     test('敵破壊イベントで爆発が作成される', () => {
-      const enemy = new Enemy(100, 100);
+      const enemy = new Enemy(100, 100, 'SMALL', mockGameEngine, testConfig);
       gameObjectManager.addEnemy(enemy);
 
       const initialExplosions = gameObjectManager.getExplosions().length;
@@ -380,7 +387,7 @@ describe('GameObjectManager', () => {
         // オブジェクト作成
         const enemies = Array.from(
           { length: 20 },
-          (_, i) => new Enemy(i * 10, 100)
+          (_, i) => new Enemy(i * 10, 100, 'SMALL', mockGameEngine, testConfig)
         );
 
         // 弾丸を作成（プールテスト用）

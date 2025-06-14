@@ -11,6 +11,31 @@ import { MockRandomProvider } from '../../src/providers/MockRandomProvider';
 import { PowerUpEffectService } from '../../src/services/PowerUpEffectService';
 import '../canvas.setup';
 
+// 型定義の追加
+interface MockCanvasRenderingContext2D
+  extends Partial<CanvasRenderingContext2D> {
+  save: jest.Mock;
+  restore: jest.Mock;
+  translate: jest.Mock;
+  fillStyle: string;
+  strokeStyle: string;
+  lineWidth: number;
+  beginPath: jest.Mock;
+  closePath: jest.Mock;
+  moveTo: jest.Mock;
+  lineTo: jest.Mock;
+  arc: jest.Mock;
+  ellipse: jest.Mock;
+  rect: jest.Mock;
+  fill: jest.Mock;
+  stroke: jest.Mock;
+  createRadialGradient: jest.Mock;
+  createLinearGradient: jest.Mock;
+  quadraticCurveTo: jest.Mock;
+  bezierCurveTo: jest.Mock;
+  arcTo: jest.Mock;
+}
+
 // モックGameクラス
 class MockGameEngine implements IGame {
   public createBullet = jest.fn();
@@ -27,7 +52,7 @@ describe('Player', () => {
   let mockInputManager: MockInputManager;
   let mockRandomProvider: MockRandomProvider;
   let mockGameEngine: MockGameEngine;
-  let mockCtx: CanvasRenderingContext2D;
+  let mockCtx: MockCanvasRenderingContext2D;
 
   beforeEach(() => {
     eventEmitter = new EventEmitter<EventMap>();
@@ -64,7 +89,7 @@ describe('Player', () => {
       quadraticCurveTo: jest.fn(),
       bezierCurveTo: jest.fn(),
       arcTo: jest.fn(),
-    } as any;
+    };
 
     // Date.nowのモック
     jest.spyOn(Date, 'now').mockReturnValue(1000);
@@ -75,31 +100,41 @@ describe('Player', () => {
       .mockImplementation((_callback, delay) => {
         // パワーアップテスト用にタイマーIDを返すが、実際の実行は手動制御
         console.log(`🕐 setTimeout called with delay: ${delay}ms`);
-        const timerId = delay as any;
+        const timerId = delay as unknown as ReturnType<typeof setTimeout>;
         // タイマーIDを記録してクリーンアップできるようにする
-        (globalThis as any)._activeTimeouts =
-          (globalThis as any)._activeTimeouts ?? new Set();
-        (globalThis as any)._activeTimeouts.add(timerId);
+        const global = globalThis as unknown as Record<string, unknown>;
+        global._activeTimeouts =
+          (global._activeTimeouts as Set<ReturnType<typeof setTimeout>>) ??
+          new Set<ReturnType<typeof setTimeout>>();
+        (global._activeTimeouts as Set<ReturnType<typeof setTimeout>>).add(
+          timerId
+        );
         return timerId;
       });
 
     // clearTimeoutのモック
     jest.spyOn(globalThis, 'clearTimeout').mockImplementation(timerId => {
       console.log(`🧹 clearTimeout called for timer: ${timerId}`);
-      if ((globalThis as any)._activeTimeouts) {
-        (globalThis as any)._activeTimeouts.delete(timerId);
+      const global = globalThis as unknown as Record<string, unknown>;
+      if (global._activeTimeouts && timerId !== undefined) {
+        (global._activeTimeouts as Set<ReturnType<typeof setTimeout>>).delete(
+          timerId as ReturnType<typeof setTimeout>
+        );
       }
     });
   });
 
   afterEach(() => {
     // アクティブなタイマーをクリーンアップ
-    const activeTimeouts = (globalThis as any)._activeTimeouts;
+    const global = globalThis as unknown as Record<string, unknown>;
+    const activeTimeouts = global._activeTimeouts as
+      | Set<ReturnType<typeof setTimeout>>
+      | undefined;
     if (activeTimeouts && activeTimeouts.size > 0) {
       console.warn(
         `⚠️  ${activeTimeouts.size} active timeouts detected in Player.test.ts`
       );
-      activeTimeouts.forEach((timerId: any) => {
+      activeTimeouts.forEach((timerId: ReturnType<typeof setTimeout>) => {
         console.log(`🧹 Clearing timeout: ${timerId}`);
         clearTimeout(timerId);
       });
@@ -522,14 +557,14 @@ describe('Player', () => {
 
       // エラーが発生しないことを確認
       expect(() => {
-        player.draw(mockCtx);
+        player.draw(mockCtx as unknown as CanvasRenderingContext2D);
       }).not.toThrow();
     });
   });
 
   describe('描画機能', () => {
     test('通常状態で描画', () => {
-      player.draw(mockCtx);
+      player.draw(mockCtx as unknown as CanvasRenderingContext2D);
 
       expect(mockCtx.save).toHaveBeenCalled();
       expect(mockCtx.restore).toHaveBeenCalled();
@@ -541,7 +576,7 @@ describe('Player', () => {
       // ダメージを受けて無敵状態にする
       player.takeDamage(1);
 
-      player.draw(mockCtx);
+      player.draw(mockCtx as unknown as CanvasRenderingContext2D);
 
       expect(mockCtx.save).toHaveBeenCalled();
       expect(mockCtx.restore).toHaveBeenCalled();
@@ -550,7 +585,7 @@ describe('Player', () => {
     test('シールド状態で描画', () => {
       player.activateShield();
 
-      player.draw(mockCtx);
+      player.draw(mockCtx as unknown as CanvasRenderingContext2D);
 
       expect(mockCtx.save).toHaveBeenCalled();
       expect(mockCtx.restore).toHaveBeenCalled();

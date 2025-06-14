@@ -161,7 +161,7 @@ describe('GameConfigFactory', () => {
         },
       };
 
-      expect(() => createGameConfig(invalidConfig as any)).toThrow();
+      expect(() => createGameConfig(invalidConfig as never)).toThrow();
     });
   });
 });

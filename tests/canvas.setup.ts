@@ -3,13 +3,14 @@
 
 // Define HTMLCanvasElement if not available (Node environment)
 if (typeof HTMLCanvasElement === 'undefined') {
-  (globalThis as any).HTMLCanvasElement = class HTMLCanvasElement {
-    width = 400;
-    height = 600;
-    getContext(): null {
-      return null;
-    }
-  };
+  (globalThis as Record<string, unknown>).HTMLCanvasElement =
+    class HTMLCanvasElement {
+      width = 400;
+      height = 600;
+      getContext(): null {
+        return null;
+      }
+    };
 }
 
 // HTMLCanvasElement mock
@@ -184,7 +185,7 @@ const createMockContext = (): Record<string, unknown> => ({
 
 // Define document if not available (Node environment)
 if (typeof document === 'undefined') {
-  (globalThis as any).document = {
+  (globalThis as Record<string, unknown>).document = {
     createElement: jest.fn(() => ({
       width: 400,
       height: 600,
@@ -239,11 +240,11 @@ if (typeof document === 'undefined') {
             remove: jest.fn(),
             contains: jest.fn(),
           },
-        }) as any
+        }) as unknown as HTMLElement
     );
   }
   if (!document.body) {
-    (document as any).body = {
+    (document as unknown as Record<string, unknown>).body = {
       appendChild: jest.fn(),
       removeChild: jest.fn(),
       contains: jest.fn(() => true),
@@ -253,7 +254,7 @@ if (typeof document === 'undefined') {
 
 // Define window if not available (Node environment)
 if (typeof window === 'undefined') {
-  (globalThis as any).window = {};
+  (globalThis as Record<string, unknown>).window = {};
 }
 
 // Performance API mock for background renderer optimization
@@ -273,17 +274,25 @@ const mockRequestAnimationFrame = jest.fn((callback: FrameRequestCallback) => {
   const id = setTimeout(() => callback(Date.now()), 16);
   console.log(`🎬 Global requestAnimationFrame called, assigned ID: ${id}`);
   // アクティブなフレームIDを記録
-  (globalThis as any)._activeGlobalAnimationFrames =
-    (globalThis as any)._activeGlobalAnimationFrames ?? new Set();
-  (globalThis as any)._activeGlobalAnimationFrames.add(id);
+  const globalThis_: Record<string, unknown> = globalThis as Record<
+    string,
+    unknown
+  >;
+  globalThis_._activeGlobalAnimationFrames =
+    globalThis_._activeGlobalAnimationFrames ?? new Set();
+  (globalThis_._activeGlobalAnimationFrames as Set<number>).add(id);
   return id;
 });
 
 const mockCancelAnimationFrame = jest.fn((id: number) => {
   console.log(`🧹 Global cancelAnimationFrame called for ID: ${id}`);
   clearTimeout(id);
-  if ((globalThis as any)._activeGlobalAnimationFrames) {
-    (globalThis as any)._activeGlobalAnimationFrames.delete(id);
+  const globalThis_: Record<string, unknown> = globalThis as Record<
+    string,
+    unknown
+  >;
+  if (globalThis_._activeGlobalAnimationFrames) {
+    (globalThis_._activeGlobalAnimationFrames as Set<number>).delete(id);
   }
 });
 
@@ -296,8 +305,10 @@ Object.defineProperty(window, 'cancelAnimationFrame', {
 });
 
 // グローバルスコープにも定義
-(globalThis as any).requestAnimationFrame = mockRequestAnimationFrame;
-(globalThis as any).cancelAnimationFrame = mockCancelAnimationFrame;
+(globalThis as Record<string, unknown>).requestAnimationFrame =
+  mockRequestAnimationFrame;
+(globalThis as Record<string, unknown>).cancelAnimationFrame =
+  mockCancelAnimationFrame;
 
 // Event mock
 Object.defineProperty(window, 'Event', {

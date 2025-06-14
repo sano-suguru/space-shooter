@@ -180,7 +180,13 @@ describe('BackgroundRenderer', () => {
   describe('エラーハンドリング', () => {
     test('null contextでは適切にエラーが発生する', () => {
       expect(() => {
-        renderer.drawOptimizedBackground(null as any, [], [], [], []);
+        renderer.drawOptimizedBackground(
+          null as unknown as CanvasRenderingContext2D,
+          [],
+          [],
+          [],
+          []
+        );
       }).toThrow();
     });
 
@@ -296,11 +302,11 @@ describe('BackgroundRenderer', () => {
         'Background Renderer Performance:',
         expect.objectContaining({
           'Average Render Time': expect.stringContaining('ms'),
-          'Sample Count': expect.any(Number),
+          'Sample Count': expect.any(Number) as number,
           'Cache Status': expect.objectContaining({
-            background: expect.any(Boolean),
-            nebula: expect.any(Boolean),
-            planet: expect.any(Boolean),
+            background: expect.any(Boolean) as boolean,
+            nebula: expect.any(Boolean) as boolean,
+            planet: expect.any(Boolean) as boolean,
           }),
         })
       );

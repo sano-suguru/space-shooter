@@ -1,6 +1,8 @@
 import { GameEngine } from '../../src/core/GameEngine';
 import '../canvas.setup';
 
+type AnimationFrameCallback = (time: number) => void;
+
 describe('GameEngine', () => {
   let gameEngine: GameEngine;
   let mockUpdateCallback: jest.Mock;
@@ -18,40 +20,49 @@ describe('GameEngine', () => {
     mockCancelAnimationFrame = jest.fn();
 
     // グローバル関数の置き換え
-    (globalThis as any).requestAnimationFrame = mockRequestAnimationFrame;
-    (globalThis as any).cancelAnimationFrame = mockCancelAnimationFrame;
+    (globalThis as unknown as Record<string, unknown>).requestAnimationFrame =
+      mockRequestAnimationFrame;
+    (globalThis as unknown as Record<string, unknown>).cancelAnimationFrame =
+      mockCancelAnimationFrame;
 
     gameEngine = new GameEngine(mockUpdateCallback, mockDrawCallback);
 
     // アニメーションフレームIDを設定（連続的なIDを返すようにする）
     let frameId = 1;
-    mockRequestAnimationFrame.mockImplementation((_callback: Function) => {
-      const id = frameId++;
-      console.log(`🎬 requestAnimationFrame called, assigned ID: ${id}`);
-      // アクティブなフレームIDを記録
-      (globalThis as any)._activeAnimationFrames =
-        (globalThis as any)._activeAnimationFrames ?? new Set();
-      (globalThis as any)._activeAnimationFrames.add(id);
-      return id;
-    });
+    mockRequestAnimationFrame.mockImplementation(
+      (_callback: AnimationFrameCallback) => {
+        const id = frameId++;
+        console.log(`🎬 requestAnimationFrame called, assigned ID: ${id}`);
+        // アクティブなフレームIDを記録
+        const global = globalThis as unknown as Record<string, unknown>;
+        global._activeAnimationFrames =
+          (global._activeAnimationFrames as Set<number>) ?? new Set<number>();
+        (global._activeAnimationFrames as Set<number>).add(id);
+        return id;
+      }
+    );
 
     // cancelAnimationFrameのモック
     mockCancelAnimationFrame.mockImplementation((id: number) => {
       console.log(`🧹 cancelAnimationFrame called for ID: ${id}`);
-      if ((globalThis as any)._activeAnimationFrames) {
-        (globalThis as any)._activeAnimationFrames.delete(id);
+      const global = globalThis as unknown as Record<string, unknown>;
+      if (global._activeAnimationFrames) {
+        (global._activeAnimationFrames as Set<number>).delete(id);
       }
     });
   });
 
   afterEach(() => {
     // アクティブなアニメーションフレームをクリーンアップ
-    const activeFrames = (globalThis as any)._activeAnimationFrames;
+    const global = globalThis as unknown as Record<string, unknown>;
+    const activeFrames = global._activeAnimationFrames as
+      | Set<number>
+      | undefined;
     if (activeFrames && activeFrames.size > 0) {
       console.warn(
         `⚠️  ${activeFrames.size} active animation frames detected in GameEngine.test.ts`
       );
-      activeFrames.forEach((frameId: any) => {
+      activeFrames.forEach((frameId: number) => {
         console.log(`🧹 Canceling animation frame: ${frameId}`);
         cancelAnimationFrame(frameId);
       });
@@ -172,11 +183,13 @@ describe('GameEngine', () => {
 
   describe('ゲームループ実行', () => {
     test('ゲームループでupdateCallbackが呼ばれる', () => {
-      let gameLoopCallback: Function;
-      mockRequestAnimationFrame.mockImplementation((callback: Function) => {
-        gameLoopCallback = callback;
-        return 1;
-      });
+      let gameLoopCallback: AnimationFrameCallback;
+      mockRequestAnimationFrame.mockImplementation(
+        (callback: AnimationFrameCallback) => {
+          gameLoopCallback = callback;
+          return 1;
+        }
+      );
 
       gameEngine.start();
       expect(mockRequestAnimationFrame).toHaveBeenCalled();
@@ -189,11 +202,13 @@ describe('GameEngine', () => {
     });
 
     test('初回実行時のdeltaTimeは0', () => {
-      let gameLoopCallback: Function;
-      mockRequestAnimationFrame.mockImplementation((callback: Function) => {
-        gameLoopCallback = callback;
-        return 1;
-      });
+      let gameLoopCallback: AnimationFrameCallback;
+      mockRequestAnimationFrame.mockImplementation(
+        (callback: AnimationFrameCallback) => {
+          gameLoopCallback = callback;
+          return 1;
+        }
+      );
 
       gameEngine.start();
       gameLoopCallback!(16.67);
@@ -203,11 +218,13 @@ describe('GameEngine', () => {
     });
 
     test('2回目以降はdeltaTimeが正しく計算される', () => {
-      let gameLoopCallback: Function;
-      mockRequestAnimationFrame.mockImplementation((callback: Function) => {
-        gameLoopCallback = callback;
-        return 1;
-      });
+      let gameLoopCallback: AnimationFrameCallback;
+      mockRequestAnimationFrame.mockImplementation(
+        (callback: AnimationFrameCallback) => {
+          gameLoopCallback = callback;
+          return 1;
+        }
+      );
 
       gameEngine.start();
 
@@ -217,16 +234,19 @@ describe('GameEngine', () => {
 
       // 2回目実行（16.67ms後 = 60FPS）
       gameLoopCallback!(1016.67);
-      expect(mockUpdateCallback.mock.calls[1][0]).toBeCloseTo(0.01667, 4);
+      const secondCall = mockUpdateCallback.mock.calls[1];
+      expect(secondCall?.[0]).toBeCloseTo(0.01667, 4);
       expect(gameEngine.getDeltaTime()).toBeCloseTo(0.01667, 4);
     });
 
     test('deltaTimeの上限が適用される', () => {
-      let gameLoopCallback: Function;
-      mockRequestAnimationFrame.mockImplementation((callback: Function) => {
-        gameLoopCallback = callback;
-        return 1;
-      });
+      let gameLoopCallback: AnimationFrameCallback;
+      mockRequestAnimationFrame.mockImplementation(
+        (callback: AnimationFrameCallback) => {
+          gameLoopCallback = callback;
+          return 1;
+        }
+      );
 
       gameEngine.start();
 
@@ -243,12 +263,14 @@ describe('GameEngine', () => {
     });
 
     test('ゲームループが継続的に実行される', () => {
-      let gameLoopCallback: Function;
+      let gameLoopCallback: AnimationFrameCallback;
       let callCount = 0;
-      mockRequestAnimationFrame.mockImplementation((callback: Function) => {
-        gameLoopCallback = callback;
-        return ++callCount;
-      });
+      mockRequestAnimationFrame.mockImplementation(
+        (callback: AnimationFrameCallback) => {
+          gameLoopCallback = callback;
+          return ++callCount;
+        }
+      );
 
       gameEngine.start();
 
@@ -262,11 +284,13 @@ describe('GameEngine', () => {
     });
 
     test('停止時にゲームループが終了する', () => {
-      let gameLoopCallback: Function;
-      mockRequestAnimationFrame.mockImplementation((callback: Function) => {
-        gameLoopCallback = callback;
-        return 1;
-      });
+      let gameLoopCallback: AnimationFrameCallback;
+      mockRequestAnimationFrame.mockImplementation(
+        (callback: AnimationFrameCallback) => {
+          gameLoopCallback = callback;
+          return 1;
+        }
+      );
 
       gameEngine.start();
       gameEngine.stop();
@@ -280,11 +304,13 @@ describe('GameEngine', () => {
     });
 
     test('一時停止時にゲームループが終了する', () => {
-      let gameLoopCallback: Function;
-      mockRequestAnimationFrame.mockImplementation((callback: Function) => {
-        gameLoopCallback = callback;
-        return 1;
-      });
+      let gameLoopCallback: AnimationFrameCallback;
+      mockRequestAnimationFrame.mockImplementation(
+        (callback: AnimationFrameCallback) => {
+          gameLoopCallback = callback;
+          return 1;
+        }
+      );
 
       gameEngine.start();
       gameEngine.pause();
@@ -334,11 +360,13 @@ describe('GameEngine', () => {
 
   describe('デバッグ情報', () => {
     test('getDebugInfo()が正確な情報を返す', () => {
-      let gameLoopCallback: Function;
-      mockRequestAnimationFrame.mockImplementation((callback: Function) => {
-        gameLoopCallback = callback;
-        return 1;
-      });
+      let gameLoopCallback: AnimationFrameCallback;
+      mockRequestAnimationFrame.mockImplementation(
+        (callback: AnimationFrameCallback) => {
+          gameLoopCallback = callback;
+          return 1;
+        }
+      );
 
       gameEngine.start();
       gameLoopCallback!(1000); // 初回（deltaTime = 0）
@@ -360,11 +388,13 @@ describe('GameEngine', () => {
 
     test('一時停止状態のデバッグ情報', () => {
       // まずゲームループを実行してdeltaTimeを設定
-      let gameLoopCallback: Function;
-      mockRequestAnimationFrame.mockImplementation((callback: Function) => {
-        gameLoopCallback = callback;
-        return 1;
-      });
+      let gameLoopCallback: AnimationFrameCallback;
+      mockRequestAnimationFrame.mockImplementation(
+        (callback: AnimationFrameCallback) => {
+          gameLoopCallback = callback;
+          return 1;
+        }
+      );
 
       gameEngine.start();
       gameLoopCallback!(1000); // 初回実行
@@ -386,11 +416,13 @@ describe('GameEngine', () => {
         throw new Error('Update error');
       });
 
-      let gameLoopCallback: Function;
-      mockRequestAnimationFrame.mockImplementation((callback: Function) => {
-        gameLoopCallback = callback;
-        return 1;
-      });
+      let gameLoopCallback: AnimationFrameCallback;
+      mockRequestAnimationFrame.mockImplementation(
+        (callback: AnimationFrameCallback) => {
+          gameLoopCallback = callback;
+          return 1;
+        }
+      );
 
       gameEngine.start();
 
@@ -408,11 +440,13 @@ describe('GameEngine', () => {
         throw new Error('Draw error');
       });
 
-      let gameLoopCallback: Function;
-      mockRequestAnimationFrame.mockImplementation((callback: Function) => {
-        gameLoopCallback = callback;
-        return 1;
-      });
+      let gameLoopCallback: AnimationFrameCallback;
+      mockRequestAnimationFrame.mockImplementation(
+        (callback: AnimationFrameCallback) => {
+          gameLoopCallback = callback;
+          return 1;
+        }
+      );
 
       gameEngine.start();
 
@@ -451,11 +485,13 @@ describe('GameEngine', () => {
     });
 
     test('resume後のlastTimeリセット', () => {
-      let gameLoopCallback: Function;
-      mockRequestAnimationFrame.mockImplementation((callback: Function) => {
-        gameLoopCallback = callback;
-        return 1;
-      });
+      let gameLoopCallback: AnimationFrameCallback;
+      mockRequestAnimationFrame.mockImplementation(
+        (callback: AnimationFrameCallback) => {
+          gameLoopCallback = callback;
+          return 1;
+        }
+      );
 
       gameEngine.start();
       gameLoopCallback!(0);
@@ -473,11 +509,13 @@ describe('GameEngine', () => {
     });
 
     test('start後のlastTimeリセット', () => {
-      let gameLoopCallback: Function;
-      mockRequestAnimationFrame.mockImplementation((callback: Function) => {
-        gameLoopCallback = callback;
-        return 1;
-      });
+      let gameLoopCallback: AnimationFrameCallback;
+      mockRequestAnimationFrame.mockImplementation(
+        (callback: AnimationFrameCallback) => {
+          gameLoopCallback = callback;
+          return 1;
+        }
+      );
 
       gameEngine.start();
       gameLoopCallback!(0);
@@ -495,17 +533,20 @@ describe('GameEngine', () => {
 
   describe('フレームレート関連', () => {
     test('高フレームレート時の動作', () => {
-      let gameLoopCallback: Function;
-      mockRequestAnimationFrame.mockImplementation((callback: Function) => {
-        gameLoopCallback = callback;
-        return 1;
-      });
+      let gameLoopCallback: AnimationFrameCallback;
+      mockRequestAnimationFrame.mockImplementation(
+        (callback: AnimationFrameCallback) => {
+          gameLoopCallback = callback;
+          return 1;
+        }
+      );
 
       gameEngine.start();
       gameLoopCallback!(1000); // 初回（deltaTime = 0）
       gameLoopCallback!(1008.33); // 2回目（8.33ms後 = 120FPS相当）
 
-      expect(mockUpdateCallback.mock.calls[1][0]).toBeCloseTo(0.00833, 4);
+      const highFpsCall = mockUpdateCallback.mock.calls[1];
+      expect(highFpsCall?.[0]).toBeCloseTo(0.00833, 4);
       expect(gameEngine.getDeltaTime()).toBeCloseTo(0.00833, 4);
 
       const debugInfo = gameEngine.getDebugInfo();
@@ -513,18 +554,20 @@ describe('GameEngine', () => {
     });
 
     test('低フレームレート時の動作（deltaTime上限適用）', () => {
-      let gameLoopCallback: Function;
-      mockRequestAnimationFrame.mockImplementation((callback: Function) => {
-        gameLoopCallback = callback;
-        return 1;
-      });
+      let gameLoopCallback: AnimationFrameCallback;
+      mockRequestAnimationFrame.mockImplementation(
+        (callback: AnimationFrameCallback) => {
+          gameLoopCallback = callback;
+          return 1;
+        }
+      );
 
       gameEngine.start();
       gameLoopCallback!(1000); // 初回（deltaTime = 0）
       gameLoopCallback!(1050); // 2回目（50ms後）
 
       // 50msは1/30秒（約33.33ms）の上限に制限される
-      expect(mockUpdateCallback.mock.calls[1][0]).toBeCloseTo(1 / 30, 4);
+      expect(mockUpdateCallback.mock.calls[1]?.[0]).toBeCloseTo(1 / 30, 4);
       expect(gameEngine.getDeltaTime()).toBeCloseTo(1 / 30, 4);
 
       const debugInfo = gameEngine.getDebugInfo();

@@ -2,8 +2,33 @@ import { createGameConfig } from '../../src/config/GameConfigFactory';
 import { Bullet } from '../../src/entities/Bullet';
 import '../canvas.setup';
 
+// 型定義の追加
+interface MockCanvasRenderingContext2D
+  extends Partial<CanvasRenderingContext2D> {
+  save: jest.Mock;
+  restore: jest.Mock;
+  translate: jest.Mock;
+  rotate: jest.Mock;
+  fillStyle: string;
+  strokeStyle: string;
+  lineWidth: number;
+  globalAlpha: number;
+  lineCap: CanvasLineCap;
+  beginPath: jest.Mock;
+  closePath: jest.Mock;
+  moveTo: jest.Mock;
+  lineTo: jest.Mock;
+  arc: jest.Mock;
+  fillRect: jest.Mock;
+  strokeRect: jest.Mock;
+  fill: jest.Mock;
+  stroke: jest.Mock;
+  createRadialGradient: jest.Mock;
+  createLinearGradient: jest.Mock;
+}
+
 describe('Bullet', () => {
-  let mockCtx: CanvasRenderingContext2D;
+  let mockCtx: MockCanvasRenderingContext2D;
 
   beforeEach(() => {
     // Canvas contextのモック
@@ -16,7 +41,7 @@ describe('Bullet', () => {
       strokeStyle: '',
       lineWidth: 0,
       globalAlpha: 1,
-      lineCap: 'butt',
+      lineCap: 'butt' as CanvasLineCap,
       beginPath: jest.fn(),
       closePath: jest.fn(),
       moveTo: jest.fn(),
@@ -32,7 +57,7 @@ describe('Bullet', () => {
       createLinearGradient: jest.fn(() => ({
         addColorStop: jest.fn(),
       })),
-    } as any;
+    };
   });
 
   describe('初期化', () => {
@@ -97,7 +122,7 @@ describe('Bullet', () => {
       const bullet = new Bullet(100, 100);
 
       expect(() => {
-        bullet.draw(mockCtx);
+        bullet.draw(mockCtx as unknown as CanvasRenderingContext2D);
       }).not.toThrow();
 
       expect(mockCtx.save).toHaveBeenCalled();
@@ -108,7 +133,7 @@ describe('Bullet', () => {
       const bullet = new Bullet(100, 100);
       bullet.deactivate();
 
-      bullet.draw(mockCtx);
+      bullet.draw(mockCtx as unknown as CanvasRenderingContext2D);
 
       expect(mockCtx.save).not.toHaveBeenCalled();
     });

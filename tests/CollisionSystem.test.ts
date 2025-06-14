@@ -16,7 +16,11 @@ describe('CollisionSystem', () => {
   let gameObjectManager: GameObjectManager;
   let eventEmitter: EventEmitter<EventMap>;
   let mockCanvas: HTMLCanvasElement;
-  let mockGameEngine: any;
+  let mockGameEngine: {
+    addBossBullet: jest.Mock;
+    getDifficultyFactor: jest.Mock;
+    createBullet: jest.Mock;
+  };
   let mockInputManager: MockInputManager;
   let mockRandomProvider: MockRandomProvider;
   let testConfig: GameConfig;
@@ -48,7 +52,9 @@ describe('CollisionSystem', () => {
   describe('SpatialHashアルゴリズム最適化', () => {
     test('CollisionSystemが正常に初期化される', () => {
       expect(collisionSystem).toBeDefined();
-      expect(collisionSystem.getCollisionStats).toBeDefined();
+      expect(
+        collisionSystem.getCollisionStats.bind(collisionSystem)
+      ).toBeDefined();
     });
 
     test('空間分割統計が正しく初期化される', () => {
@@ -131,8 +137,8 @@ describe('CollisionSystem', () => {
       enemyBullet.initialize(200, 300);
 
       // プレイヤーを特定位置に配置
-      (player as any).x = 200;
-      (player as any).y = 300;
+      (player as { x: number; y: number }).x = 200;
+      (player as { x: number; y: number }).y = 300;
 
       gameObjectManager.setPlayer(player);
       gameObjectManager.addBullet(enemyBullet);
@@ -173,8 +179,8 @@ describe('CollisionSystem', () => {
       bullet.initialize(200, 100);
 
       // ボスを衝突可能な位置に配置
-      (boss as any).x = 200;
-      (boss as any).y = 100;
+      (boss as { x: number; y: number }).x = 200;
+      (boss as { x: number; y: number }).y = 100;
 
       gameObjectManager.setBoss(boss);
       gameObjectManager.addBullet(bullet);
@@ -199,8 +205,8 @@ describe('CollisionSystem', () => {
       const bossBullet = new Bullet();
       bossBullet.initialize(200, 300);
 
-      (player as any).x = 200;
-      (player as any).y = 300;
+      (player as { x: number; y: number }).x = 200;
+      (player as { x: number; y: number }).y = 300;
 
       gameObjectManager.setPlayer(player);
       gameObjectManager.addBullet(bossBullet);
@@ -226,8 +232,8 @@ describe('CollisionSystem', () => {
       );
       const powerUp = new PowerUp(200, 300, testConfig);
 
-      (player as any).x = 200;
-      (player as any).y = 300;
+      (player as { x: number; y: number }).x = 200;
+      (player as { x: number; y: number }).y = 300;
 
       gameObjectManager.setPlayer(player);
       gameObjectManager.addPowerUp(powerUp);
@@ -252,8 +258,8 @@ describe('CollisionSystem', () => {
       const nearPowerUp = new PowerUp(200, 300, testConfig); // プレイヤーと重複
       const farPowerUp = new PowerUp(350, 300, testConfig); // プレイヤーから離れた位置
 
-      (player as any).x = 200; // プレイヤー範囲: 200-250
-      (player as any).y = 300; // プレイヤー範囲: 300-350
+      (player as { x: number; y: number }).x = 200; // プレイヤー範囲: 200-250
+      (player as { x: number; y: number }).y = 300; // プレイヤー範囲: 300-350
 
       gameObjectManager.setPlayer(player);
       gameObjectManager.addPowerUp(nearPowerUp);

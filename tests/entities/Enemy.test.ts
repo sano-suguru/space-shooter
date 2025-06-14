@@ -7,6 +7,27 @@ import { IGameEngine } from '../../src/interfaces/IGameEngine';
 import { EnemyType } from '../../src/types';
 import '../canvas.setup';
 
+// 型定義の追加
+interface MockCanvasRenderingContext2D
+  extends Partial<CanvasRenderingContext2D> {
+  save: jest.Mock;
+  restore: jest.Mock;
+  translate: jest.Mock;
+  fillStyle: string;
+  strokeStyle: string;
+  lineWidth: number;
+  globalAlpha: number;
+  beginPath: jest.Mock;
+  closePath: jest.Mock;
+  moveTo: jest.Mock;
+  lineTo: jest.Mock;
+  arc: jest.Mock;
+  ellipse: jest.Mock;
+  fill: jest.Mock;
+  stroke: jest.Mock;
+  createRadialGradient: jest.Mock;
+}
+
 // MockGameEngineクラス
 class MockGameEngine implements IGameEngine {
   public addBossBullet = jest.fn();
@@ -16,7 +37,7 @@ class MockGameEngine implements IGameEngine {
 
 describe('Enemy', () => {
   let mockGameEngine: MockGameEngine;
-  let mockCtx: CanvasRenderingContext2D;
+  let mockCtx: MockCanvasRenderingContext2D;
   let testConfig: GameConfig;
 
   beforeEach(() => {
@@ -43,7 +64,7 @@ describe('Enemy', () => {
       createRadialGradient: jest.fn(() => ({
         addColorStop: jest.fn(),
       })),
-    } as any;
+    };
   });
 
   describe('初期化', () => {
@@ -272,7 +293,7 @@ describe('Enemy', () => {
       const enemy = new Enemy(100, 100, 'SMALL', mockGameEngine, testConfig);
 
       expect(() => {
-        enemy.draw(mockCtx);
+        enemy.draw(mockCtx as unknown as CanvasRenderingContext2D);
       }).not.toThrow();
 
       expect(mockCtx.save).toHaveBeenCalled();
@@ -284,7 +305,7 @@ describe('Enemy', () => {
       const enemy = new Enemy(100, 100, 'MEDIUM', mockGameEngine, testConfig);
 
       expect(() => {
-        enemy.draw(mockCtx);
+        enemy.draw(mockCtx as unknown as CanvasRenderingContext2D);
       }).not.toThrow();
 
       expect(mockCtx.save).toHaveBeenCalled();
@@ -296,7 +317,7 @@ describe('Enemy', () => {
       const enemy = new Enemy(100, 100, 'LARGE', mockGameEngine, testConfig);
 
       expect(() => {
-        enemy.draw(mockCtx);
+        enemy.draw(mockCtx as unknown as CanvasRenderingContext2D);
       }).not.toThrow();
 
       expect(mockCtx.save).toHaveBeenCalled();
@@ -328,9 +349,9 @@ describe('Enemy', () => {
       );
 
       // 各タイプで異なる描画処理が呼ばれることを確認
-      smallEnemy.draw(mockCtx);
-      mediumEnemy.draw(mockCtx);
-      largeEnemy.draw(mockCtx);
+      smallEnemy.draw(mockCtx as unknown as CanvasRenderingContext2D);
+      mediumEnemy.draw(mockCtx as unknown as CanvasRenderingContext2D);
+      largeEnemy.draw(mockCtx as unknown as CanvasRenderingContext2D);
 
       // fillとstrokeが呼ばれることを確認
       expect(mockCtx.fill).toHaveBeenCalled();
@@ -434,7 +455,7 @@ describe('Enemy', () => {
       }
 
       expect(() => {
-        enemy.draw(mockCtx);
+        enemy.draw(mockCtx as unknown as CanvasRenderingContext2D);
       }).not.toThrow();
     });
   });
@@ -444,7 +465,7 @@ describe('Enemy', () => {
       const enemy = new Enemy(100, 100, 'SMALL');
 
       expect(() => {
-        enemy.draw(null as any);
+        enemy.draw(null as unknown as CanvasRenderingContext2D);
       }).toThrow(); // Canvas APIを使用するため例外が発生する
     });
 
@@ -496,7 +517,7 @@ describe('Enemy', () => {
 
       // 描画（破壊後でも正常動作）
       expect(() => {
-        enemy.draw(mockCtx);
+        enemy.draw(mockCtx as unknown as CanvasRenderingContext2D);
       }).not.toThrow();
     });
 

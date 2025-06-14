@@ -1,4 +1,6 @@
+import { createTestConfig } from '../src/config/GameConfigFactory';
 import { Game } from '../src/core/Game';
+import { BossBullet } from '../src/entities/BossBullet';
 import { Player } from '../src/entities/Player';
 import { EventEmitter } from '../src/events/EventEmitter';
 import { EventMap } from '../src/events/EventType';
@@ -56,8 +58,8 @@ describe('Game', () => {
   describe('初期化とセットアップ', () => {
     test('Gameが正常に初期化される', () => {
       expect(game).toBeDefined();
-      expect(game.getDifficultyFactor).toBeDefined();
-      expect(game.createBullet).toBeDefined();
+      expect(game.getDifficultyFactor.bind(game)).toBeDefined();
+      expect(game.createBullet.bind(game)).toBeDefined();
     });
 
     test('主要なメソッドが正しく実装されている', () => {
@@ -104,15 +106,8 @@ describe('Game', () => {
     });
 
     test('ボス弾丸が追加される', () => {
-      const bossBullet = {
-        getX: () => 100,
-        getY: () => 200,
-        getWidth: () => 5,
-        getHeight: () => 15,
-        update: jest.fn(),
-        draw: jest.fn(),
-        isOnScreen: () => true,
-      } as any;
+      const testConfig = createTestConfig();
+      const bossBullet = new BossBullet(100, 200, 0, 1, testConfig);
 
       expect(() => {
         game.addBossBullet(bossBullet);
@@ -176,7 +171,7 @@ describe('Game', () => {
     test('ゲーム状態マネージャーが取得できる', () => {
       const manager = game.getStateManager();
       expect(manager).toBeDefined();
-      expect(manager.getCurrentState).toBeDefined();
+      expect(manager.getCurrentState.bind(manager)).toBeDefined();
     });
   });
 
