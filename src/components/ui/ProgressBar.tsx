@@ -20,32 +20,32 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   const formattedPercentage = Math.round(percentage);
 
   return (
-    <div 
+    <div
       className={`progress-bar-container ${className}`}
       style={style}
       data-testid={testId}
       {...props}
     >
       {label && (
-        <div className="progress-bar-label">
+        <div className='progress-bar-label'>
           {label}
           {showPercentage && (
-            <span className="progress-percentage">{formattedPercentage}%</span>
+            <span className='progress-percentage'>{formattedPercentage}%</span>
           )}
         </div>
       )}
-      <div className="progress-bar-track">
-        <div 
-          className="progress-bar-fill"
+      <div className='progress-bar-track'>
+        <div
+          className='progress-bar-fill'
           style={{
             width: `${percentage}%`,
             backgroundColor: color,
-            transition: 'width 0.3s ease-in-out'
+            transition: 'width 0.3s ease-in-out',
           }}
         />
       </div>
       {!label && showPercentage && (
-        <div className="progress-percentage-standalone">
+        <div className='progress-percentage-standalone'>
           {formattedPercentage}%
         </div>
       )}

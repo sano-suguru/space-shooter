@@ -15,7 +15,8 @@ export const StatItem: React.FC<StatItemProps> = ({
   testId,
   ...props
 }) => {
-  const formattedValue = typeof value === 'number' ? value.toLocaleString() : value;
+  const formattedValue =
+    typeof value === 'number' ? value.toLocaleString() : value;
 
   return (
     <div
@@ -24,13 +25,10 @@ export const StatItem: React.FC<StatItemProps> = ({
       data-testid={testId}
       {...props}
     >
-      <span className="stat-icon">{icon}</span>
-      <div className="stat-info">
-        <span className="stat-label">{label}</span>
-        <span 
-          className="stat-value" 
-          id={id}
-        >
+      <span className='stat-icon'>{icon}</span>
+      <div className='stat-info'>
+        <span className='stat-label'>{label}</span>
+        <span className='stat-value' id={id}>
           {formattedValue}
         </span>
       </div>

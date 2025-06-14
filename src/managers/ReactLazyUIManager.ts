@@ -4,11 +4,11 @@
 
 import React from 'react';
 import { createRoot, Root } from 'react-dom/client';
-import { EventEmitter } from "../events/EventEmitter";
-import { EventMap } from "../events/EventType";
-import { ProgressManager } from "../progression/managers/ProgressManager";
-import { getElementOrThrow } from "../utils/DOMUtils";
-import { SafeProgressDisplay } from "../components/ui/lazy/LazyComponents";
+import { EventEmitter } from '../events/EventEmitter';
+import { EventMap } from '../events/EventType';
+import { ProgressManager } from '../progression/managers/ProgressManager';
+import { getElementOrThrow } from '../utils/DOMUtils';
+import { SafeProgressDisplay } from '../components/ui/lazy/LazyComponents';
 
 /**
  * シンプルなReact統合UIマネージャー
@@ -16,7 +16,7 @@ import { SafeProgressDisplay } from "../components/ui/lazy/LazyComponents";
 export class ReactLazyUIManager {
   private roots: Map<string, Root> = new Map();
   private activeUI: string | null = null;
-  
+
   private progressDisplayBtn!: HTMLElement;
 
   constructor(
@@ -58,7 +58,9 @@ export class ReactLazyUIManager {
    */
   private setupEventListeners(): void {
     if (this.progressDisplayBtn) {
-      this.progressDisplayBtn.addEventListener('click', () => this.toggleProgressDisplay());
+      this.progressDisplayBtn.addEventListener('click', () =>
+        this.toggleProgressDisplay()
+      );
     }
 
     this.eventEmitter.on('profileUpdated', () => this.handleProfileUpdate());
@@ -69,7 +71,10 @@ export class ReactLazyUIManager {
    */
   private setupKeyboardShortcuts(): void {
     document.addEventListener('keydown', (event: KeyboardEvent) => {
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+      if (
+        event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement
+      ) {
         return;
       }
 
@@ -107,12 +112,12 @@ export class ReactLazyUIManager {
     const root = this.roots.get('progress-display-container');
     if (root) {
       const profile = this.progressManager.getProfile();
-      
+
       root.render(
         React.createElement(SafeProgressDisplay, {
           isVisible: true,
           playerProfile: profile,
-          onClose: () => this.hideAllUIs()
+          onClose: () => this.hideAllUIs(),
         })
       );
     }
@@ -134,7 +139,7 @@ export class ReactLazyUIManager {
    */
   private updateButtonState(activeUIName: string): void {
     this.resetButtonStates();
-    
+
     if (activeUIName === 'progress-display' && this.progressDisplayBtn) {
       this.progressDisplayBtn.classList.add('active');
     }

@@ -1,4 +1,4 @@
-import { EnemyType, Vector2D } from "../../types";
+import { EnemyType, Vector2D } from '../../types';
 
 // 外見設定
 export interface AppearanceConfig {
@@ -25,17 +25,17 @@ export interface EnemyStats {
 }
 
 // 行動設定
-export type BehaviorPattern = 
-  | 'straight'        // 直進
-  | 'zigzag'         // ジグザグ
-  | 'sine'           // サイン波
-  | 'spiral'         // 螺旋
+export type BehaviorPattern =
+  | 'straight' // 直進
+  | 'zigzag' // ジグザグ
+  | 'sine' // サイン波
+  | 'spiral' // 螺旋
   | 'aggressive_chase'; // 積極的追跡
 
 export interface BehaviorConfig {
   pattern: BehaviorPattern;
-  aggressiveness: number;      // 0.0 - 1.0
-  flockingTendency: number;    // 0.0 - 1.0
+  aggressiveness: number; // 0.0 - 1.0
+  flockingTendency: number; // 0.0 - 1.0
   environmentalAwareness: number; // 0.0 - 1.0
 }
 
@@ -47,11 +47,11 @@ export interface AttackAbility {
   specialEffects: SpecialEffect[];
 }
 
-export type SpecialEffect = 
-  | 'piercing'    // 貫通
-  | 'explosive'   // 爆発
-  | 'slowing'     // 減速
-  | 'splitting';  // 分裂
+export type SpecialEffect =
+  | 'piercing' // 貫通
+  | 'explosive' // 爆発
+  | 'slowing' // 減速
+  | 'splitting'; // 分裂
 
 // 難易度調整
 export interface DifficultyFactors {
@@ -72,11 +72,11 @@ export interface DifficultyModifiers {
 
 // 群れ行動
 export interface FlockingRules {
-  separationRadius: number;    // 分離距離
-  alignmentRadius: number;     // 整列距離
-  cohesionRadius: number;      // 結束距離
+  separationRadius: number; // 分離距離
+  alignmentRadius: number; // 整列距離
+  cohesionRadius: number; // 結束距離
   leaderFollowDistance: number; // リーダー追従距離
-  maxFlockSize: number;        // 最大群れサイズ
+  maxFlockSize: number; // 最大群れサイズ
 }
 
 // 環境効果

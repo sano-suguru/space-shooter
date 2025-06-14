@@ -1,7 +1,7 @@
 /**
  * Lazy Loading Components Entry Point
  * 動的インポート専用のコンポーネントエクスポート
- * 
+ *
  * このファイルは純粋に動的インポートで使用され、
  * 静的インポートからは除外されます。
  */
@@ -10,11 +10,8 @@
 export const loadReactDependencies = async () => {
   const [
     { createElement, Component, useState, useEffect, useCallback, useMemo },
-    { createRoot }
-  ] = await Promise.all([
-    import('react'),
-    import('react-dom/client')
-  ]);
+    { createRoot },
+  ] = await Promise.all([import('react'), import('react-dom/client')]);
 
   return {
     createElement,
@@ -23,7 +20,7 @@ export const loadReactDependencies = async () => {
     useEffect,
     useCallback,
     useMemo,
-    createRoot
+    createRoot,
   };
 };
 
@@ -50,22 +47,18 @@ export const loadUpgradeShop = async () => {
 
 // 全コンポーネントの一括ロード（必要に応じて）
 export const loadAllUIComponents = async () => {
-  const [
-    AchievementPanel,
-    GameModeSelector,
-    ProgressDisplay,
-    UpgradeShop
-  ] = await Promise.all([
-    loadAchievementPanel(),
-    loadGameModeSelector(),
-    loadProgressDisplay(),
-    loadUpgradeShop()
-  ]);
+  const [AchievementPanel, GameModeSelector, ProgressDisplay, UpgradeShop] =
+    await Promise.all([
+      loadAchievementPanel(),
+      loadGameModeSelector(),
+      loadProgressDisplay(),
+      loadUpgradeShop(),
+    ]);
 
   return {
     AchievementPanel,
     GameModeSelector,
     ProgressDisplay,
-    UpgradeShop
+    UpgradeShop,
   };
 };

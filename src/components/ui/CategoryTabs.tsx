@@ -16,23 +16,23 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
   ...props
 }) => {
   return (
-    <div 
+    <div
       className={`category-tabs ${className}`}
       style={style}
       data-testid={testId}
       {...props}
     >
-      {categories.map((category) => (
+      {categories.map(category => (
         <Button
           key={category.id}
           variant={currentCategory === category.id ? 'primary' : 'secondary'}
-          size="medium"
+          size='medium'
           onClick={() => onCategoryChange(category.id)}
           className={`category-tab ${currentCategory === category.id ? 'active' : ''}`}
           data-testid={`category-tab-${category.id}`}
         >
-          <span className="category-icon">{category.icon}</span>
-          <span className="category-name">{category.name}</span>
+          <span className='category-icon'>{category.icon}</span>
+          <span className='category-name'>{category.name}</span>
         </Button>
       ))}
     </div>

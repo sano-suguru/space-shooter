@@ -16,30 +16,32 @@ export const PlayerStats: React.FC<PlayerStatsProps> = ({
   ...props
 }) => {
   return (
-    <div 
+    <div
       className={`player-stats ${className}`}
       style={style}
       data-testid={testId}
       {...props}
     >
       {showCoins && (
-        <div className="stat-item coins">
-          <span className="stat-icon">💰</span>
-          <span className="stat-value">{profile.coins.toLocaleString()}</span>
+        <div className='stat-item coins'>
+          <span className='stat-icon'>💰</span>
+          <span className='stat-value'>{profile.coins.toLocaleString()}</span>
         </div>
       )}
-      
+
       {showLevel && (
-        <div className="stat-item level">
-          <span className="stat-label">Lv.</span>
-          <span className="stat-value">{profile.level}</span>
+        <div className='stat-item level'>
+          <span className='stat-label'>Lv.</span>
+          <span className='stat-value'>{profile.level}</span>
         </div>
       )}
-      
+
       {showExperience && (
-        <div className="stat-item experience">
-          <span className="stat-label">XP:</span>
-          <span className="stat-value">{profile.experience.toLocaleString()}</span>
+        <div className='stat-item experience'>
+          <span className='stat-label'>XP:</span>
+          <span className='stat-value'>
+            {profile.experience.toLocaleString()}
+          </span>
         </div>
       )}
     </div>

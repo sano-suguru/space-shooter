@@ -1,4 +1,4 @@
-import { IInputManager } from "../interfaces/IInputManager";
+import { IInputManager } from '../interfaces/IInputManager';
 
 /**
  * 本番環境用の入力管理クラス
@@ -8,14 +8,19 @@ export class InputManager implements IInputManager {
   private keys = new Set<string>();
   private mouseButtons = new Set<number>();
   private mousePosition = { x: 0, y: 0 };
-  
+
   // イベントコールバック
   private keyDownCallbacks: ((key: string) => void)[] = [];
   private keyUpCallbacks: ((key: string) => void)[] = [];
-  private mouseDownCallbacks: ((button: number, x: number, y: number) => void)[] = [];
-  private mouseUpCallbacks: ((button: number, x: number, y: number) => void)[] = [];
+  private mouseDownCallbacks: ((
+    button: number,
+    x: number,
+    y: number
+  ) => void)[] = [];
+  private mouseUpCallbacks: ((button: number, x: number, y: number) => void)[] =
+    [];
   private mouseMoveCallbacks: ((x: number, y: number) => void)[] = [];
-  
+
   // バインドされたイベントハンドラー（removeEventListenerのため）
   private boundHandlers: {
     keyDown: (event: KeyboardEvent) => void;
@@ -33,9 +38,9 @@ export class InputManager implements IInputManager {
       mouseDown: this.handleMouseDown.bind(this),
       mouseUp: this.handleMouseUp.bind(this),
       mouseMove: this.handleMouseMove.bind(this),
-      contextMenu: this.handleContextMenu.bind(this)
+      contextMenu: this.handleContextMenu.bind(this),
     };
-    
+
     this.setupEventListeners();
   }
 
@@ -43,7 +48,7 @@ export class InputManager implements IInputManager {
     // キーボードイベント（documentで全体をキャプチャ）
     document.addEventListener('keydown', this.boundHandlers.keyDown);
     document.addEventListener('keyup', this.boundHandlers.keyUp);
-    
+
     // マウスイベント（canvasに限定）
     this.canvas.addEventListener('mousedown', this.boundHandlers.mouseDown);
     this.canvas.addEventListener('mouseup', this.boundHandlers.mouseUp);
@@ -53,12 +58,14 @@ export class InputManager implements IInputManager {
 
   private handleKeyDown(event: KeyboardEvent): void {
     const key = event.key;
-    
+
     // ゲーム関連キーのデフォルト動作を防ぐ
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(key)) {
+    if (
+      ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(key)
+    ) {
       event.preventDefault();
     }
-    
+
     if (!this.keys.has(key)) {
       this.keys.add(key);
       this.keyDownCallbacks.forEach(callback => callback(key));
@@ -67,7 +74,7 @@ export class InputManager implements IInputManager {
 
   private handleKeyUp(event: KeyboardEvent): void {
     const key = event.key;
-    
+
     if (this.keys.has(key)) {
       this.keys.delete(key);
       this.keyUpCallbacks.forEach(callback => callback(key));
@@ -79,7 +86,7 @@ export class InputManager implements IInputManager {
     const rect = this.canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    
+
     this.mouseButtons.add(button);
     this.mouseDownCallbacks.forEach(callback => callback(button, x, y));
   }
@@ -89,7 +96,7 @@ export class InputManager implements IInputManager {
     const rect = this.canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    
+
     this.mouseButtons.delete(button);
     this.mouseUpCallbacks.forEach(callback => callback(button, x, y));
   }
@@ -98,7 +105,7 @@ export class InputManager implements IInputManager {
     const rect = this.canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    
+
     this.mousePosition = { x, y };
     this.mouseMoveCallbacks.forEach(callback => callback(x, y));
   }
@@ -109,7 +116,7 @@ export class InputManager implements IInputManager {
   }
 
   // IInputManager interface implementation
-  
+
   public isKeyPressed(key: string): boolean {
     return this.keys.has(key);
   }
@@ -130,11 +137,15 @@ export class InputManager implements IInputManager {
     this.keyUpCallbacks.push(callback);
   }
 
-  public onMouseDown(callback: (button: number, x: number, y: number) => void): void {
+  public onMouseDown(
+    callback: (button: number, x: number, y: number) => void
+  ): void {
     this.mouseDownCallbacks.push(callback);
   }
 
-  public onMouseUp(callback: (button: number, x: number, y: number) => void): void {
+  public onMouseUp(
+    callback: (button: number, x: number, y: number) => void
+  ): void {
     this.mouseUpCallbacks.push(callback);
   }
 
@@ -146,12 +157,15 @@ export class InputManager implements IInputManager {
     // イベントリスナーを削除
     document.removeEventListener('keydown', this.boundHandlers.keyDown);
     document.removeEventListener('keyup', this.boundHandlers.keyUp);
-    
+
     this.canvas.removeEventListener('mousedown', this.boundHandlers.mouseDown);
     this.canvas.removeEventListener('mouseup', this.boundHandlers.mouseUp);
     this.canvas.removeEventListener('mousemove', this.boundHandlers.mouseMove);
-    this.canvas.removeEventListener('contextmenu', this.boundHandlers.contextMenu);
-    
+    this.canvas.removeEventListener(
+      'contextmenu',
+      this.boundHandlers.contextMenu
+    );
+
     // 内部状態をクリア
     this.keys.clear();
     this.mouseButtons.clear();

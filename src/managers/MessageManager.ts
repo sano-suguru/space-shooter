@@ -1,6 +1,10 @@
-import { IMessageManager, MessageSettings, MessagePriority } from "../interfaces/IMessageManager";
-import { IDOMManager } from "../interfaces/IDOMManager";
-import { ITimeProvider } from "../providers/ITimeProvider";
+import {
+  IMessageManager,
+  MessageSettings,
+  MessagePriority,
+} from '../interfaces/IMessageManager';
+import { IDOMManager } from '../interfaces/IDOMManager';
+import { ITimeProvider } from '../providers/ITimeProvider';
 
 /**
  * 本番環境用のメッセージ管理クラス
@@ -22,11 +26,15 @@ export class MessageManager implements IMessageManager {
       showWaveMessages: true,
       showBossMessages: true,
       showLevelMessages: true,
-      subtleMode: true // 控えめ表示モードをデフォルトで有効
+      subtleMode: true, // 控えめ表示モードをデフォルトで有効
     };
   }
 
-  public showMessage(text: string, duration: number = 3000, priority: MessagePriority = 'important'): void {
+  public showMessage(
+    text: string,
+    duration: number = 3000,
+    priority: MessagePriority = 'important'
+  ): void {
     // 設定チェック: メッセージ表示が無効または重要度が不足の場合は表示しない
     if (!this.settings.enabled || !this.shouldShowMessage(priority)) {
       return;
@@ -49,7 +57,10 @@ export class MessageManager implements IMessageManager {
   /**
    * 控えめなメッセージ表示スタイルを適用（ユーザーフィードバック対応）
    */
-  private applySubtleMessageStyle(messageElement: HTMLElement, duration: number): void {
+  private applySubtleMessageStyle(
+    messageElement: HTMLElement,
+    duration: number
+  ): void {
     // Wave表示と同様の控えめなスタイル
     this.domManager.setStyle(messageElement, 'position', 'absolute');
     this.domManager.setStyle(messageElement, 'top', '50px'); // Waveメッセージより少し下
@@ -67,17 +78,33 @@ export class MessageManager implements IMessageManager {
     this.domManager.setStyle(messageElement, 'lineHeight', '1.3');
 
     // 控えめなテキストエフェクト
-    this.domManager.setStyle(messageElement, 'textShadow', `
+    this.domManager.setStyle(
+      messageElement,
+      'textShadow',
+      `
       0 0 6px rgba(0, 255, 255, 0.7),
       1px 1px 2px rgba(0, 0, 0, 0.8)
-    `);
+    `
+    );
 
     // 半透明の背景スタイリング
-    this.domManager.setStyle(messageElement, 'backgroundColor', 'rgba(0, 20, 40, 0.8)');
+    this.domManager.setStyle(
+      messageElement,
+      'backgroundColor',
+      'rgba(0, 20, 40, 0.8)'
+    );
     this.domManager.setStyle(messageElement, 'padding', '10px 14px');
     this.domManager.setStyle(messageElement, 'borderRadius', '6px');
-    this.domManager.setStyle(messageElement, 'border', '1px solid rgba(0, 255, 255, 0.5)');
-    this.domManager.setStyle(messageElement, 'boxShadow', '0 2px 6px rgba(0, 255, 255, 0.2)');
+    this.domManager.setStyle(
+      messageElement,
+      'border',
+      '1px solid rgba(0, 255, 255, 0.5)'
+    );
+    this.domManager.setStyle(
+      messageElement,
+      'boxShadow',
+      '0 2px 6px rgba(0, 255, 255, 0.2)'
+    );
 
     // スライドイン・アウトアニメーション
     this.domManager.setStyle(messageElement, 'opacity', '0');
@@ -97,12 +124,19 @@ export class MessageManager implements IMessageManager {
     // 短縮された表示時間でスライドアウトして削除
     const subtleDuration = Math.min(duration * 0.7, 2000); // 従来の70%または最大2秒
     this.currentTimeoutId = this.timeProvider.setTimeout(() => {
-      this.domManager.setStyle(messageElement, 'transition', 'all 0.3s ease-in');
+      this.domManager.setStyle(
+        messageElement,
+        'transition',
+        'all 0.3s ease-in'
+      );
       this.domManager.setStyle(messageElement, 'opacity', '0');
       this.domManager.setStyle(messageElement, 'transform', 'translateX(100%)');
 
       this.timeProvider.setTimeout(() => {
-        if (this.currentMessageElement === messageElement && this.domManager.contains(body, messageElement)) {
+        if (
+          this.currentMessageElement === messageElement &&
+          this.domManager.contains(body, messageElement)
+        ) {
           this.domManager.removeChild(body, messageElement);
           this.currentMessageElement = null;
         }
@@ -113,12 +147,19 @@ export class MessageManager implements IMessageManager {
   /**
    * 従来のメッセージ表示スタイルを適用（後方互換性）
    */
-  private applyTraditionalMessageStyle(messageElement: HTMLElement, duration: number): void {
+  private applyTraditionalMessageStyle(
+    messageElement: HTMLElement,
+    duration: number
+  ): void {
     // 基本的な位置設定
     this.domManager.setStyle(messageElement, 'position', 'absolute');
     this.domManager.setStyle(messageElement, 'top', '50%');
     this.domManager.setStyle(messageElement, 'left', '50%');
-    this.domManager.setStyle(messageElement, 'transform', 'translate(-50%, -50%)');
+    this.domManager.setStyle(
+      messageElement,
+      'transform',
+      'translate(-50%, -50%)'
+    );
     this.domManager.setStyle(messageElement, 'textAlign', 'center');
     this.domManager.setStyle(messageElement, 'zIndex', '1000');
 
@@ -129,26 +170,42 @@ export class MessageManager implements IMessageManager {
     this.domManager.setStyle(messageElement, 'fontFamily', 'Arial, sans-serif');
 
     // テキストエフェクト（視認性向上）
-    this.domManager.setStyle(messageElement, 'textShadow', `
+    this.domManager.setStyle(
+      messageElement,
+      'textShadow',
+      `
       0 0 10px #00ffff,
       0 0 20px #00ffff,
       0 0 30px #00ffff,
       2px 2px 4px rgba(0, 0, 0, 0.8)
-    `);
+    `
+    );
 
     // 背景スタイリング
-    this.domManager.setStyle(messageElement, 'backgroundColor', 'rgba(0, 20, 40, 0.9)');
+    this.domManager.setStyle(
+      messageElement,
+      'backgroundColor',
+      'rgba(0, 20, 40, 0.9)'
+    );
     this.domManager.setStyle(messageElement, 'padding', '20px 40px');
     this.domManager.setStyle(messageElement, 'borderRadius', '15px');
     this.domManager.setStyle(messageElement, 'border', '2px solid #00ffff');
-    this.domManager.setStyle(messageElement, 'boxShadow', `
+    this.domManager.setStyle(
+      messageElement,
+      'boxShadow',
+      `
       0 0 20px rgba(0, 255, 255, 0.5),
       inset 0 0 20px rgba(0, 255, 255, 0.1)
-    `);
+    `
+    );
 
     // アニメーション設定
     this.domManager.setStyle(messageElement, 'opacity', '0');
-    this.domManager.setStyle(messageElement, 'transform', 'translate(-50%, -50%) scale(0.5)');
+    this.domManager.setStyle(
+      messageElement,
+      'transform',
+      'translate(-50%, -50%) scale(0.5)'
+    );
     this.domManager.setStyle(messageElement, 'transition', 'all 0.3s ease-out');
 
     const body = this.domManager.getBody();
@@ -158,17 +215,32 @@ export class MessageManager implements IMessageManager {
     // フェードイン効果（requestAnimationFrameの代替）
     this.timeProvider.setTimeout(() => {
       this.domManager.setStyle(messageElement, 'opacity', '1');
-      this.domManager.setStyle(messageElement, 'transform', 'translate(-50%, -50%) scale(1)');
+      this.domManager.setStyle(
+        messageElement,
+        'transform',
+        'translate(-50%, -50%) scale(1)'
+      );
     }, 50);
 
     // フェードアウトして削除
     this.currentTimeoutId = this.timeProvider.setTimeout(() => {
-      this.domManager.setStyle(messageElement, 'transition', 'all 0.5s ease-in');
+      this.domManager.setStyle(
+        messageElement,
+        'transition',
+        'all 0.5s ease-in'
+      );
       this.domManager.setStyle(messageElement, 'opacity', '0');
-      this.domManager.setStyle(messageElement, 'transform', 'translate(-50%, -50%) scale(0.8)');
+      this.domManager.setStyle(
+        messageElement,
+        'transform',
+        'translate(-50%, -50%) scale(0.8)'
+      );
 
       this.timeProvider.setTimeout(() => {
-        if (this.currentMessageElement === messageElement && this.domManager.contains(body, messageElement)) {
+        if (
+          this.currentMessageElement === messageElement &&
+          this.domManager.contains(body, messageElement)
+        ) {
           this.domManager.removeChild(body, messageElement);
           this.currentMessageElement = null;
         }
@@ -210,7 +282,11 @@ export class MessageManager implements IMessageManager {
     }
   }
 
-  public showNotification(text: string, type: 'info' | 'success' | 'warning' = 'info', duration: number = 2000): void {
+  public showNotification(
+    text: string,
+    type: 'info' | 'success' | 'warning' = 'info',
+    duration: number = 2000
+  ): void {
     const notificationElement = this.domManager.createElement('div');
     this.domManager.setTextContent(notificationElement, text);
 
@@ -230,23 +306,55 @@ export class MessageManager implements IMessageManager {
     // タイプ別の色設定
     switch (type) {
       case 'success':
-        this.domManager.setStyle(notificationElement, 'backgroundColor', 'rgba(0, 150, 0, 0.9)');
-        this.domManager.setStyle(notificationElement, 'border', '2px solid #00ff00');
+        this.domManager.setStyle(
+          notificationElement,
+          'backgroundColor',
+          'rgba(0, 150, 0, 0.9)'
+        );
+        this.domManager.setStyle(
+          notificationElement,
+          'border',
+          '2px solid #00ff00'
+        );
         break;
       case 'warning':
-        this.domManager.setStyle(notificationElement, 'backgroundColor', 'rgba(255, 150, 0, 0.9)');
-        this.domManager.setStyle(notificationElement, 'border', '2px solid #ffaa00');
+        this.domManager.setStyle(
+          notificationElement,
+          'backgroundColor',
+          'rgba(255, 150, 0, 0.9)'
+        );
+        this.domManager.setStyle(
+          notificationElement,
+          'border',
+          '2px solid #ffaa00'
+        );
         break;
       default: // 'info'
-        this.domManager.setStyle(notificationElement, 'backgroundColor', 'rgba(0, 100, 200, 0.9)');
-        this.domManager.setStyle(notificationElement, 'border', '2px solid #0080ff');
+        this.domManager.setStyle(
+          notificationElement,
+          'backgroundColor',
+          'rgba(0, 100, 200, 0.9)'
+        );
+        this.domManager.setStyle(
+          notificationElement,
+          'border',
+          '2px solid #0080ff'
+        );
         break;
     }
 
     // アニメーション設定
     this.domManager.setStyle(notificationElement, 'opacity', '0');
-    this.domManager.setStyle(notificationElement, 'transform', 'translateX(100%)');
-    this.domManager.setStyle(notificationElement, 'transition', 'all 0.3s ease-out');
+    this.domManager.setStyle(
+      notificationElement,
+      'transform',
+      'translateX(100%)'
+    );
+    this.domManager.setStyle(
+      notificationElement,
+      'transition',
+      'all 0.3s ease-out'
+    );
 
     const body = this.domManager.getBody();
     this.domManager.appendChild(body, notificationElement);
@@ -254,14 +362,26 @@ export class MessageManager implements IMessageManager {
     // スライドイン効果
     this.timeProvider.setTimeout(() => {
       this.domManager.setStyle(notificationElement, 'opacity', '1');
-      this.domManager.setStyle(notificationElement, 'transform', 'translateX(0)');
+      this.domManager.setStyle(
+        notificationElement,
+        'transform',
+        'translateX(0)'
+      );
     }, 50);
 
     // スライドアウトして削除
     this.timeProvider.setTimeout(() => {
-      this.domManager.setStyle(notificationElement, 'transition', 'all 0.3s ease-in');
+      this.domManager.setStyle(
+        notificationElement,
+        'transition',
+        'all 0.3s ease-in'
+      );
       this.domManager.setStyle(notificationElement, 'opacity', '0');
-      this.domManager.setStyle(notificationElement, 'transform', 'translateX(100%)');
+      this.domManager.setStyle(
+        notificationElement,
+        'transform',
+        'translateX(100%)'
+      );
 
       this.timeProvider.setTimeout(() => {
         if (this.domManager.contains(body, notificationElement)) {
@@ -291,17 +411,33 @@ export class MessageManager implements IMessageManager {
     this.domManager.setStyle(waveElement, 'fontFamily', 'Arial, sans-serif');
 
     // 控えめなテキストエフェクト
-    this.domManager.setStyle(waveElement, 'textShadow', `
+    this.domManager.setStyle(
+      waveElement,
+      'textShadow',
+      `
       0 0 8px rgba(0, 255, 255, 0.8),
       1px 1px 2px rgba(0, 0, 0, 0.7)
-    `);
+    `
+    );
 
     // 半透明の背景スタイリング
-    this.domManager.setStyle(waveElement, 'backgroundColor', 'rgba(0, 20, 40, 0.75)');
+    this.domManager.setStyle(
+      waveElement,
+      'backgroundColor',
+      'rgba(0, 20, 40, 0.75)'
+    );
     this.domManager.setStyle(waveElement, 'padding', '12px 16px');
     this.domManager.setStyle(waveElement, 'borderRadius', '8px');
-    this.domManager.setStyle(waveElement, 'border', '1px solid rgba(0, 255, 255, 0.6)');
-    this.domManager.setStyle(waveElement, 'boxShadow', '0 2px 8px rgba(0, 255, 255, 0.3)');
+    this.domManager.setStyle(
+      waveElement,
+      'border',
+      '1px solid rgba(0, 255, 255, 0.6)'
+    );
+    this.domManager.setStyle(
+      waveElement,
+      'boxShadow',
+      '0 2px 8px rgba(0, 255, 255, 0.3)'
+    );
 
     // スライドイン・アウトアニメーション
     this.domManager.setStyle(waveElement, 'opacity', '0');
@@ -350,13 +486,15 @@ export class MessageManager implements IMessageManager {
    */
   private shouldShowMessage(priority: MessagePriority): boolean {
     const priorityLevels: Record<MessagePriority, number> = {
-      'critical': 4,
-      'important': 3,
-      'info': 2,
-      'minimal': 1
+      critical: 4,
+      important: 3,
+      info: 2,
+      minimal: 1,
     };
 
-    return priorityLevels[priority] >= priorityLevels[this.settings.minPriority];
+    return (
+      priorityLevels[priority] >= priorityLevels[this.settings.minPriority]
+    );
   }
 
   public dispose(): void {

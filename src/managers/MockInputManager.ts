@@ -1,4 +1,4 @@
-import { IInputManager } from "../interfaces/IInputManager";
+import { IInputManager } from '../interfaces/IInputManager';
 
 /**
  * テスト用の入力管理クラス
@@ -8,16 +8,21 @@ export class MockInputManager implements IInputManager {
   private keys = new Set<string>();
   private mouseButtons = new Set<number>();
   private mousePosition = { x: 0, y: 0 };
-  
+
   // イベントコールバック
   private keyDownCallbacks: ((key: string) => void)[] = [];
   private keyUpCallbacks: ((key: string) => void)[] = [];
-  private mouseDownCallbacks: ((button: number, x: number, y: number) => void)[] = [];
-  private mouseUpCallbacks: ((button: number, x: number, y: number) => void)[] = [];
+  private mouseDownCallbacks: ((
+    button: number,
+    x: number,
+    y: number
+  ) => void)[] = [];
+  private mouseUpCallbacks: ((button: number, x: number, y: number) => void)[] =
+    [];
   private mouseMoveCallbacks: ((x: number, y: number) => void)[] = [];
 
   // IInputManager interface implementation
-  
+
   public isKeyPressed(key: string): boolean {
     return this.keys.has(key);
   }
@@ -38,11 +43,15 @@ export class MockInputManager implements IInputManager {
     this.keyUpCallbacks.push(callback);
   }
 
-  public onMouseDown(callback: (button: number, x: number, y: number) => void): void {
+  public onMouseDown(
+    callback: (button: number, x: number, y: number) => void
+  ): void {
     this.mouseDownCallbacks.push(callback);
   }
 
-  public onMouseUp(callback: (button: number, x: number, y: number) => void): void {
+  public onMouseUp(
+    callback: (button: number, x: number, y: number) => void
+  ): void {
     this.mouseUpCallbacks.push(callback);
   }
 
@@ -159,7 +168,9 @@ export class MockInputManager implements IInputManager {
    */
   public clearAllMouseButtons(): void {
     const pressedButtons = Array.from(this.mouseButtons);
-    pressedButtons.forEach(button => this.simulateMouseUp(button, this.mousePosition.x, this.mousePosition.y));
+    pressedButtons.forEach(button =>
+      this.simulateMouseUp(button, this.mousePosition.x, this.mousePosition.y)
+    );
   }
 
   /**

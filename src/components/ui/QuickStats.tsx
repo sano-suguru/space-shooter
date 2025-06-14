@@ -21,27 +21,27 @@ export const QuickStats: React.FC<QuickStatsProps> = ({
       style={style}
       data-testid={testId}
       {...props}
-      id="quick-stats"
+      id='quick-stats'
     >
       <StatItem
-        icon="🎯"
-        label="ハイスコア"
+        icon='🎯'
+        label='ハイスコア'
         value={highScore}
-        id="high-score"
+        id='high-score'
       />
-      
+
       <StatItem
-        icon="🎮"
-        label="総ゲーム数"
+        icon='🎮'
+        label='総ゲーム数'
         value={totalGamesPlayed}
-        id="total-games"
+        id='total-games'
       />
-      
+
       <StatItem
-        icon="💥"
-        label="敵撃破数"
+        icon='💥'
+        label='敵撃破数'
         value={enemiesDestroyed}
-        id="enemies-destroyed"
+        id='enemies-destroyed'
       />
     </div>
   );

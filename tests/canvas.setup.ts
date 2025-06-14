@@ -22,7 +22,7 @@ Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
     fillText: jest.fn(),
     strokeText: jest.fn(),
     measureText: jest.fn(() => ({ width: 0 })),
-    
+
     // Path methods
     beginPath: jest.fn(),
     closePath: jest.fn(),
@@ -36,7 +36,7 @@ Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
     arcTo: jest.fn(),
     fill: jest.fn(),
     stroke: jest.fn(),
-    
+
     // Transform methods
     save: jest.fn(),
     restore: jest.fn(),
@@ -46,7 +46,7 @@ Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
     transform: jest.fn(),
     setTransform: jest.fn(),
     resetTransform: jest.fn(),
-    
+
     // Style properties
     fillStyle: '#000000',
     strokeStyle: '#000000',
@@ -61,41 +61,41 @@ Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
     direction: 'inherit',
     globalAlpha: 1.0,
     globalCompositeOperation: 'source-over',
-    
+
     // Image drawing methods
     drawImage: jest.fn(),
     createImageData: jest.fn(),
     getImageData: jest.fn(() => ({
       data: new Uint8ClampedArray(4),
       width: 1,
-      height: 1
+      height: 1,
     })),
     putImageData: jest.fn(),
-    
+
     // Gradient methods
     createLinearGradient: jest.fn(() => ({
-      addColorStop: jest.fn()
+      addColorStop: jest.fn(),
     })),
     createRadialGradient: jest.fn(() => ({
-      addColorStop: jest.fn()
+      addColorStop: jest.fn(),
     })),
     createPattern: jest.fn(),
-    
+
     // Shadow properties
     shadowBlur: 0,
     shadowColor: 'rgba(0, 0, 0, 0)',
     shadowOffsetX: 0,
     shadowOffsetY: 0,
-    
+
     // Clipping
     clip: jest.fn(),
-    
+
     // State
     canvas: {
       width: 400,
-      height: 600
-    }
-  }))
+      height: 600,
+    },
+  })),
 });
 
 // Complete Canvas 2D Context mock
@@ -107,7 +107,7 @@ const createMockContext = () => ({
   fillText: jest.fn(),
   strokeText: jest.fn(),
   measureText: jest.fn(() => ({ width: 0 })),
-  
+
   // Path methods
   beginPath: jest.fn(),
   closePath: jest.fn(),
@@ -121,7 +121,7 @@ const createMockContext = () => ({
   arcTo: jest.fn(),
   fill: jest.fn(),
   stroke: jest.fn(),
-  
+
   // Transform methods
   save: jest.fn(),
   restore: jest.fn(),
@@ -131,7 +131,7 @@ const createMockContext = () => ({
   transform: jest.fn(),
   setTransform: jest.fn(),
   resetTransform: jest.fn(),
-  
+
   // Style properties
   fillStyle: '#000000',
   strokeStyle: '#000000',
@@ -146,40 +146,40 @@ const createMockContext = () => ({
   direction: 'inherit',
   globalAlpha: 1.0,
   globalCompositeOperation: 'source-over',
-  
+
   // Image drawing methods
   drawImage: jest.fn(),
   createImageData: jest.fn(),
   getImageData: jest.fn(() => ({
     data: new Uint8ClampedArray(4),
     width: 1,
-    height: 1
+    height: 1,
   })),
   putImageData: jest.fn(),
-  
+
   // Gradient methods
   createLinearGradient: jest.fn(() => ({
-    addColorStop: jest.fn()
+    addColorStop: jest.fn(),
   })),
   createRadialGradient: jest.fn(() => ({
-    addColorStop: jest.fn()
+    addColorStop: jest.fn(),
   })),
   createPattern: jest.fn(),
-  
+
   // Shadow properties
   shadowBlur: 0,
   shadowColor: 'rgba(0, 0, 0, 0)',
   shadowOffsetX: 0,
   shadowOffsetY: 0,
-  
+
   // Clipping
   clip: jest.fn(),
-  
+
   // State
   canvas: {
     width: 400,
-    height: 600
-  }
+    height: 600,
+  },
 });
 
 // Define document if not available (Node environment)
@@ -196,8 +196,8 @@ if (typeof document === 'undefined') {
       classList: {
         add: jest.fn(),
         remove: jest.fn(),
-        contains: jest.fn()
-      }
+        contains: jest.fn(),
+      },
     })),
     getElementById: jest.fn(() => ({
       addEventListener: jest.fn(),
@@ -207,16 +207,16 @@ if (typeof document === 'undefined') {
       classList: {
         add: jest.fn(),
         remove: jest.fn(),
-        contains: jest.fn()
-      }
+        contains: jest.fn(),
+      },
     })),
     addEventListener: jest.fn(),
     removeEventListener: jest.fn(),
     body: {
       appendChild: jest.fn(),
       removeChild: jest.fn(),
-      contains: jest.fn(() => true)
-    }
+      contains: jest.fn(() => true),
+    },
   };
 } else {
   // document は存在するが、必要なメソッドをモック化
@@ -227,23 +227,26 @@ if (typeof document === 'undefined') {
     document.removeEventListener = jest.fn();
   }
   if (!document.getElementById) {
-    document.getElementById = jest.fn(() => ({
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      style: {},
-      textContent: '',
-      classList: {
-        add: jest.fn(),
-        remove: jest.fn(),
-        contains: jest.fn()
-      }
-    } as any));
+    document.getElementById = jest.fn(
+      () =>
+        ({
+          addEventListener: jest.fn(),
+          removeEventListener: jest.fn(),
+          style: {},
+          textContent: '',
+          classList: {
+            add: jest.fn(),
+            remove: jest.fn(),
+            contains: jest.fn(),
+          },
+        }) as any
+    );
   }
   if (!document.body) {
     (document as any).body = {
       appendChild: jest.fn(),
       removeChild: jest.fn(),
-      contains: jest.fn(() => true)
+      contains: jest.fn(() => true),
     };
   }
 }
@@ -261,8 +264,8 @@ Object.defineProperty(window, 'performance', {
       // テスト環境でリアルな描画時間をシミュレート
       performanceCounter += Math.random() * 2 + 0.1; // 0.1-2.1ms のランダムな時間
       return performanceCounter;
-    })
-  }
+    }),
+  },
 });
 
 // RequestAnimationFrame mock
@@ -270,7 +273,8 @@ const mockRequestAnimationFrame = jest.fn((callback: any) => {
   const id = setTimeout(callback, 16);
   console.log(`🎬 Global requestAnimationFrame called, assigned ID: ${id}`);
   // アクティブなフレームIDを記録
-  (globalThis as any)._activeGlobalAnimationFrames = (globalThis as any)._activeGlobalAnimationFrames || new Set();
+  (globalThis as any)._activeGlobalAnimationFrames =
+    (globalThis as any)._activeGlobalAnimationFrames || new Set();
   (globalThis as any)._activeGlobalAnimationFrames.add(id);
   return id;
 });
@@ -284,11 +288,11 @@ const mockCancelAnimationFrame = jest.fn((id: number) => {
 });
 
 Object.defineProperty(window, 'requestAnimationFrame', {
-  value: mockRequestAnimationFrame
+  value: mockRequestAnimationFrame,
 });
 
 Object.defineProperty(window, 'cancelAnimationFrame', {
-  value: mockCancelAnimationFrame
+  value: mockCancelAnimationFrame,
 });
 
 // グローバルスコープにも定義
@@ -302,5 +306,5 @@ Object.defineProperty(window, 'Event', {
     constructor(type: string) {
       this.type = type;
     }
-  }
+  },
 });

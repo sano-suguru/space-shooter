@@ -21,5 +21,10 @@ export interface IGameEngine {
    * プレイヤー弾を作成する
    * オブジェクトプールを使用した弾丸の効率的な管理
    */
-  createBullet(x: number, y: number, speed?: number, color?: string): Bullet | null;
+  createBullet(
+    x: number,
+    y: number,
+    speed?: number,
+    color?: string
+  ): Bullet | null;
 }

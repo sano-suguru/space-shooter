@@ -53,7 +53,12 @@ export type UpgradeCategory = 'weapon' | 'defense' | 'utility';
 /**
  * アチーブメントカテゴリー型
  */
-export type AchievementCategory = 'combat' | 'survival' | 'collection' | 'mastery' | 'special';
+export type AchievementCategory =
+  | 'combat'
+  | 'survival'
+  | 'collection'
+  | 'mastery'
+  | 'special';
 
 /**
  * アップグレードショップProps
@@ -408,7 +413,7 @@ export interface UseProgressionReturn {
 /**
  * UIコンポーネントのタイプ識別
  */
-export type UIComponentType = 
+export type UIComponentType =
   | 'upgrade-shop'
   | 'achievement-panel'
   | 'game-mode-selector'
@@ -425,7 +430,13 @@ export type ComponentSize = 'small' | 'medium' | 'large' | 'xlarge';
 /**
  * コンポーネントバリアント
  */
-export type ComponentVariant = 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info';
+export type ComponentVariant =
+  | 'primary'
+  | 'secondary'
+  | 'success'
+  | 'warning'
+  | 'error'
+  | 'info';
 
 // ====================
 // ユーティリティ型
@@ -441,7 +452,8 @@ export type OptionalRecord<K extends string | number | symbol, V> = {
 /**
  * 部分的に必須なオブジェクト
  */
-export type PartiallyRequired<T, K extends keyof T> = Partial<T> & Required<Pick<T, K>>;
+export type PartiallyRequired<T, K extends keyof T> = Partial<T> &
+  Required<Pick<T, K>>;
 
 /**
  * React ref型のエイリアス

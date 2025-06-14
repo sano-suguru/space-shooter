@@ -19,19 +19,22 @@ expect.extend({
     const pass = received >= floor && received <= ceiling;
     if (pass) {
       return {
-        message: () => `expected ${received} not to be within range ${floor} - ${ceiling}`,
+        message: () =>
+          `expected ${received} not to be within range ${floor} - ${ceiling}`,
         pass: true,
       };
     } else {
       return {
-        message: () => `expected ${received} to be within range ${floor} - ${ceiling}`,
+        message: () =>
+          `expected ${received} to be within range ${floor} - ${ceiling}`,
         pass: false,
       };
     }
   },
 
   toHaveValidGameObject(received: any) {
-    const hasRequiredProperties = received && 
+    const hasRequiredProperties =
+      received &&
       typeof received.x === 'number' &&
       typeof received.y === 'number' &&
       typeof received.update === 'function' &&
@@ -44,11 +47,12 @@ expect.extend({
       };
     } else {
       return {
-        message: () => `expected object to be a valid game object with x, y, update, and draw properties`,
+        message: () =>
+          `expected object to be a valid game object with x, y, update, and draw properties`,
         pass: false,
       };
     }
-  }
+  },
 });
 
 // Mock console methods to reduce noise during testing
@@ -68,34 +72,40 @@ afterAll(() => {
 // Reset all mocks after each test
 afterEach(() => {
   jest.clearAllMocks();
-  
+
   // タイマーとアニメーションフレームのクリーンアップログ
   console.log('🧹 Cleaning up timers and animation frames...');
-  
+
   // 全てのタイマーをクリア
   jest.clearAllTimers();
   jest.useRealTimers();
-  
+
   // アクティブなタイマーの数をログ出力
   const activeTimeouts = (globalThis as any)._activeTimeouts;
   if (activeTimeouts && activeTimeouts.size > 0) {
-    console.warn(`⚠️  ${activeTimeouts.size} active timeouts detected after test`);
+    console.warn(
+      `⚠️  ${activeTimeouts.size} active timeouts detected after test`
+    );
     activeTimeouts.forEach((timerId: any) => clearTimeout(timerId));
     activeTimeouts.clear();
   }
-  
+
   // アクティブなアニメーションフレームをクリーンアップ
   const activeFrames = (globalThis as any)._activeAnimationFrames;
   if (activeFrames && activeFrames.size > 0) {
-    console.warn(`⚠️  ${activeFrames.size} active animation frames detected after test`);
+    console.warn(
+      `⚠️  ${activeFrames.size} active animation frames detected after test`
+    );
     activeFrames.forEach((frameId: any) => cancelAnimationFrame(frameId));
     activeFrames.clear();
   }
-  
+
   // グローバルなアニメーションフレームをクリーンアップ
   const activeGlobalFrames = (globalThis as any)._activeGlobalAnimationFrames;
   if (activeGlobalFrames && activeGlobalFrames.size > 0) {
-    console.warn(`⚠️  ${activeGlobalFrames.size} active global animation frames detected after test`);
+    console.warn(
+      `⚠️  ${activeGlobalFrames.size} active global animation frames detected after test`
+    );
     activeGlobalFrames.forEach((frameId: any) => clearTimeout(frameId));
     activeGlobalFrames.clear();
   }

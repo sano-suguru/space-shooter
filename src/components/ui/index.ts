@@ -46,5 +46,5 @@ export type {
   ExperienceBarProps,
   QuickStatsProps,
   StatItemProps,
-  NotificationData
+  NotificationData,
 } from '../../types/react/index';

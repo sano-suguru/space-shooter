@@ -1,5 +1,8 @@
 import { PowerUpEffectService } from '../../src/services/PowerUpEffectService';
-import { createTestConfig, GameConfig } from '../../src/config/GameConfigFactory';
+import {
+  createTestConfig,
+  GameConfig,
+} from '../../src/config/GameConfigFactory';
 import { Player } from '../../src/entities/Player';
 import { PowerUpType } from '../../src/types';
 
@@ -8,7 +11,7 @@ const createMockPlayer = () => {
   return {
     setFireRate: jest.fn(),
     setBulletType: jest.fn(),
-    activateShield: jest.fn()
+    activateShield: jest.fn(),
   } as unknown as Player;
 };
 
@@ -26,7 +29,7 @@ describe('PowerUpEffectService', () => {
   describe('applyEffect', () => {
     it('should apply rapid fire effect', () => {
       service.applyEffect(mockPlayer, 'RAPID_FIRE');
-      
+
       expect(mockPlayer.setFireRate).toHaveBeenCalledWith(
         testConfig.player.fireRate / 2
       );
@@ -34,21 +37,21 @@ describe('PowerUpEffectService', () => {
 
     it('should apply triple shot effect', () => {
       service.applyEffect(mockPlayer, 'TRIPLE_SHOT');
-      
+
       expect(mockPlayer.setBulletType).toHaveBeenCalledWith('triple');
     });
 
     it('should apply shield effect', () => {
       service.applyEffect(mockPlayer, 'SHIELD');
-      
+
       expect(mockPlayer.activateShield).toHaveBeenCalled();
     });
 
     it('should handle unknown power-up types gracefully', () => {
       const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
-      
+
       service.applyEffect(mockPlayer, 'UNKNOWN' as PowerUpType);
-      
+
       expect(consoleSpy).toHaveBeenCalledWith('Unknown power-up type: UNKNOWN');
       consoleSpy.mockRestore();
     });
@@ -57,7 +60,7 @@ describe('PowerUpEffectService', () => {
   describe('removeEffect', () => {
     it('should remove rapid fire effect', () => {
       service.removeEffect(mockPlayer, 'RAPID_FIRE');
-      
+
       expect(mockPlayer.setFireRate).toHaveBeenCalledWith(
         testConfig.player.fireRate
       );
@@ -65,7 +68,7 @@ describe('PowerUpEffectService', () => {
 
     it('should remove triple shot effect', () => {
       service.removeEffect(mockPlayer, 'TRIPLE_SHOT');
-      
+
       expect(mockPlayer.setBulletType).toHaveBeenCalledWith('single');
     });
 
@@ -76,9 +79,9 @@ describe('PowerUpEffectService', () => {
 
     it('should handle unknown power-up types gracefully', () => {
       const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
-      
+
       service.removeEffect(mockPlayer, 'UNKNOWN' as PowerUpType);
-      
+
       expect(consoleSpy).toHaveBeenCalledWith('Unknown power-up type: UNKNOWN');
       consoleSpy.mockRestore();
     });
@@ -87,7 +90,7 @@ describe('PowerUpEffectService', () => {
   describe('getEffectDuration', () => {
     it('should return configured duration', () => {
       const duration = service.getEffectDuration('RAPID_FIRE');
-      
+
       expect(duration).toBe(testConfig.powerup.duration);
     });
 
@@ -95,7 +98,7 @@ describe('PowerUpEffectService', () => {
       const rapidFireDuration = service.getEffectDuration('RAPID_FIRE');
       const tripleShotDuration = service.getEffectDuration('TRIPLE_SHOT');
       const shieldDuration = service.getEffectDuration('SHIELD');
-      
+
       expect(rapidFireDuration).toBe(tripleShotDuration);
       expect(tripleShotDuration).toBe(shieldDuration);
     });
@@ -105,15 +108,15 @@ describe('PowerUpEffectService', () => {
     it('should update configuration and affect subsequent operations', () => {
       const newConfig = createTestConfig({
         player: { fireRate: 300 },
-        powerup: { duration: 5000 }
+        powerup: { duration: 5000 },
       });
-      
+
       service.updateConfig(newConfig);
-      
+
       // 新しい設定が適用されることを確認
       service.applyEffect(mockPlayer, 'RAPID_FIRE');
       expect(mockPlayer.setFireRate).toHaveBeenCalledWith(150); // 300 / 2
-      
+
       const duration = service.getEffectDuration('RAPID_FIRE');
       expect(duration).toBe(5000);
     });
@@ -123,28 +126,28 @@ describe('PowerUpEffectService', () => {
     it('should work with production configuration', () => {
       const prodConfig = createTestConfig({
         player: { fireRate: 200 },
-        powerup: { duration: 10000 }
+        powerup: { duration: 10000 },
       });
-      
+
       const prodService = new PowerUpEffectService(prodConfig);
-      
+
       prodService.applyEffect(mockPlayer, 'RAPID_FIRE');
       expect(mockPlayer.setFireRate).toHaveBeenCalledWith(100); // 200 / 2
-      
+
       const duration = prodService.getEffectDuration('RAPID_FIRE');
       expect(duration).toBe(10000);
     });
 
     it('should handle custom fire rates correctly', () => {
       const customConfig = createTestConfig({
-        player: { fireRate: 80 }
+        player: { fireRate: 80 },
       });
-      
+
       const customService = new PowerUpEffectService(customConfig);
-      
+
       customService.applyEffect(mockPlayer, 'RAPID_FIRE');
       expect(mockPlayer.setFireRate).toHaveBeenCalledWith(40); // 80 / 2
-      
+
       customService.removeEffect(mockPlayer, 'RAPID_FIRE');
       expect(mockPlayer.setFireRate).toHaveBeenLastCalledWith(80);
     });
@@ -153,7 +156,7 @@ describe('PowerUpEffectService', () => {
   describe('error handling', () => {
     it('should not throw errors for valid power-up types', () => {
       const validTypes: PowerUpType[] = ['RAPID_FIRE', 'TRIPLE_SHOT', 'SHIELD'];
-      
+
       validTypes.forEach(type => {
         expect(() => service.applyEffect(mockPlayer, type)).not.toThrow();
         expect(() => service.removeEffect(mockPlayer, type)).not.toThrow();

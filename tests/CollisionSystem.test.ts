@@ -23,7 +23,7 @@ describe('CollisionSystem', () => {
 
   beforeEach(() => {
     testConfig = createTestConfig();
-    
+
     // Mock canvas for entities that need it
     mockCanvas = document.createElement('canvas');
     mockCanvas.width = testConfig.canvas.width;
@@ -33,7 +33,7 @@ describe('CollisionSystem', () => {
     mockGameEngine = {
       addBossBullet: jest.fn(),
       getDifficultyFactor: jest.fn(() => 0.5),
-      createBullet: jest.fn(() => null)
+      createBullet: jest.fn(() => null),
     };
 
     mockInputManager = new MockInputManager();
@@ -71,7 +71,13 @@ describe('CollisionSystem', () => {
       // 複数の敵を作成
       const enemies: Enemy[] = [];
       for (let i = 0; i < 20; i++) {
-        const enemy = new Enemy(i * 20, i * 15, 'SMALL', mockGameEngine, testConfig);
+        const enemy = new Enemy(
+          i * 20,
+          i * 15,
+          'SMALL',
+          mockGameEngine,
+          testConfig
+        );
         enemies.push(enemy);
         gameObjectManager.addEnemy(enemy);
       }
@@ -115,7 +121,12 @@ describe('CollisionSystem', () => {
     });
 
     test('敵弾丸とプレイヤーの衝突が正しく検出される', () => {
-      const player = new Player(eventEmitter, mockInputManager, mockRandomProvider, testConfig);
+      const player = new Player(
+        eventEmitter,
+        mockInputManager,
+        mockRandomProvider,
+        testConfig
+      );
       const enemyBullet = new Bullet();
       enemyBullet.initialize(200, 300);
 
@@ -179,7 +190,12 @@ describe('CollisionSystem', () => {
     });
 
     test('ボス弾丸とプレイヤーの衝突が正しく検出される', () => {
-      const player = new Player(eventEmitter, mockInputManager, mockRandomProvider, testConfig);
+      const player = new Player(
+        eventEmitter,
+        mockInputManager,
+        mockRandomProvider,
+        testConfig
+      );
       const bossBullet = new Bullet();
       bossBullet.initialize(200, 300);
 
@@ -202,7 +218,12 @@ describe('CollisionSystem', () => {
 
   describe('PowerUp衝突判定', () => {
     test('プレイヤーとPowerUpの衝突が正しく検出される', () => {
-      const player = new Player(eventEmitter, mockInputManager, mockRandomProvider, testConfig);
+      const player = new Player(
+        eventEmitter,
+        mockInputManager,
+        mockRandomProvider,
+        testConfig
+      );
       const powerUp = new PowerUp(200, 300, testConfig);
 
       (player as any).x = 200;
@@ -222,12 +243,17 @@ describe('CollisionSystem', () => {
     });
 
     test('距離に基づいてPowerUpが正しく区別される', () => {
-      const player = new Player(eventEmitter, mockInputManager, mockRandomProvider, testConfig);
-      const nearPowerUp = new PowerUp(200, 300, testConfig);  // プレイヤーと重複
-      const farPowerUp = new PowerUp(350, 300, testConfig);   // プレイヤーから離れた位置
+      const player = new Player(
+        eventEmitter,
+        mockInputManager,
+        mockRandomProvider,
+        testConfig
+      );
+      const nearPowerUp = new PowerUp(200, 300, testConfig); // プレイヤーと重複
+      const farPowerUp = new PowerUp(350, 300, testConfig); // プレイヤーから離れた位置
 
-      (player as any).x = 200;  // プレイヤー範囲: 200-250
-      (player as any).y = 300;  // プレイヤー範囲: 300-350
+      (player as any).x = 200; // プレイヤー範囲: 200-250
+      (player as any).y = 300; // プレイヤー範囲: 300-350
 
       gameObjectManager.setPlayer(player);
       gameObjectManager.addPowerUp(nearPowerUp);
@@ -334,7 +360,13 @@ describe('CollisionSystem', () => {
     test('近接オブジェクトのみが衝突判定される', () => {
       // 画面の左端と右端にオブジェクトを配置
       const leftEnemy = new Enemy(50, 100, 'SMALL', mockGameEngine, testConfig);
-      const rightEnemy = new Enemy(350, 100, 'SMALL', mockGameEngine, testConfig);
+      const rightEnemy = new Enemy(
+        350,
+        100,
+        'SMALL',
+        mockGameEngine,
+        testConfig
+      );
       const leftBullet = new Bullet();
       leftBullet.initialize(50, 100);
 
@@ -359,8 +391,8 @@ describe('CollisionSystem', () => {
 
     test('空間分割グリッドが適切に機能する', () => {
       // 64x64セルグリッドの異なるセルにオブジェクトを配置
-      const enemy1 = new Enemy(32, 32, 'SMALL', mockGameEngine, testConfig);   // セル(0,0)
-      const enemy2 = new Enemy(96, 32, 'SMALL', mockGameEngine, testConfig);   // セル(1,0)
+      const enemy1 = new Enemy(32, 32, 'SMALL', mockGameEngine, testConfig); // セル(0,0)
+      const enemy2 = new Enemy(96, 32, 'SMALL', mockGameEngine, testConfig); // セル(1,0)
       const bullet = new Bullet();
       bullet.initialize(32, 32); // セル(0,0)
 
@@ -389,7 +421,13 @@ describe('CollisionSystem', () => {
         const bullets: Bullet[] = [];
 
         for (let i = 0; i < 20; i++) {
-          const enemy = new Enemy(i * 20, 100, 'SMALL', mockGameEngine, testConfig);
+          const enemy = new Enemy(
+            i * 20,
+            100,
+            'SMALL',
+            mockGameEngine,
+            testConfig
+          );
           const bullet = new Bullet();
           bullet.initialize(i * 20, 100);
 

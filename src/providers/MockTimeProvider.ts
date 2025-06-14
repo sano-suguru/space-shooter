@@ -6,7 +6,15 @@ import { ITimeProvider } from './ITimeProvider';
  */
 export class MockTimeProvider implements ITimeProvider {
   private currentTime = 0;
-  private timers = new Map<number, { callback: () => void; triggerTime: number; interval?: boolean; intervalTime?: number }>();
+  private timers = new Map<
+    number,
+    {
+      callback: () => void;
+      triggerTime: number;
+      interval?: boolean;
+      intervalTime?: number;
+    }
+  >();
   private nextTimerId = 1;
 
   /**
@@ -44,7 +52,7 @@ export class MockTimeProvider implements ITimeProvider {
     const id = this.nextTimerId++;
     this.timers.set(id, {
       callback,
-      triggerTime: this.currentTime + delay
+      triggerTime: this.currentTime + delay,
     });
     return id;
   }
@@ -55,7 +63,7 @@ export class MockTimeProvider implements ITimeProvider {
       callback,
       triggerTime: this.currentTime + delay,
       interval: true,
-      intervalTime: delay
+      intervalTime: delay,
     });
     return id;
   }
@@ -73,7 +81,7 @@ export class MockTimeProvider implements ITimeProvider {
    */
   private processTimers(): void {
     const toExecute: Array<{ id: number; timer: any }> = [];
-    
+
     for (const [id, timer] of this.timers.entries()) {
       if (timer.triggerTime <= this.currentTime) {
         toExecute.push({ id, timer });
@@ -82,7 +90,7 @@ export class MockTimeProvider implements ITimeProvider {
 
     for (const { id, timer } of toExecute) {
       timer.callback();
-      
+
       if (timer.interval && timer.intervalTime) {
         // インターバルタイマーは次の実行時刻を設定
         timer.triggerTime = this.currentTime + timer.intervalTime;

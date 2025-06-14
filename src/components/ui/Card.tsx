@@ -73,7 +73,9 @@ export const Card: React.FC<CardProps> = ({
     return sizes[size];
   };
 
-  const getShadowStyles = (level: CardProps['shadowLevel']): React.CSSProperties => {
+  const getShadowStyles = (
+    level: CardProps['shadowLevel']
+  ): React.CSSProperties => {
     const shadows = {
       none: { boxShadow: 'none' },
       low: { boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)' },
@@ -103,7 +105,8 @@ export const Card: React.FC<CardProps> = ({
 
   const hoverStyles: React.CSSProperties = {
     transform: 'translateY(-4px)',
-    boxShadow: '0 8px 25px rgba(97, 218, 251, 0.2), 0 4px 10px rgba(0, 0, 0, 0.3)',
+    boxShadow:
+      '0 8px 25px rgba(97, 218, 251, 0.2), 0 4px 10px rgba(0, 0, 0, 0.3)',
     borderColor: 'rgba(97, 218, 251, 0.6)',
   };
 
@@ -131,7 +134,8 @@ export const Card: React.FC<CardProps> = ({
     left: '0',
     right: '0',
     bottom: '0',
-    background: 'linear-gradient(45deg, transparent 30%, rgba(97, 218, 251, 0.1) 50%, transparent 70%)',
+    background:
+      'linear-gradient(45deg, transparent 30%, rgba(97, 218, 251, 0.1) 50%, transparent 70%)',
     transform: 'translateX(-100%)',
     transition: 'transform 0.6s ease-in-out',
     pointerEvents: 'none',
@@ -143,21 +147,25 @@ export const Card: React.FC<CardProps> = ({
       style={cardStyles}
       onClick={handleClick}
       data-testid={testId}
-      onMouseEnter={(e) => {
+      onMouseEnter={e => {
         if (hoverable || clickable) {
           Object.assign(e.currentTarget.style, hoverStyles);
           // グロー効果
-          const glowElement = e.currentTarget.querySelector('.card-glow') as HTMLElement;
+          const glowElement = e.currentTarget.querySelector(
+            '.card-glow'
+          ) as HTMLElement;
           if (glowElement) {
             glowElement.style.transform = 'translateX(100%)';
           }
         }
       }}
-      onMouseLeave={(e) => {
+      onMouseLeave={e => {
         if (hoverable || clickable) {
           Object.assign(e.currentTarget.style, cardStyles);
           // グロー効果リセット
-          const glowElement = e.currentTarget.querySelector('.card-glow') as HTMLElement;
+          const glowElement = e.currentTarget.querySelector(
+            '.card-glow'
+          ) as HTMLElement;
           if (glowElement) {
             glowElement.style.transform = 'translateX(-100%)';
           }
@@ -167,7 +175,7 @@ export const Card: React.FC<CardProps> = ({
     >
       {/* グロー効果 */}
       {(hoverable || clickable) && (
-        <div className="card-glow" style={glowEffectStyles} />
+        <div className='card-glow' style={glowEffectStyles} />
       )}
 
       {/* ヘッダー */}
@@ -181,16 +189,10 @@ export const Card: React.FC<CardProps> = ({
       )}
 
       {/* メインコンテンツ */}
-      <div className="card-content">
-        {children}
-      </div>
+      <div className='card-content'>{children}</div>
 
       {/* フッター */}
-      {footer && (
-        <div style={footerStyles}>
-          {footer}
-        </div>
-      )}
+      {footer && <div style={footerStyles}>{footer}</div>}
     </div>
   );
 };

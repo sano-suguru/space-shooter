@@ -1,5 +1,9 @@
 import React from 'react';
-import { ClickableProps, ComponentSize, ComponentVariant } from '../../types/react';
+import {
+  ClickableProps,
+  ComponentSize,
+  ComponentVariant,
+} from '../../types/react';
 
 /**
  * Button コンポーネントのProps
@@ -152,12 +156,12 @@ export const Button: React.FC<ButtonProps> = ({
       onClick={handleClick}
       disabled={disabled || loading}
       data-testid={testId}
-      onMouseEnter={(e) => {
+      onMouseEnter={e => {
         if (!disabled && !loading) {
           Object.assign(e.currentTarget.style, hoverStyles);
         }
       }}
-      onMouseLeave={(e) => {
+      onMouseLeave={e => {
         if (!disabled && !loading) {
           Object.assign(e.currentTarget.style, buttonStyles);
         }
@@ -177,15 +181,13 @@ export const Button: React.FC<ButtonProps> = ({
           }}
         />
       )}
-      
+
       {!loading && icon && iconPosition === 'left' && (
         <span style={{ fontSize: '1.2em' }}>{icon}</span>
       )}
-      
-      {!loading && children && (
-        <span>{children}</span>
-      )}
-      
+
+      {!loading && children && <span>{children}</span>}
+
       {!loading && icon && iconPosition === 'right' && (
         <span style={{ fontSize: '1.2em' }}>{icon}</span>
       )}

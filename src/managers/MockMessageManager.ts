@@ -1,4 +1,8 @@
-import { IMessageManager, MessageSettings, MessagePriority } from "../interfaces/IMessageManager";
+import {
+  IMessageManager,
+  MessageSettings,
+  MessagePriority,
+} from '../interfaces/IMessageManager';
 
 /**
  * テスト用のメッセージ管理クラス
@@ -11,20 +15,20 @@ export class MockMessageManager implements IMessageManager {
     priority?: MessagePriority;
     timestamp: number;
   }> = [];
-  
+
   private notifications: Array<{
     text: string;
     type: 'info' | 'success' | 'warning';
     duration: number;
     timestamp: number;
   }> = [];
-  
+
   private waveMessages: Array<{
     text: string;
     duration: number;
     timestamp: number;
   }> = [];
-  
+
   private gameOverScreenVisible = false;
   private gameOverFinalScore = 0;
   private currentMessageVisible = false;
@@ -34,15 +38,19 @@ export class MockMessageManager implements IMessageManager {
     showWaveMessages: true,
     showBossMessages: true,
     showLevelMessages: true,
-    subtleMode: true
+    subtleMode: true,
   };
 
-  public showMessage(text: string, duration: number = 3000, priority: MessagePriority = 'important'): void {
+  public showMessage(
+    text: string,
+    duration: number = 3000,
+    priority: MessagePriority = 'important'
+  ): void {
     this.displayedMessages.push({
       text,
       duration,
       priority,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
     this.currentMessageVisible = true;
   }
@@ -61,12 +69,16 @@ export class MockMessageManager implements IMessageManager {
     this.gameOverFinalScore = 0;
   }
 
-  public showNotification(text: string, type: 'info' | 'success' | 'warning' = 'info', duration: number = 2000): void {
+  public showNotification(
+    text: string,
+    type: 'info' | 'success' | 'warning' = 'info',
+    duration: number = 2000
+  ): void {
     this.notifications.push({
       text,
       type,
       duration,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -74,7 +86,7 @@ export class MockMessageManager implements IMessageManager {
     this.waveMessages.push({
       text,
       duration,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -103,9 +115,13 @@ export class MockMessageManager implements IMessageManager {
   /**
    * 最後に表示されたメッセージを取得
    */
-  public getLastMessage(): { text: string; duration: number; timestamp: number } | null {
-    return this.displayedMessages.length > 0 
-      ? this.displayedMessages[this.displayedMessages.length - 1] 
+  public getLastMessage(): {
+    text: string;
+    duration: number;
+    timestamp: number;
+  } | null {
+    return this.displayedMessages.length > 0
+      ? this.displayedMessages[this.displayedMessages.length - 1]
       : null;
   }
 
@@ -138,14 +154,14 @@ export class MockMessageManager implements IMessageManager {
   /**
    * 最後に表示された通知を取得
    */
-  public getLastNotification(): { 
-    text: string; 
-    type: 'info' | 'success' | 'warning'; 
-    duration: number; 
-    timestamp: number 
+  public getLastNotification(): {
+    text: string;
+    type: 'info' | 'success' | 'warning';
+    duration: number;
+    timestamp: number;
   } | null {
-    return this.notifications.length > 0 
-      ? this.notifications[this.notifications.length - 1] 
+    return this.notifications.length > 0
+      ? this.notifications[this.notifications.length - 1]
       : null;
   }
 
@@ -187,13 +203,16 @@ export class MockMessageManager implements IMessageManager {
   /**
    * 指定した期間内に表示されたメッセージを取得
    */
-  public getMessagesInTimeRange(startTime: number, endTime: number): Array<{
+  public getMessagesInTimeRange(
+    startTime: number,
+    endTime: number
+  ): Array<{
     text: string;
     duration: number;
     timestamp: number;
   }> {
-    return this.displayedMessages.filter(msg => 
-      msg.timestamp >= startTime && msg.timestamp <= endTime
+    return this.displayedMessages.filter(
+      msg => msg.timestamp >= startTime && msg.timestamp <= endTime
     );
   }
 
@@ -226,9 +245,13 @@ export class MockMessageManager implements IMessageManager {
   /**
    * 最後に表示されたWaveメッセージを取得
    */
-  public getLastWaveMessage(): { text: string; duration: number; timestamp: number } | null {
-    return this.waveMessages.length > 0 
-      ? this.waveMessages[this.waveMessages.length - 1] 
+  public getLastWaveMessage(): {
+    text: string;
+    duration: number;
+    timestamp: number;
+  } | null {
+    return this.waveMessages.length > 0
+      ? this.waveMessages[this.waveMessages.length - 1]
       : null;
   }
 

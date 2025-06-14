@@ -30,13 +30,10 @@ export const ProgressDisplay: React.FC<ProgressDisplayProps> = ({
       style={style}
       data-testid={testId}
       {...props}
-      id="progress-display"
+      id='progress-display'
     >
       {/* プログレスヘッダー（レベル・コイン） */}
-      <ProgressHeader
-        level={playerProfile.level}
-        coins={playerProfile.coins}
-      />
+      <ProgressHeader level={playerProfile.level} coins={playerProfile.coins} />
 
       {/* 経験値バー */}
       <ExperienceBar

@@ -1,4 +1,4 @@
-import { IDOMManager } from "../interfaces/IDOMManager";
+import { IDOMManager } from '../interfaces/IDOMManager';
 
 /**
  * 本番環境用のDOM管理クラス
@@ -68,11 +68,19 @@ export class DOMManager implements IDOMManager {
   }
 
   // イベント操作
-  public addEventListener(element: HTMLElement | Document, type: string, listener: EventListener): void {
+  public addEventListener(
+    element: HTMLElement | Document,
+    type: string,
+    listener: EventListener
+  ): void {
     element.addEventListener(type, listener);
   }
 
-  public removeEventListener(element: HTMLElement | Document, type: string, listener: EventListener): void {
+  public removeEventListener(
+    element: HTMLElement | Document,
+    type: string,
+    listener: EventListener
+  ): void {
     element.removeEventListener(type, listener);
   }
 

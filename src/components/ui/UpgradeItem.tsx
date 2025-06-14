@@ -21,7 +21,9 @@ export const UpgradeItem: React.FC<UpgradeItemProps> = ({
 }) => {
   // アップグレードコストを計算
   const upgradeCost = useMemo(() => {
-    return Math.floor(upgrade.baseCost * Math.pow(upgrade.costMultiplier, currentLevel));
+    return Math.floor(
+      upgrade.baseCost * Math.pow(upgrade.costMultiplier, currentLevel)
+    );
   }, [upgrade.baseCost, upgrade.costMultiplier, currentLevel]);
 
   // 購入可能かチェック
@@ -66,48 +68,48 @@ export const UpgradeItem: React.FC<UpgradeItemProps> = ({
       hoverable={canPurchase}
       {...props}
     >
-      <div className="upgrade-header">
+      <div className='upgrade-header'>
         {/* アップグレード情報セクション */}
-        <div className="upgrade-info">
-          <div className="upgrade-title">
+        <div className='upgrade-info'>
+          <div className='upgrade-title'>
             {upgrade.icon && (
-              <span className="upgrade-icon">{upgrade.icon}</span>
+              <span className='upgrade-icon'>{upgrade.icon}</span>
             )}
-            <h3 className="upgrade-name">{upgrade.name}</h3>
+            <h3 className='upgrade-name'>{upgrade.name}</h3>
           </div>
-          <p className="upgrade-description">{upgrade.description}</p>
-          <div className="upgrade-effect">{effectText}</div>
+          <p className='upgrade-description'>{upgrade.description}</p>
+          <div className='upgrade-effect'>{effectText}</div>
         </div>
 
         {/* アップグレード統計セクション */}
-        <div className="upgrade-stats">
-          <div className="upgrade-level">
+        <div className='upgrade-stats'>
+          <div className='upgrade-level'>
             Lv.{currentLevel}/{upgrade.maxLevel}
           </div>
           <ProgressBar
             current={currentLevel}
             max={upgrade.maxLevel}
             color={isMaxLevel ? '#10b981' : '#3b82f6'}
-            className="upgrade-progress"
+            className='upgrade-progress'
             showPercentage={false}
           />
         </div>
       </div>
 
       {/* アップグレードフッター */}
-      <div className="upgrade-footer">
-        <div className="upgrade-cost">
-          <span className="cost-icon">💰</span>
-          <span className="cost-value">{upgradeCost.toLocaleString()}</span>
+      <div className='upgrade-footer'>
+        <div className='upgrade-cost'>
+          <span className='cost-icon'>💰</span>
+          <span className='cost-value'>{upgradeCost.toLocaleString()}</span>
         </div>
-        
+
         <Button
           variant={purchaseButtonVariant}
-          size="medium"
+          size='medium'
           onClick={handlePurchase}
           disabled={!canPurchase}
           loading={false}
-          className="purchase-button"
+          className='purchase-button'
           data-testid={`purchase-button-${upgrade.id}`}
         >
           {purchaseButtonText}

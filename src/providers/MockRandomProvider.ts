@@ -33,7 +33,7 @@ export class MockRandomProvider implements IRandomProvider {
       this.currentIndex++;
       return value;
     }
-    
+
     // 簡単な線形合同法による疑似ランダム生成
     this.seed = (this.seed * 9301 + 49297) % 233280;
     return this.seed / 233280;

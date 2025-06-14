@@ -4,7 +4,7 @@ import { GameConfig } from '../config/GameConfigFactory';
 
 export class PowerUpEffectService {
   constructor(private config: GameConfig) {}
-  
+
   applyEffect(player: IPlayer, type: PowerUpType): void {
     switch (type) {
       case 'RAPID_FIRE':
@@ -20,7 +20,7 @@ export class PowerUpEffectService {
         console.warn(`Unknown power-up type: ${type}`);
     }
   }
-  
+
   removeEffect(player: IPlayer, type: PowerUpType): void {
     switch (type) {
       case 'RAPID_FIRE':
@@ -37,11 +37,11 @@ export class PowerUpEffectService {
         console.warn(`Unknown power-up type: ${type}`);
     }
   }
-  
+
   getEffectDuration(_type: PowerUpType): number {
     return this.config.powerup.duration;
   }
-  
+
   /**
    * 設定を更新（テスト時などに使用）
    */

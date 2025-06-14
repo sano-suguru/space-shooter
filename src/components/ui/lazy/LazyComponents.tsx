@@ -6,12 +6,12 @@
 import React, { Suspense, ComponentType } from 'react';
 
 // ローディングコンポーネント
-export const LazyLoadingSpinner: React.FC<{ message?: string }> = ({ 
-  message = 'コンポーネントを読み込み中...' 
+export const LazyLoadingSpinner: React.FC<{ message?: string }> = ({
+  message = 'コンポーネントを読み込み中...',
 }) => (
-  <div className="lazy-loading-container">
-    <div className="loading-spinner"></div>
-    <p className="loading-message">{message}</p>
+  <div className='lazy-loading-container'>
+    <div className='loading-spinner'></div>
+    <p className='loading-message'>{message}</p>
   </div>
 );
 
@@ -25,7 +25,11 @@ export class LazyComponentErrorBoundary extends React.Component<
   React.PropsWithChildren<{ fallback?: React.ComponentType<{ error: Error }> }>,
   ErrorBoundaryState
 > {
-  constructor(props: React.PropsWithChildren<{ fallback?: React.ComponentType<{ error: Error }> }>) {
+  constructor(
+    props: React.PropsWithChildren<{
+      fallback?: React.ComponentType<{ error: Error }>;
+    }>
+  ) {
     super(props);
     this.state = { hasError: false };
   }
@@ -50,13 +54,10 @@ export class LazyComponentErrorBoundary extends React.Component<
 
 // デフォルトエラーフォールバック
 const DefaultErrorFallback: React.FC<{ error: Error }> = ({ error }) => (
-  <div className="lazy-error-container">
+  <div className='lazy-error-container'>
     <h3>コンポーネントの読み込みに失敗しました</h3>
     <p>{error.message}</p>
-    <button 
-      onClick={() => window.location.reload()}
-      className="retry-button"
-    >
+    <button onClick={() => window.location.reload()} className='retry-button'>
       再読み込み
     </button>
   </div>
@@ -78,27 +79,27 @@ export const withLazyLoading = <P extends object>(
 };
 
 // React.lazy()を使用したコンポーネント定義
-export const LazyAchievementPanel = React.lazy(() => 
-  import('../AchievementPanel.tsx').then(module => ({ 
-    default: module.AchievementPanel 
+export const LazyAchievementPanel = React.lazy(() =>
+  import('../AchievementPanel.tsx').then(module => ({
+    default: module.AchievementPanel,
   }))
 );
 
-export const LazyGameModeSelector = React.lazy(() => 
-  import('../GameModeSelector.tsx').then(module => ({ 
-    default: module.GameModeSelector 
+export const LazyGameModeSelector = React.lazy(() =>
+  import('../GameModeSelector.tsx').then(module => ({
+    default: module.GameModeSelector,
   }))
 );
 
-export const LazyProgressDisplay = React.lazy(() => 
-  import('../ProgressDisplay.tsx').then(module => ({ 
-    default: module.ProgressDisplay 
+export const LazyProgressDisplay = React.lazy(() =>
+  import('../ProgressDisplay.tsx').then(module => ({
+    default: module.ProgressDisplay,
   }))
 );
 
-export const LazyUpgradeShop = React.lazy(() => 
-  import('../UpgradeShop.tsx').then(module => ({ 
-    default: module.UpgradeShop 
+export const LazyUpgradeShop = React.lazy(() =>
+  import('../UpgradeShop.tsx').then(module => ({
+    default: module.UpgradeShop,
   }))
 );
 
@@ -128,7 +129,9 @@ export class ComponentPreloader {
   private static preloadedComponents = new Set<string>();
 
   // コンポーネントの事前読み込み
-  static async preload(componentName: 'achievement' | 'gamemode' | 'progress' | 'upgrade'): Promise<void> {
+  static async preload(
+    componentName: 'achievement' | 'gamemode' | 'progress' | 'upgrade'
+  ): Promise<void> {
     if (this.preloadedComponents.has(componentName)) {
       return;
     }
@@ -155,15 +158,20 @@ export class ComponentPreloader {
   }
 
   // 複数コンポーネントの並列事前読み込み
-  static async preloadMultiple(componentNames: Array<'achievement' | 'gamemode' | 'progress' | 'upgrade'>): Promise<void> {
-    await Promise.allSettled(
-      componentNames.map(name => this.preload(name))
-    );
+  static async preloadMultiple(
+    componentNames: Array<'achievement' | 'gamemode' | 'progress' | 'upgrade'>
+  ): Promise<void> {
+    await Promise.allSettled(componentNames.map(name => this.preload(name)));
   }
 
   // 全コンポーネントの事前読み込み
   static async preloadAll(): Promise<void> {
-    await this.preloadMultiple(['achievement', 'gamemode', 'progress', 'upgrade']);
+    await this.preloadMultiple([
+      'achievement',
+      'gamemode',
+      'progress',
+      'upgrade',
+    ]);
   }
 
   // プリロード状態の確認
@@ -179,28 +187,30 @@ export class ComponentPreloader {
 
 // 段階的ロードのフック
 export const useProgressiveLoading = () => {
-  const [loadingStage, setLoadingStage] = React.useState<'initial' | 'core' | 'secondary' | 'complete'>('initial');
+  const [loadingStage, setLoadingStage] = React.useState<
+    'initial' | 'core' | 'secondary' | 'complete'
+  >('initial');
 
   const startProgressiveLoad = React.useCallback(async () => {
     setLoadingStage('core');
-    
+
     // コア機能（進捗表示）を最初にロード
     await ComponentPreloader.preload('progress');
-    
+
     setLoadingStage('secondary');
-    
+
     // セカンダリ機能（アップグレードショップ、実績）を並列ロード
     await ComponentPreloader.preloadMultiple(['upgrade', 'achievement']);
-    
+
     // 最後にゲームモード選択をロード
     await ComponentPreloader.preload('gamemode');
-    
+
     setLoadingStage('complete');
   }, []);
 
   return {
     loadingStage,
     startProgressiveLoad,
-    isLoading: loadingStage !== 'complete'
+    isLoading: loadingStage !== 'complete',
   };
 };

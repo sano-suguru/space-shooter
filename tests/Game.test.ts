@@ -95,7 +95,7 @@ describe('Game', () => {
   describe('オブジェクト管理', () => {
     test('弾丸が正常に作成される', () => {
       const bullet = game.createBullet(100, 200);
-      
+
       expect(bullet).toBeDefined();
       if (bullet) {
         expect(bullet.getPosition().x).toBe(100);
@@ -111,7 +111,7 @@ describe('Game', () => {
         getHeight: () => 15,
         update: jest.fn(),
         draw: jest.fn(),
-        isOnScreen: () => true
+        isOnScreen: () => true,
       } as any;
 
       expect(() => {
@@ -121,7 +121,7 @@ describe('Game', () => {
 
     test('敵が追加される', () => {
       const enemy = gameObjectFactory.createEnemy('SMALL', game);
-      
+
       expect(() => {
         game.addEnemy(enemy);
       }).not.toThrow();
@@ -148,14 +148,14 @@ describe('Game', () => {
   describe('メッセージ表示', () => {
     test('メッセージが表示される', () => {
       game.showMessage('Test Message');
-      
+
       expect(mockMessageManager.getLastMessage()?.text).toBe('Test Message');
     });
 
     test('メッセージが非表示になる', () => {
       game.showMessage('Test Message');
       game.hideMessage();
-      
+
       expect(mockMessageManager.isMessageVisible()).toBe(false);
     });
   });
@@ -205,14 +205,14 @@ describe('Game', () => {
   describe('ゲームオーバー画面', () => {
     test('ゲームオーバー画面が表示される', () => {
       game.showGameOverScreen();
-      
+
       expect(mockMessageManager.isGameOverScreenVisible()).toBe(true);
     });
 
     test('ゲームオーバー画面が非表示になる', () => {
       game.showGameOverScreen();
       game.hideGameOverScreen();
-      
+
       expect(mockMessageManager.isGameOverScreenVisible()).toBe(false);
     });
   });
@@ -240,9 +240,9 @@ describe('Game', () => {
 
     test('背景パフォーマンス情報がログ出力される', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      
+
       game.logBackgroundPerformance();
-      
+
       expect(consoleSpy).toHaveBeenCalled();
       consoleSpy.mockRestore();
     });

@@ -13,19 +13,19 @@ export const GameModeStats: React.FC<GameModeStatsProps> = ({
   ...rest
 }) => {
   return (
-    <div 
+    <div
       className={`mode-stats ${className}`}
       style={style}
       data-testid={testId}
       {...rest}
     >
-      <div className="stat-item">
-        <span className="stat-label">プレイ回数</span>
-        <span className="stat-value">{gamesPlayed.toString()}</span>
+      <div className='stat-item'>
+        <span className='stat-label'>プレイ回数</span>
+        <span className='stat-value'>{gamesPlayed.toString()}</span>
       </div>
-      <div className="stat-item">
-        <span className="stat-label">最高スコア</span>
-        <span className="stat-value">{highScore.toLocaleString()}</span>
+      <div className='stat-item'>
+        <span className='stat-label'>最高スコア</span>
+        <span className='stat-value'>{highScore.toLocaleString()}</span>
       </div>
     </div>
   );

@@ -11,55 +11,62 @@ import { RealRandomProvider, RealTimeProvider } from './providers';
 import { InputManager, DOMManager, MessageManager } from './managers';
 import { ProgressManager } from './progression/managers/ProgressManager';
 
-
 function initGame(): void {
-    const canvas = getElementOrThrow<HTMLCanvasElement>('gameCanvas');
-    const eventEmitter = new EventEmitter();
-    const randomProvider = new RealRandomProvider();
-    const timeProvider = new RealTimeProvider();
-    const inputManager = new InputManager(canvas);
-    const domManager = new DOMManager();
-    const messageManager = new MessageManager(domManager, timeProvider);
-    const player = new Player(eventEmitter, inputManager, randomProvider);
-    const gameObjectFactory = new GameObjectFactory(randomProvider, eventEmitter);
-    const scoreManager = new ScoreManager(eventEmitter);
-    const stateManager = new GameStateManager(eventEmitter);
+  const canvas = getElementOrThrow<HTMLCanvasElement>('gameCanvas');
+  const eventEmitter = new EventEmitter();
+  const randomProvider = new RealRandomProvider();
+  const timeProvider = new RealTimeProvider();
+  const inputManager = new InputManager(canvas);
+  const domManager = new DOMManager();
+  const messageManager = new MessageManager(domManager, timeProvider);
+  const player = new Player(eventEmitter, inputManager, randomProvider);
+  const gameObjectFactory = new GameObjectFactory(randomProvider, eventEmitter);
+  const scoreManager = new ScoreManager(eventEmitter);
+  const stateManager = new GameStateManager(eventEmitter);
 
-    // プログレッションシステムを初期化（ScoreManagerを渡してコンポジション実現）
-    const progressManager = new ProgressManager(eventEmitter, scoreManager);
-    
-    // 既存UIManagerを初期化
-    const levelElement = getElementOrThrow<HTMLElement>('levelValue');
-    const healthElement = getElementOrThrow<HTMLElement>('healthValue');
-    const healthBarElement = getElementOrThrow<HTMLElement>('healthBarFill');
-    const gameOverElement = getElementOrThrow<HTMLElement>('gameOver')
-    const scoreElement = getElementOrThrow<HTMLElement>('scoreValue');
-    new UIManager(eventEmitter, scoreElement, levelElement, healthElement, healthBarElement, gameOverElement);
+  // プログレッションシステムを初期化（ScoreManagerを渡してコンポジション実現）
+  const progressManager = new ProgressManager(eventEmitter, scoreManager);
 
-    
-    // React.lazy()システムを統合したUIManagerを初期化
-    const reactLazyUIManager = new ReactLazyUIManager(eventEmitter, progressManager);
-    console.log('🚀 ReactLazyUIManager initialized with code splitting');
-    console.log('Active UI Manager:', reactLazyUIManager.getActiveUI());
+  // 既存UIManagerを初期化
+  const levelElement = getElementOrThrow<HTMLElement>('levelValue');
+  const healthElement = getElementOrThrow<HTMLElement>('healthValue');
+  const healthBarElement = getElementOrThrow<HTMLElement>('healthBarFill');
+  const gameOverElement = getElementOrThrow<HTMLElement>('gameOver');
+  const scoreElement = getElementOrThrow<HTMLElement>('scoreValue');
+  new UIManager(
+    eventEmitter,
+    scoreElement,
+    levelElement,
+    healthElement,
+    healthBarElement,
+    gameOverElement
+  );
 
-    const game = new Game(
-        canvas,
-        eventEmitter,
-        scoreManager,
-        player,
-        gameObjectFactory,
-        stateManager,
-        inputManager,
-        randomProvider,
-        messageManager
-    );
+  // React.lazy()システムを統合したUIManagerを初期化
+  const reactLazyUIManager = new ReactLazyUIManager(
+    eventEmitter,
+    progressManager
+  );
+  console.log('🚀 ReactLazyUIManager initialized with code splitting');
+  console.log('Active UI Manager:', reactLazyUIManager.getActiveUI());
 
-    game.start();
+  const game = new Game(
+    canvas,
+    eventEmitter,
+    scoreManager,
+    player,
+    gameObjectFactory,
+    stateManager,
+    inputManager,
+    randomProvider,
+    messageManager
+  );
+
+  game.start();
 }
 
-
 function initApplication(): void {
-    initGame();    // ゲーム初期化（React.lazy()システム統合済み）
+  initGame(); // ゲーム初期化（React.lazy()システム統合済み）
 }
 
 document.addEventListener('DOMContentLoaded', initApplication);

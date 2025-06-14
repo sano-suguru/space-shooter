@@ -28,7 +28,7 @@ describe('GameObjectManager', () => {
     mockGameEngine = {
       addBossBullet: jest.fn(),
       getDifficultyFactor: jest.fn(() => 0.5),
-      createBullet: jest.fn(() => null)
+      createBullet: jest.fn(() => null),
     };
   });
 
@@ -118,7 +118,7 @@ describe('GameObjectManager', () => {
       const enemies = [
         new Enemy(100, 100),
         new Enemy(200, 200),
-        new Enemy(300, 300)
+        new Enemy(300, 300),
       ];
 
       enemies.forEach(enemy => gameObjectManager.addEnemy(enemy));
@@ -185,7 +185,10 @@ describe('GameObjectManager', () => {
 
   describe('背景オブジェクト管理', () => {
     test('背景オブジェクトが正常に設定される', () => {
-      const stars = [new Star(mockRandomProvider), new Star(mockRandomProvider)];
+      const stars = [
+        new Star(mockRandomProvider),
+        new Star(mockRandomProvider),
+      ];
       const planets = [new Planet()];
       const nebulas = [new Nebula()];
       const auroras = [new Aurora()];
@@ -242,22 +245,22 @@ describe('GameObjectManager', () => {
       expect(bossBulletUpdateSpy).toHaveBeenCalledWith(16);
     });
 
-        test('プール付きオブジェクトも正常に更新される', () => {
-            const bullet = gameObjectManager.createBullet(100, 100);
+    test('プール付きオブジェクトも正常に更新される', () => {
+      const bullet = gameObjectManager.createBullet(100, 100);
 
-            if (bullet) {
-                const bulletUpdateSpy = jest.spyOn(bullet, 'update');
+      if (bullet) {
+        const bulletUpdateSpy = jest.spyOn(bullet, 'update');
 
-                gameObjectManager.updateAllObjects(16);
+        gameObjectManager.updateAllObjects(16);
 
-                expect(bulletUpdateSpy).toHaveBeenCalledWith(16);
-            } else {
-                // 弾丸が作成されなかった場合、少なくともエラーが発生しないことを確認
-                expect(() => {
-                    gameObjectManager.updateAllObjects(16);
-                }).not.toThrow();
-            }
-        });
+        expect(bulletUpdateSpy).toHaveBeenCalledWith(16);
+      } else {
+        // 弾丸が作成されなかった場合、少なくともエラーが発生しないことを確認
+        expect(() => {
+          gameObjectManager.updateAllObjects(16);
+        }).not.toThrow();
+      }
+    });
   });
 
   describe('衝突判定用オブジェクト取得', () => {
@@ -298,7 +301,7 @@ describe('GameObjectManager', () => {
       const enemy = new Enemy(100, 100);
       const powerUp = new PowerUp(200, 200);
       const boss = new Boss(mockGameEngine);
-      
+
       // 弾丸を作成してプールをテスト
       gameObjectManager.createBullet(100, 100);
 
@@ -364,7 +367,9 @@ describe('GameObjectManager', () => {
       // クリーンアップイベント発火
       eventEmitter.emit('cleanupOffscreenObjects');
 
-      expect(gameObjectManager.getBullets().length).toBeLessThanOrEqual(initialCount);
+      expect(gameObjectManager.getBullets().length).toBeLessThanOrEqual(
+        initialCount
+      );
     });
   });
 
@@ -373,8 +378,11 @@ describe('GameObjectManager', () => {
       // 大量のオブジェクトを作成・削除
       for (let iteration = 0; iteration < 10; iteration++) {
         // オブジェクト作成
-        const enemies = Array.from({ length: 20 }, (_, i) => new Enemy(i * 10, 100));
-        
+        const enemies = Array.from(
+          { length: 20 },
+          (_, i) => new Enemy(i * 10, 100)
+        );
+
         // 弾丸を作成（プールテスト用）
         for (let i = 0; i < 30; i++) {
           gameObjectManager.createBullet(i * 10, 100);

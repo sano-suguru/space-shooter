@@ -21,10 +21,14 @@ export const GameModeItem: React.FC<GameModeItemProps> = ({
 }) => {
   const getDifficultyIcon = (modeId: string): string => {
     switch (modeId) {
-      case 'normal': return '⚪';
-      case 'hardcore': return '🔴';
-      case 'survival': return '🟡';
-      default: return '❓';
+      case 'normal':
+        return '⚪';
+      case 'hardcore':
+        return '🔴';
+      case 'survival':
+        return '🟡';
+      default:
+        return '❓';
     }
   };
 
@@ -61,7 +65,7 @@ export const GameModeItem: React.FC<GameModeItemProps> = ({
         return (
           <Button
             onClick={handleUnlock}
-            className="unlock-button"
+            className='unlock-button'
             data-mode-id={mode.id}
           >
             解除する
@@ -69,7 +73,7 @@ export const GameModeItem: React.FC<GameModeItemProps> = ({
         );
       } else {
         return (
-          <div className="unlock-requirement">
+          <div className='unlock-requirement'>
             解除条件: {getUnlockRequirementText(mode.id)}
           </div>
         );
@@ -78,10 +82,7 @@ export const GameModeItem: React.FC<GameModeItemProps> = ({
 
     if (isCurrent) {
       return (
-        <Button
-          className="select-button current"
-          disabled={true}
-        >
+        <Button className='select-button current' disabled={true}>
           選択中
         </Button>
       );
@@ -90,7 +91,7 @@ export const GameModeItem: React.FC<GameModeItemProps> = ({
     return (
       <Button
         onClick={handleSelect}
-        className="select-button"
+        className='select-button'
         data-mode-id={mode.id}
       >
         選択する
@@ -101,7 +102,7 @@ export const GameModeItem: React.FC<GameModeItemProps> = ({
   const difficultyIcon = getDifficultyIcon(mode.id);
 
   return (
-    <div 
+    <div
       className={`mode-item ${isCurrent ? 'current' : ''} ${!isUnlocked ? 'locked' : ''} ${className}`}
       style={style}
       data-testid={testId}
@@ -109,16 +110,16 @@ export const GameModeItem: React.FC<GameModeItemProps> = ({
       {...rest}
     >
       {/* Mode Header */}
-      <div className="mode-header">
+      <div className='mode-header'>
         {/* Mode Info Section */}
-        <div className="mode-info">
-          <div className="mode-title">
-            <span className="mode-icon">{difficultyIcon}</span>
-            <h3 className="mode-name">{mode.name}</h3>
-            {isCurrent && <span className="current-badge">選択中</span>}
-            {!isUnlocked && <span className="locked-badge">🔒</span>}
+        <div className='mode-info'>
+          <div className='mode-title'>
+            <span className='mode-icon'>{difficultyIcon}</span>
+            <h3 className='mode-name'>{mode.name}</h3>
+            {isCurrent && <span className='current-badge'>選択中</span>}
+            {!isUnlocked && <span className='locked-badge'>🔒</span>}
           </div>
-          <p className="mode-description">{mode.description}</p>
+          <p className='mode-description'>{mode.description}</p>
         </div>
 
         {/* Mode Stats Section */}
@@ -129,20 +130,18 @@ export const GameModeItem: React.FC<GameModeItemProps> = ({
       </div>
 
       {/* Mode Details Section */}
-      <div className="mode-details">
+      <div className='mode-details'>
         <GameModeModifiers modifiers={mode.modifiers} />
-        
-        <div className="mode-reward">
-          <span className="reward-multiplier">
+
+        <div className='mode-reward'>
+          <span className='reward-multiplier'>
             報酬倍率: ×{mode.rewardMultiplier}
           </span>
         </div>
       </div>
 
       {/* Mode Footer Section */}
-      <div className="mode-footer">
-        {renderActionButton()}
-      </div>
+      <div className='mode-footer'>{renderActionButton()}</div>
     </div>
   );
 };

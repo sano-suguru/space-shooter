@@ -33,7 +33,11 @@ export interface IMessageManager {
    * @param duration 表示時間（ミリ秒）、デフォルトは3000ms
    * @param priority メッセージの重要度
    */
-  showMessage(text: string, duration?: number, priority?: MessagePriority): void;
+  showMessage(
+    text: string,
+    duration?: number,
+    priority?: MessagePriority
+  ): void;
 
   /**
    * 現在表示中のメッセージを非表示
@@ -57,7 +61,11 @@ export interface IMessageManager {
    * @param type 通知タイプ（'info', 'success', 'warning'）
    * @param duration 表示時間
    */
-  showNotification(text: string, type?: 'info' | 'success' | 'warning', duration?: number): void;
+  showNotification(
+    text: string,
+    type?: 'info' | 'success' | 'warning',
+    duration?: number
+  ): void;
 
   /**
    * Wave情報を控えめに表示（ゲームプレイを妨げない形で）

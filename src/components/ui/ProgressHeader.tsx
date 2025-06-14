@@ -21,15 +21,15 @@ export const ProgressHeader: React.FC<ProgressHeaderProps> = ({
       {...props}
     >
       {/* プレイヤーレベル */}
-      <div className="player-level" id="player-level">
-        <span className="level-label">Lv.</span>
-        <span className="level-number">{level}</span>
+      <div className='player-level' id='player-level'>
+        <span className='level-label'>Lv.</span>
+        <span className='level-number'>{level}</span>
       </div>
 
       {/* プレイヤーコイン */}
-      <div className="player-coins" id="player-coins">
-        <span className="coins-icon">💰</span>
-        <span className="coins-amount">{coins.toLocaleString()}</span>
+      <div className='player-coins' id='player-coins'>
+        <span className='coins-icon'>💰</span>
+        <span className='coins-amount'>{coins.toLocaleString()}</span>
       </div>
     </div>
   );

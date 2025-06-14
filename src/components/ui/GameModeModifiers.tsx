@@ -48,7 +48,7 @@ export const GameModeModifiers: React.FC<GameModeModifiersProps> = ({
   }, [modifiers]);
 
   return (
-    <div 
+    <div
       className={`mode-modifiers ${className}`}
       style={style}
       data-testid={testId}

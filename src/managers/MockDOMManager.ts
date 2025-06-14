@@ -1,4 +1,4 @@
-import { IDOMManager } from "../interfaces/IDOMManager";
+import { IDOMManager } from '../interfaces/IDOMManager';
 
 /**
  * MockElementをHTMLElementとして扱うための型定義
@@ -35,12 +35,14 @@ export class MockElement {
         }
       },
       remove: (className: string) => {
-        const classes = this.className.split(' ').filter(c => c && c !== className);
+        const classes = this.className
+          .split(' ')
+          .filter(c => c && c !== className);
         this.className = classes.join(' ');
       },
       contains: (className: string) => {
         return this.className.split(' ').includes(className);
-      }
+      },
     };
   }
 
@@ -99,7 +101,7 @@ export class MockDOMManager implements IDOMManager {
     if (selector.startsWith('#')) {
       return this.getElementById(selector.substring(1));
     }
-    
+
     if (selector.startsWith('.')) {
       const className = selector.substring(1);
       for (const element of this.elements.values()) {
@@ -126,16 +128,18 @@ export class MockDOMManager implements IDOMManager {
   }
 
   public appendChild(parent: HTMLElement | Document, child: HTMLElement): void {
-    const parentElement = parent === document ? this.body : (parent as unknown as MockElement);
+    const parentElement =
+      parent === document ? this.body : (parent as unknown as MockElement);
     const childElement = child as unknown as MockElement;
-    
+
     parentElement.appendChild(childElement);
   }
 
   public removeChild(parent: HTMLElement | Document, child: HTMLElement): void {
-    const parentElement = parent === document ? this.body : (parent as unknown as MockElement);
+    const parentElement =
+      parent === document ? this.body : (parent as unknown as MockElement);
     const childElement = child as unknown as MockElement;
-    
+
     parentElement.removeChild(childElement);
   }
 
@@ -173,7 +177,7 @@ export class MockDOMManager implements IDOMManager {
   // 属性操作
   public setAttribute(element: HTMLElement, name: string, value: string): void {
     (element as unknown as MockElement).setAttribute(name, value);
-    
+
     // IDが設定された場合、要素マップに登録
     if (name === 'id') {
       this.elements.set(value, element as unknown as MockElement);
@@ -185,7 +189,11 @@ export class MockDOMManager implements IDOMManager {
   }
 
   // イベント操作
-  public addEventListener(element: HTMLElement | Document, type: string, listener: EventListener): void {
+  public addEventListener(
+    element: HTMLElement | Document,
+    type: string,
+    listener: EventListener
+  ): void {
     const key = `${element === document ? 'document' : (element as unknown as MockElement).id || 'unknown'}_${type}`;
     if (!this.eventListeners.has(key)) {
       this.eventListeners.set(key, []);
@@ -193,7 +201,11 @@ export class MockDOMManager implements IDOMManager {
     this.eventListeners.get(key)!.push(listener);
   }
 
-  public removeEventListener(element: HTMLElement | Document, type: string, listener: EventListener): void {
+  public removeEventListener(
+    element: HTMLElement | Document,
+    type: string,
+    listener: EventListener
+  ): void {
     const key = `${element === document ? 'document' : (element as unknown as MockElement).id || 'unknown'}_${type}`;
     const listeners = this.eventListeners.get(key);
     if (listeners) {
@@ -206,7 +218,8 @@ export class MockDOMManager implements IDOMManager {
 
   // DOM ツリー操作
   public contains(parent: HTMLElement | Document, child: HTMLElement): boolean {
-    const parentElement = parent === document ? this.body : (parent as unknown as MockElement);
+    const parentElement =
+      parent === document ? this.body : (parent as unknown as MockElement);
     return parentElement.contains(child as unknown as MockElement);
   }
 
@@ -218,9 +231,27 @@ export class MockDOMManager implements IDOMManager {
   public createCanvas(): HTMLCanvasElement {
     const canvas = new MockElement('canvas');
     // Canvas特有のプロパティを追加
-    (canvas as MockElement & { width: number; height: number; getContext: jest.Mock }).width = 400;
-    (canvas as MockElement & { width: number; height: number; getContext: jest.Mock }).height = 600;
-    (canvas as MockElement & { width: number; height: number; getContext: jest.Mock }).getContext = jest.fn(() => ({
+    (
+      canvas as MockElement & {
+        width: number;
+        height: number;
+        getContext: jest.Mock;
+      }
+    ).width = 400;
+    (
+      canvas as MockElement & {
+        width: number;
+        height: number;
+        getContext: jest.Mock;
+      }
+    ).height = 600;
+    (
+      canvas as MockElement & {
+        width: number;
+        height: number;
+        getContext: jest.Mock;
+      }
+    ).getContext = jest.fn(() => ({
       fillRect: jest.fn(),
       strokeRect: jest.fn(),
       clearRect: jest.fn(),

@@ -51,21 +51,14 @@ describe('BackgroundRenderer', () => {
       mockStars = [
         new Star(mockRandomProvider),
         new Star(mockRandomProvider),
-        new Star(mockRandomProvider)
+        new Star(mockRandomProvider),
       ];
 
-      mockPlanets = [
-        new Planet(),
-        new Planet()
-      ];
+      mockPlanets = [new Planet(), new Planet()];
 
-      mockNebulas = [
-        new Nebula()
-      ];
+      mockNebulas = [new Nebula()];
 
-      mockAuroras = [
-        new Aurora()
-      ];
+      mockAuroras = [new Aurora()];
     });
 
     test('drawOptimizedBackground が正常に実行される', () => {
@@ -139,13 +132,7 @@ describe('BackgroundRenderer', () => {
 
       // 複数回描画してキャッシュを構築
       for (let i = 0; i < 3; i++) {
-        renderer.drawOptimizedBackground(
-          mockContext,
-          mockStars,
-          [],
-          [],
-          []
-        );
+        renderer.drawOptimizedBackground(mockContext, mockStars, [], [], []);
       }
 
       const stats = renderer.getPerformanceStats();
@@ -193,25 +180,13 @@ describe('BackgroundRenderer', () => {
   describe('エラーハンドリング', () => {
     test('null contextでは適切にエラーが発生する', () => {
       expect(() => {
-        renderer.drawOptimizedBackground(
-          null as any,
-          [],
-          [],
-          [],
-          []
-        );
+        renderer.drawOptimizedBackground(null as any, [], [], [], []);
       }).toThrow();
     });
 
     test('空の配列で正常に動作する', () => {
       expect(() => {
-        renderer.drawOptimizedBackground(
-          mockContext,
-          [],
-          [],
-          [],
-          []
-        );
+        renderer.drawOptimizedBackground(mockContext, [], [], [], []);
       }).not.toThrow();
 
       const stats = renderer.getPerformanceStats();
@@ -221,17 +196,14 @@ describe('BackgroundRenderer', () => {
 
     test('大量の要素でもパフォーマンスが安定している', () => {
       // 大量の星を生成
-      const manyStars = Array.from({ length: 100 }, () => new Star(mockRandomProvider));
+      const manyStars = Array.from(
+        { length: 100 },
+        () => new Star(mockRandomProvider)
+      );
 
       const startTime = performance.now();
 
-      renderer.drawOptimizedBackground(
-        mockContext,
-        manyStars,
-        [],
-        [],
-        []
-      );
+      renderer.drawOptimizedBackground(mockContext, manyStars, [], [], []);
 
       const endTime = performance.now();
       const renderTime = endTime - startTime;
@@ -247,7 +219,7 @@ describe('BackgroundRenderer', () => {
         stars: [new Star(mockRandomProvider)],
         planets: [new Planet()],
         nebulas: [new Nebula()],
-        auroras: [new Aurora()]
+        auroras: [new Aurora()],
       };
 
       expect(() => {
@@ -287,7 +259,9 @@ describe('BackgroundRenderer', () => {
     test('パフォーマンス情報ログが正常に動作する', () => {
       const consoleGroupSpy = jest.spyOn(console, 'group').mockImplementation();
       const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
-      const consoleGroupEndSpy = jest.spyOn(console, 'groupEnd').mockImplementation();
+      const consoleGroupEndSpy = jest
+        .spyOn(console, 'groupEnd')
+        .mockImplementation();
 
       // 統計データを蓄積
       renderer.drawOptimizedBackground(mockContext, [], [], [], []);
@@ -296,8 +270,12 @@ describe('BackgroundRenderer', () => {
       renderer.logPerformanceInfo();
 
       // 複雑なグループ化されたログ出力を確認
-      expect(consoleGroupSpy).toHaveBeenCalledWith('🎨 Background Renderer Performance');
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Average Render Time'));
+      expect(consoleGroupSpy).toHaveBeenCalledWith(
+        '🎨 Background Renderer Performance'
+      );
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Average Render Time')
+      );
       expect(consoleGroupEndSpy).toHaveBeenCalled();
 
       consoleGroupSpy.mockRestore();
@@ -322,8 +300,8 @@ describe('BackgroundRenderer', () => {
           'Cache Status': expect.objectContaining({
             background: expect.any(Boolean),
             nebula: expect.any(Boolean),
-            planet: expect.any(Boolean)
-          })
+            planet: expect.any(Boolean),
+          }),
         })
       );
 

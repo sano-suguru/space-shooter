@@ -4,7 +4,9 @@ import { AchievementCategoryTabsProps } from '../../types/react';
 /**
  * アチーブメントカテゴリータブコンポーネント
  */
-export const AchievementCategoryTabs: React.FC<AchievementCategoryTabsProps> = ({
+export const AchievementCategoryTabs: React.FC<
+  AchievementCategoryTabsProps
+> = ({
   currentCategory,
   onCategoryChange,
   categories,
@@ -16,11 +18,8 @@ export const AchievementCategoryTabs: React.FC<AchievementCategoryTabsProps> = (
   };
 
   return (
-    <div 
-      className={`achievement-categories ${className}`}
-      {...props}
-    >
-      {categories.map((category) => (
+    <div className={`achievement-categories ${className}`} {...props}>
+      {categories.map(category => (
         <button
           key={category.id}
           className={`category-tab ${currentCategory === category.id ? 'active' : ''}`}
