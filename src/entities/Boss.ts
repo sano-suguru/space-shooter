@@ -1,6 +1,5 @@
 import { IGameEngine } from "../interfaces/IGameEngine";
 import { Vector2D } from "../types";
-import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { BossBullet } from "./BossBullet";
 import { GameObject } from "./GameObject";
 import { GameConfig, createGameConfig } from "../config/GameConfigFactory";

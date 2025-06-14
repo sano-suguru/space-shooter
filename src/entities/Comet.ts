@@ -1,6 +1,5 @@
-import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { IRandomProvider } from "../providers";
-import { GameConfig } from "../config/GameConfigFactory";
+import { GameConfig, createGameConfig } from "../config/GameConfigFactory";
 
 export class Comet {
     private x!: number;
@@ -21,9 +20,7 @@ export class Comet {
     constructor(randomProvider: IRandomProvider, config?: GameConfig) {
         this.randomProvider = randomProvider;
         // 設定注入対応（後方互換性を保持）
-        this.config = config || {
-            canvas: { width: GAME_CONSTANTS.CANVAS.WIDTH, height: GAME_CONSTANTS.CANVAS.HEIGHT }
-        } as GameConfig;
+        this.config = config || createGameConfig();
         
         this.spawnInterval = this.randomProvider.random() * 5000 + 2000; // 2-7秒間隔（短縮）
         this.spawnTimer = 0;

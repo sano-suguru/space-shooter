@@ -1,4 +1,3 @@
-import { Player } from "../entities/Player";
 import { GameConstants } from "../types";
 
 export const GAME_CONSTANTS: GameConstants = {
@@ -53,15 +52,15 @@ export const GAME_CONSTANTS: GameConstants = {
         TYPES: {
             RAPID_FIRE: {
                 color: '#66bb6a', // 洗練されたグリーン
-                effect: (player: Player) => { player.setFireRate(GAME_CONSTANTS.PLAYER.FIRE_RATE / 2); }
+                effect: null // 循環依存を回避するため、effectは外部で定義
             },
             TRIPLE_SHOT: {
                 color: '#7c4dff', // 洗練された紫
-                effect: (player: Player) => { player.setBulletType('triple'); }
+                effect: null // 循環依存を回避するため、effectは外部で定義
             },
             SHIELD: {
                 color: '#26c6da', // 洗練されたシアン
-                effect: (player: Player) => { player.activateShield(); }
+                effect: null // 循環依存を回避するため、effectは外部で定義
             }
         }
     },

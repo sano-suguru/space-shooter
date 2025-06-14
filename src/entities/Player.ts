@@ -1,5 +1,4 @@
 import { PowerUpType, Vector2D } from "../types";
-import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { EventEmitter } from "../events/EventEmitter";
 import { Bullet } from "./Bullet";
 import { GameObject } from "./GameObject";
@@ -263,12 +262,28 @@ export class Player extends GameObject {
                 this.eventEmitter.emit('powerUpDeactivated', type);
             }, duration);
         } else {
-            // レガシー実装（後方互換性のため）
-            const powerup = GAME_CONSTANTS.POWERUP.TYPES[type];
-            powerup.effect(this);
+            // フォールバック：基本的な効果を直接適用
+            this.applyBasicPowerUpEffect(type);
             this.eventEmitter.emit('powerUpActivated', type);
 
-            setTimeout(() => this.deactivatePowerup(type), GAME_CONSTANTS.POWERUP.DURATION);
+            setTimeout(() => this.deactivatePowerup(type), this.config.powerup.duration);
+        }
+    }
+
+    /**
+     * 基本的なPowerUp効果を直接適用（PowerUpEffectServiceが利用できない場合）
+     */
+    private applyBasicPowerUpEffect(type: PowerUpType): void {
+        switch (type) {
+            case 'RAPID_FIRE':
+                this.fireRate = this.config.player.fireRate / 2;
+                break;
+            case 'TRIPLE_SHOT':
+                this.bulletType = 'triple';
+                break;
+            case 'SHIELD':
+                this.shieldActive = true;
+                break;
         }
     }
 

@@ -254,19 +254,33 @@ if (typeof window === 'undefined') {
 }
 
 // Performance API mock for background renderer optimization
+let performanceCounter = 0;
 Object.defineProperty(window, 'performance', {
   value: {
-    now: jest.fn(() => Date.now())
+    now: jest.fn(() => {
+      // テスト環境でリアルな描画時間をシミュレート
+      performanceCounter += Math.random() * 2 + 0.1; // 0.1-2.1ms のランダムな時間
+      return performanceCounter;
+    })
   }
 });
 
 // RequestAnimationFrame mock
 const mockRequestAnimationFrame = jest.fn((callback: any) => {
-  return setTimeout(callback, 16);
+  const id = setTimeout(callback, 16);
+  console.log(`🎬 Global requestAnimationFrame called, assigned ID: ${id}`);
+  // アクティブなフレームIDを記録
+  (globalThis as any)._activeGlobalAnimationFrames = (globalThis as any)._activeGlobalAnimationFrames || new Set();
+  (globalThis as any)._activeGlobalAnimationFrames.add(id);
+  return id;
 });
 
 const mockCancelAnimationFrame = jest.fn((id: number) => {
+  console.log(`🧹 Global cancelAnimationFrame called for ID: ${id}`);
   clearTimeout(id);
+  if ((globalThis as any)._activeGlobalAnimationFrames) {
+    (globalThis as any)._activeGlobalAnimationFrames.delete(id);
+  }
 });
 
 Object.defineProperty(window, 'requestAnimationFrame', {

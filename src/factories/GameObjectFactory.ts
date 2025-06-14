@@ -10,21 +10,28 @@ import { Comet } from "../entities/Comet";
 import { MeteorShower } from "../entities/MeteorShower";
 import { SpaceDust } from "../entities/SpaceDust";
 import { EnemyType, Vector2D } from "../types";
-import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { randomRange } from "../utils/RandomUtils";
 import { IRandomProvider } from "../providers";
 import { EnemyGenerationSystem } from "../systems/enemy-generation/EnemyGenerationSystem";
 import { EnemyGenerationRequest, DifficultyFactors } from "../systems/types/EnemyGeneration";
 import { EventEmitter } from "../events/EventEmitter";
 import { EventMap } from "../events/EventType";
+import { GameConfig, createGameConfig } from "../config/GameConfigFactory";
 
 export class GameObjectFactory {
     private randomProvider: IRandomProvider;
     private enemyGenerationSystem?: EnemyGenerationSystem;
     private dynamicEnemyEnabled: boolean = false;
+    private config: GameConfig;
 
-    constructor(randomProvider: IRandomProvider, eventEmitter?: EventEmitter<EventMap>) {
+    constructor(
+        randomProvider: IRandomProvider,
+        eventEmitter?: EventEmitter<EventMap>,
+        config?: GameConfig
+    ) {
         this.randomProvider = randomProvider;
+        // 設定注入対応（後方互換性を保持）
+        this.config = config || createGameConfig();
         
         // 動的敵生成システムの初期化（オプション）
         if (eventEmitter) {
@@ -48,19 +55,19 @@ export class GameObjectFactory {
     }
 
     createStar(): Star {
-        return new Star(this.randomProvider);
+        return new Star(this.randomProvider, this.config);
     }
 
     createPlanet(): Planet {
-        return new Planet();
+        return new Planet(this.config);
     }
 
     createNebula(): Nebula {
-        return new Nebula();
+        return new Nebula(this.config);
     }
 
     createAurora(): Aurora {
-        return new Aurora();
+        return new Aurora(this.config);
     }
 
     createComet(): Comet {
@@ -76,8 +83,8 @@ export class GameObjectFactory {
     }
 
     createEnemy(type: EnemyType, game: IGameEngine): Enemy {
-        const enemyData = GAME_CONSTANTS.ENEMY.TYPES[type];
-        const x = randomRange(0, GAME_CONSTANTS.CANVAS.WIDTH - enemyData.width);
+        const enemyData = this.config.enemy.types[type];
+        const x = randomRange(0, this.config.canvas.width - enemyData.width);
         return new Enemy(x, -enemyData.height, type, game);
     }
 
@@ -105,7 +112,7 @@ export class GameObjectFactory {
 
         // 動的敵生成リクエストを作成
         const enemyPosition = position || {
-            x: randomRange(50, GAME_CONSTANTS.CANVAS.WIDTH - 50),
+            x: randomRange(50, this.config.canvas.width - 50),
             y: randomRange(-150, -50)
         };
 
@@ -216,8 +223,8 @@ export class GameObjectFactory {
     }
 
     createPowerUp(): PowerUp {
-        const x = randomRange(0, GAME_CONSTANTS.CANVAS.WIDTH - GAME_CONSTANTS.POWERUP.WIDTH);
-        return new PowerUp(x, -GAME_CONSTANTS.POWERUP.HEIGHT);
+        const x = randomRange(0, this.config.canvas.width - this.config.powerup.width);
+        return new PowerUp(x, -this.config.powerup.height, this.config);
     }
 
     /**
@@ -298,11 +305,18 @@ export class GameObjectFactory {
             
             // フォールバック：従来の敵生成
             const fallbackPosition = position || {
-                x: randomRange(50, GAME_CONSTANTS.CANVAS.WIDTH - 50),
+                x: randomRange(50, this.config.canvas.width - 50),
                 y: randomRange(-150, -50)
             };
             
             return this.createFallbackEnemy(type, fallbackPosition, game);
         }
+    }
+
+    /**
+     * 設定を取得（テスト用）
+     */
+    public getConfig(): GameConfig {
+        return this.config;
     }
 }

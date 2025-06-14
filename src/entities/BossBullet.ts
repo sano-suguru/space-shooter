@@ -1,12 +1,23 @@
-import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { GameObject } from "./GameObject";
+import { GameConfig, createGameConfig } from "../config/GameConfigFactory";
 
 export class BossBullet extends GameObject {
     private speedX: number;
     private speedY: number;
+    private config: GameConfig;
 
-    constructor(x: number, y: number, speedX: number, speedY: number) {
-        super(x, y, GAME_CONSTANTS.BULLET.WIDTH, GAME_CONSTANTS.BULLET.HEIGHT);
+    constructor(
+        x: number,
+        y: number,
+        speedX: number,
+        speedY: number,
+        config?: GameConfig
+    ) {
+        // 設定注入対応（後方互換性を保持）
+        const gameConfig = config || createGameConfig();
+        super(x, y, gameConfig.bullet.width, gameConfig.bullet.height);
+        
+        this.config = gameConfig;
         this.speedX = speedX;
         this.speedY = speedY;
     }
@@ -22,7 +33,14 @@ export class BossBullet extends GameObject {
     }
 
     public isOnScreen(): boolean {
-        return this.y < GAME_CONSTANTS.CANVAS.HEIGHT && this.y > 0 &&
-            this.x < GAME_CONSTANTS.CANVAS.WIDTH && this.x > 0;
+        return this.y < this.config.canvas.height && this.y > 0 &&
+            this.x < this.config.canvas.width && this.x > 0;
+    }
+
+    /**
+     * 設定を取得（テスト用）
+     */
+    public getConfig(): GameConfig {
+        return this.config;
     }
 }

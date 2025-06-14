@@ -1,6 +1,5 @@
-import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { PooledParticle, globalParticlePoolManager } from "../utils/ParticlePoolManager";
-import { GameConfig } from "../config/GameConfigFactory";
+import { GameConfig, createGameConfig } from "../config/GameConfigFactory";
 
 type NebulaType = 'emission' | 'reflection' | 'dark' | 'supernova-remnant' | 'planetary' | 'spiral';
 
@@ -136,9 +135,7 @@ export class Nebula {
 
     constructor(config?: GameConfig) {
         // 設定注入対応（後方互換性を保持）
-        this.config = config || {
-            canvas: { width: GAME_CONSTANTS.CANVAS.WIDTH, height: GAME_CONSTANTS.CANVAS.HEIGHT }
-        } as GameConfig;
+        this.config = config || createGameConfig();
         
         this.x = Math.random() * this.config.canvas.width;
         this.y = Math.random() * this.config.canvas.height;

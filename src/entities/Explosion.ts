@@ -1,6 +1,5 @@
 import { Vector2D } from "../types";
-import { GAME_CONSTANTS } from "../constants/GameConstants";
-import { GameConfig } from "../config/GameConfigFactory";
+import { GameConfig, createGameConfig } from "../config/GameConfigFactory";
 
 interface Particle {
     x: number;
@@ -40,9 +39,7 @@ export class Explosion {
 
     constructor(config?: GameConfig) {
         // 設定注入対応（後方互換性を保持）
-        this.config = config || {
-            explosion: { duration: GAME_CONSTANTS.EXPLOSION.DURATION }
-        } as GameConfig;
+        this.config = config || createGameConfig();
         this.duration = this.config.explosion.duration;
     }
 

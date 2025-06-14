@@ -1,6 +1,5 @@
-import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { IRandomProvider } from "../providers";
-import { GameConfig } from "../config/GameConfigFactory";
+import { GameConfig, createGameConfig } from "../config/GameConfigFactory";
 
 interface MeteorParticle {
     x: number;
@@ -28,9 +27,7 @@ export class MeteorShower {
     constructor(randomProvider: IRandomProvider, config?: GameConfig) {
         this.randomProvider = randomProvider;
         // 設定注入対応（後方互換性を保持）
-        this.config = config || {
-            canvas: { width: GAME_CONSTANTS.CANVAS.WIDTH, height: GAME_CONSTANTS.CANVAS.HEIGHT }
-        } as GameConfig;
+        this.config = config || createGameConfig();
         
         this.meteors = [];
         this.isActive = false;

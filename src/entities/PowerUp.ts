@@ -1,5 +1,4 @@
 import { PowerUpType } from "../types";
-import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { GameObject } from "./GameObject";
 import { GameConfig, createGameConfig } from "../config/GameConfigFactory";
 import { PowerUpEffectService } from "../services/PowerUpEffectService";
@@ -35,14 +34,14 @@ export class PowerUp extends GameObject {
     }
 
     private getRandomPowerUpType(): PowerUpType {
-        // 後方互換性のため、GAME_CONSTANTSからタイプを取得
-        const types = Object.keys(GAME_CONSTANTS.POWERUP.TYPES) as PowerUpType[];
+        // 設定ベースでタイプを取得
+        const types = Object.keys(this.config.powerup.types) as PowerUpType[];
         return types[Math.floor(Math.random() * types.length)];
     }
 
     private getPowerUpColor(type: PowerUpType): string {
-        // 後方互換性のため、GAME_CONSTANTSから色を取得
-        return GAME_CONSTANTS.POWERUP.TYPES[type].color;
+        // 設定ベースで色を取得
+        return this.config.powerup.types[type].color;
     }
 
     public update(deltaTime: number): void {
@@ -148,11 +147,31 @@ export class PowerUp extends GameObject {
         if (this.effectService) {
             this.effectService.applyEffect(player, this.type);
         } else {
-            // 後方互換性のため、直接効果を適用
-            const effect = GAME_CONSTANTS.POWERUP.TYPES[this.type].effect;
-            if (effect) {
-                effect(player);
-            }
+            // フォールバック：基本的な効果を直接適用
+            this.applyBasicEffect(player);
+        }
+    }
+
+    /**
+     * 基本的な効果を直接適用（PowerUpEffectServiceが利用できない場合）
+     */
+    private applyBasicEffect(player: any): void {
+        switch (this.type) {
+            case 'RAPID_FIRE':
+                if (player.setFireRate) {
+                    player.setFireRate(this.config.player.fireRate / 2);
+                }
+                break;
+            case 'TRIPLE_SHOT':
+                if (player.setBulletType) {
+                    player.setBulletType('triple');
+                }
+                break;
+            case 'SHIELD':
+                if (player.activateShield) {
+                    player.activateShield();
+                }
+                break;
         }
     }
 }

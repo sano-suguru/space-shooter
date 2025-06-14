@@ -1,11 +1,13 @@
 import { Explosion } from '../../src/entities/Explosion';
-import { GAME_CONSTANTS } from '../../src/constants/GameConstants';
+import { createTestConfig, GameConfig } from '../../src/config/GameConfigFactory';
 
 describe('Explosion', () => {
     let explosion: Explosion;
     let mockContext: CanvasRenderingContext2D;
+    let testConfig: GameConfig;
 
     beforeEach(() => {
+        testConfig = createTestConfig();
         // Canvas contextのモック
         mockContext = {
             save: jest.fn(),
@@ -38,7 +40,7 @@ describe('Explosion', () => {
             fillText: jest.fn()
         } as unknown as CanvasRenderingContext2D;
 
-        explosion = new Explosion();
+        explosion = new Explosion(testConfig);
     });
 
     describe('初期化', () => {
@@ -218,7 +220,7 @@ describe('Explosion', () => {
 
         test('長時間経過後の状態', () => {
             // 長時間経過させる
-            for (let i = 0; i < GAME_CONSTANTS.EXPLOSION.DURATION + 10; i++) {
+            for (let i = 0; i < testConfig.explosion.duration + 10; i++) {
                 explosion.update(16.67);
             }
             
@@ -273,7 +275,7 @@ describe('Explosion', () => {
             explosion.draw(mockContext);
             
             // 時間経過
-            for (let i = 0; i < GAME_CONSTANTS.EXPLOSION.DURATION / 2; i++) {
+            for (let i = 0; i < testConfig.explosion.duration / 2; i++) {
                 explosion.update(16.67);
             }
             
@@ -285,7 +287,7 @@ describe('Explosion', () => {
 
         test('完了間際の描画', () => {
             // 完了直前まで進める
-            for (let i = 0; i < GAME_CONSTANTS.EXPLOSION.DURATION - 1; i++) {
+            for (let i = 0; i < testConfig.explosion.duration - 1; i++) {
                 explosion.update(16.67);
             }
             
@@ -318,7 +320,7 @@ describe('Explosion', () => {
             explosion.initialize({ x: 0, y: 0 });
             
             // 期間を超過させる
-            for (let i = 0; i < GAME_CONSTANTS.EXPLOSION.DURATION + 5; i++) {
+            for (let i = 0; i < testConfig.explosion.duration + 5; i++) {
                 explosion.update(16.67);
             }
             
@@ -337,7 +339,7 @@ describe('Explosion', () => {
             explosion.initialize({ x: 0, y: 0 });
             
             // ちょうど期間分更新
-            for (let i = 0; i < GAME_CONSTANTS.EXPLOSION.DURATION; i++) {
+            for (let i = 0; i < testConfig.explosion.duration; i++) {
                 explosion.update(16.67);
             }
             
@@ -545,7 +547,7 @@ describe('Explosion', () => {
             explosion.initialize({ x: 0, y: 0 });
             
             // 期間-1フレーム
-            for (let i = 0; i < GAME_CONSTANTS.EXPLOSION.DURATION - 1; i++) {
+            for (let i = 0; i < testConfig.explosion.duration - 1; i++) {
                 explosion.update(16.67);
             }
             expect(explosion.isFinished()).toBe(false);

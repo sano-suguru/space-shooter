@@ -1,4 +1,3 @@
-import { GAME_CONSTANTS } from '../constants/GameConstants';
 import { Boss } from '../entities/Boss';
 import { BossBullet } from '../entities/BossBullet';
 import { Bullet } from '../entities/Bullet';

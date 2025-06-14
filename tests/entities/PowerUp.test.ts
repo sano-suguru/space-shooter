@@ -1,12 +1,14 @@
 import { PowerUp } from '../../src/entities/PowerUp';
-import { GAME_CONSTANTS } from '../../src/constants/GameConstants';
 import { PowerUpType } from '../../src/types';
+import { createTestConfig, GameConfig } from '../../src/config/GameConfigFactory';
 
 describe('PowerUp', () => {
     let powerUp: PowerUp;
     let mockContext: CanvasRenderingContext2D;
+    let testConfig: GameConfig;
 
     beforeEach(() => {
+        testConfig = createTestConfig();
         // Canvas contextのモック
         mockContext = {
             save: jest.fn(),
@@ -39,7 +41,7 @@ describe('PowerUp', () => {
             fillText: jest.fn()
         } as unknown as CanvasRenderingContext2D;
 
-        powerUp = new PowerUp(100, 50);
+        powerUp = new PowerUp(100, 50, testConfig);
     });
 
     describe('初期化', () => {
@@ -47,8 +49,8 @@ describe('PowerUp', () => {
             expect(powerUp).toBeDefined();
             expect(powerUp.getX()).toBe(100);
             expect(powerUp.getY()).toBe(50);
-            expect(powerUp.getWidth()).toBe(GAME_CONSTANTS.POWERUP.WIDTH);
-            expect(powerUp.getHeight()).toBe(GAME_CONSTANTS.POWERUP.HEIGHT);
+            expect(powerUp.getWidth()).toBe(testConfig.powerup.width);
+            expect(powerUp.getHeight()).toBe(testConfig.powerup.height);
         });
 
         test('ランダムなパワーアップタイプが設定される', () => {
@@ -71,14 +73,14 @@ describe('PowerUp', () => {
 
     describe('位置とサイズ', () => {
         test('初期位置が正しく設定される', () => {
-            const newPowerUp = new PowerUp(200, 150);
+            const newPowerUp = new PowerUp(200, 150, testConfig);
             expect(newPowerUp.getX()).toBe(200);
             expect(newPowerUp.getY()).toBe(150);
         });
 
         test('サイズが定数と一致する', () => {
-            expect(powerUp.getWidth()).toBe(GAME_CONSTANTS.POWERUP.WIDTH);
-            expect(powerUp.getHeight()).toBe(GAME_CONSTANTS.POWERUP.HEIGHT);
+            expect(powerUp.getWidth()).toBe(testConfig.powerup.width);
+            expect(powerUp.getHeight()).toBe(testConfig.powerup.height);
         });
     });
 
@@ -89,7 +91,7 @@ describe('PowerUp', () => {
             
             powerUp.update(deltaTime);
             
-            const expectedY = initialY + GAME_CONSTANTS.POWERUP.SPEED * deltaTime;
+            const expectedY = initialY + testConfig.powerup.speed * deltaTime;
             expect(powerUp.getY()).toBe(expectedY);
         });
 
@@ -101,7 +103,7 @@ describe('PowerUp', () => {
             powerUp.update(deltaTime);
             powerUp.update(deltaTime);
             
-            const expectedY = initialY + GAME_CONSTANTS.POWERUP.SPEED * deltaTime * 3;
+            const expectedY = initialY + testConfig.powerup.speed * deltaTime * 3;
             expect(powerUp.getY()).toBe(expectedY);
         });
 
@@ -233,7 +235,7 @@ describe('PowerUp', () => {
         test('RAPID_FIREシンボルの描画', () => {
             // Math.randomをモックしてRAPID_FIREを強制
             jest.spyOn(Math, 'random').mockReturnValue(0); // 最初のタイプを選択
-            const rapidFirePowerUp = new PowerUp(0, 0);
+            const rapidFirePowerUp = new PowerUp(0, 0, testConfig);
             
             rapidFirePowerUp.draw(mockContext);
             
@@ -244,7 +246,7 @@ describe('PowerUp', () => {
 
         test('TRIPLE_SHOTシンボルの描画', () => {
             jest.spyOn(Math, 'random').mockReturnValue(0.4); // 2番目のタイプを選択
-            const tripleShotPowerUp = new PowerUp(0, 0);
+            const tripleShotPowerUp = new PowerUp(0, 0, testConfig);
             
             tripleShotPowerUp.draw(mockContext);
             
@@ -255,7 +257,7 @@ describe('PowerUp', () => {
 
         test('SHIELDシンボルの描画', () => {
             jest.spyOn(Math, 'random').mockReturnValue(0.8); // 3番目のタイプを選択
-            const shieldPowerUp = new PowerUp(0, 0);
+            const shieldPowerUp = new PowerUp(0, 0, testConfig);
             
             shieldPowerUp.draw(mockContext);
             
@@ -298,22 +300,22 @@ describe('PowerUp', () => {
 
     describe('画面内判定', () => {
         test('画面内のPowerUpはisOnScreen()がtrueを返す', () => {
-            const onScreenPowerUp = new PowerUp(100, 100);
+            const onScreenPowerUp = new PowerUp(100, 100, testConfig);
             expect(onScreenPowerUp.isOnScreen()).toBe(true);
         });
 
         test('画面下端ギリギリのPowerUp', () => {
-            const edgePowerUp = new PowerUp(100, GAME_CONSTANTS.CANVAS.HEIGHT - 1);
+            const edgePowerUp = new PowerUp(100, testConfig.canvas.height - 1, testConfig);
             expect(edgePowerUp.isOnScreen()).toBe(true);
         });
 
         test('画面を完全に出たPowerUp', () => {
-            const offScreenPowerUp = new PowerUp(100, GAME_CONSTANTS.CANVAS.HEIGHT + 10);
+            const offScreenPowerUp = new PowerUp(100, testConfig.canvas.height + 10, testConfig);
             expect(offScreenPowerUp.isOnScreen()).toBe(false);
         });
 
         test('画面下端ちょうどのPowerUp', () => {
-            const bottomPowerUp = new PowerUp(100, GAME_CONSTANTS.CANVAS.HEIGHT);
+            const bottomPowerUp = new PowerUp(100, testConfig.canvas.height, testConfig);
             expect(bottomPowerUp.isOnScreen()).toBe(false);
         });
     });
@@ -377,8 +379,8 @@ describe('PowerUp', () => {
         });
 
         test('負の座標でも正常に初期化される', () => {
-            expect(() => new PowerUp(-100, -50)).not.toThrow();
-            const negativePowerUp = new PowerUp(-100, -50);
+            expect(() => new PowerUp(-100, -50, testConfig)).not.toThrow();
+            const negativePowerUp = new PowerUp(-100, -50, testConfig);
             expect(negativePowerUp.getX()).toBe(-100);
             expect(negativePowerUp.getY()).toBe(-50);
         });
@@ -396,7 +398,7 @@ describe('PowerUp', () => {
                 powerUp.draw(mockContext);
                 
                 // 無限ループ防止
-                if (powerUp.getY() > GAME_CONSTANTS.CANVAS.HEIGHT + 1000) {
+                if (powerUp.getY() > testConfig.canvas.height + 1000) {
                     break;
                 }
             }
@@ -406,9 +408,9 @@ describe('PowerUp', () => {
         });
 
         test('複数PowerUpの独立動作', () => {
-            const powerUp1 = new PowerUp(50, 0);
-            const powerUp2 = new PowerUp(150, 100);
-            const powerUp3 = new PowerUp(250, 200);
+            const powerUp1 = new PowerUp(50, 0, testConfig);
+            const powerUp2 = new PowerUp(150, 100, testConfig);
+            const powerUp3 = new PowerUp(250, 200, testConfig);
             
             for (let i = 0; i < 10; i++) {
                 powerUp1.update(50);
@@ -437,7 +439,7 @@ describe('PowerUp', () => {
             
             mockValues.forEach(mockValue => {
                 jest.spyOn(Math, 'random').mockReturnValue(mockValue);
-                const testPowerUp = new PowerUp(0, 0);
+                const testPowerUp = new PowerUp(0, 0, testConfig);
                 const type = testPowerUp.getType();
                 expect(['RAPID_FIRE', 'TRIPLE_SHOT', 'SHIELD']).toContain(type);
                 jest.restoreAllMocks();
@@ -446,7 +448,7 @@ describe('PowerUp', () => {
 
         test('回転速度のランダム性', () => {
             jest.spyOn(Math, 'random').mockReturnValue(0.5);
-            const testPowerUp = new PowerUp(0, 0);
+            const testPowerUp = new PowerUp(0, 0, testConfig);
             expect(() => testPowerUp.draw(mockContext)).not.toThrow();
             jest.restoreAllMocks();
         });

@@ -1,4 +1,3 @@
-import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { EventEmitter } from "../events/EventEmitter";
 import { EventMap } from "../events/EventType";
 import { GameObjectFactory } from "../factories/GameObjectFactory";

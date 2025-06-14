@@ -1,4 +1,3 @@
-import { GAME_CONSTANTS } from '../constants/GameConstants';
 import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
 
 /**

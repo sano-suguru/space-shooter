@@ -42,7 +42,10 @@ const GameConfigSchema = z.object({
     height: z.number().positive(),
     speed: z.number().positive(),
     duration: z.number().positive(),
-    spawnChance: z.number().min(0).max(1)
+    spawnChance: z.number().min(0).max(1),
+    types: z.record(z.object({
+      color: z.string()
+    }))
   }),
   boss: z.object({
     width: z.number().positive(),
@@ -117,7 +120,12 @@ export function createGameConfig(overrides?: DeepPartial<GameConfig>): GameConfi
       height: 30,
       speed: 100,
       duration: 10000,
-      spawnChance: 0.05
+      spawnChance: 0.05,
+      types: {
+        RAPID_FIRE: { color: '#66bb6a' },
+        TRIPLE_SHOT: { color: '#7c4dff' },
+        SHIELD: { color: '#26c6da' }
+      }
     },
     boss: {
       width: 150,

@@ -25,12 +25,36 @@ describe('GameEngine', () => {
 
         // アニメーションフレームIDを設定（連続的なIDを返すようにする）
         let frameId = 1;
-        mockRequestAnimationFrame.mockImplementation((_callback: Function) => {
-            return frameId++;
+        mockRequestAnimationFrame.mockImplementation((callback: Function) => {
+            const id = frameId++;
+            console.log(`🎬 requestAnimationFrame called, assigned ID: ${id}`);
+            // アクティブなフレームIDを記録
+            (globalThis as any)._activeAnimationFrames = (globalThis as any)._activeAnimationFrames || new Set();
+            (globalThis as any)._activeAnimationFrames.add(id);
+            return id;
+        });
+        
+        // cancelAnimationFrameのモック
+        mockCancelAnimationFrame.mockImplementation((id: number) => {
+            console.log(`🧹 cancelAnimationFrame called for ID: ${id}`);
+            if ((globalThis as any)._activeAnimationFrames) {
+                (globalThis as any)._activeAnimationFrames.delete(id);
+            }
         });
     });
 
     afterEach(() => {
+        // アクティブなアニメーションフレームをクリーンアップ
+        const activeFrames = (globalThis as any)._activeAnimationFrames;
+        if (activeFrames && activeFrames.size > 0) {
+            console.warn(`⚠️  ${activeFrames.size} active animation frames detected in GameEngine.test.ts`);
+            activeFrames.forEach((frameId: any) => {
+                console.log(`🧹 Canceling animation frame: ${frameId}`);
+                cancelAnimationFrame(frameId);
+            });
+            activeFrames.clear();
+        }
+        
         jest.restoreAllMocks();
     });
 

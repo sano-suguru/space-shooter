@@ -1,6 +1,6 @@
 import { Boss } from '../../src/entities/Boss';
-import { GAME_CONSTANTS } from '../../src/constants/GameConstants';
 import { BossBullet } from '../../src/entities/BossBullet';
+import { createTestConfig, GameConfig } from '../../src/config/GameConfigFactory';
 
 // MockGameEngineの定義
 class MockGameEngine {
@@ -23,8 +23,10 @@ describe('Boss', () => {
     let boss: Boss;
     let mockGameEngine: MockGameEngine;
     let mockContext: CanvasRenderingContext2D;
+    let testConfig: GameConfig;
 
     beforeEach(() => {
+        testConfig = createTestConfig();
         // Canvas contextのモック
         mockContext = {
             save: jest.fn(),
@@ -54,22 +56,22 @@ describe('Boss', () => {
         } as unknown as CanvasRenderingContext2D;
 
         mockGameEngine = new MockGameEngine();
-        boss = new Boss(mockGameEngine as any);
+        boss = new Boss(mockGameEngine as any, testConfig);
     });
 
     describe('初期化', () => {
         test('Bossが正しく初期化される', () => {
             expect(boss).toBeDefined();
-            expect(boss.getX()).toBe(GAME_CONSTANTS.CANVAS.WIDTH / 2 - GAME_CONSTANTS.BOSS.WIDTH / 2);
-            expect(boss.getY()).toBe(-GAME_CONSTANTS.BOSS.HEIGHT);
-            expect(boss.getWidth()).toBe(GAME_CONSTANTS.BOSS.WIDTH);
-            expect(boss.getHeight()).toBe(GAME_CONSTANTS.BOSS.HEIGHT);
+            expect(boss.getX()).toBe(testConfig.canvas.width / 2 - testConfig.boss.width / 2);
+            expect(boss.getY()).toBe(-testConfig.boss.height);
+            expect(boss.getWidth()).toBe(testConfig.boss.width);
+            expect(boss.getHeight()).toBe(testConfig.boss.height);
         });
 
         test('初期体力が正しく設定される', () => {
             // takeDamageで体力を確認
             let defeated = false;
-            for (let i = 0; i < GAME_CONSTANTS.BOSS.INITIAL_HEALTH - 1; i++) {
+            for (let i = 0; i < testConfig.boss.initialHealth - 1; i++) {
                 defeated = boss.takeDamage();
                 expect(defeated).toBe(false);
             }
@@ -80,8 +82,8 @@ describe('Boss', () => {
 
         test('初期位置が正しく取得できる', () => {
             const position = boss.getPosition();
-            expect(position.x).toBe(GAME_CONSTANTS.CANVAS.WIDTH / 2 - GAME_CONSTANTS.BOSS.WIDTH / 2);
-            expect(position.y).toBe(-GAME_CONSTANTS.BOSS.HEIGHT);
+            expect(position.x).toBe(testConfig.canvas.width / 2 - testConfig.boss.width / 2);
+            expect(position.y).toBe(-testConfig.boss.height);
         });
     });
 
@@ -91,7 +93,7 @@ describe('Boss', () => {
             boss.update(100); // 100ms
             
             expect(boss.getY()).toBeGreaterThan(initialY);
-            expect(boss.getY()).toBe(initialY + GAME_CONSTANTS.BOSS.INITIAL_SPEED * 100);
+            expect(boss.getY()).toBe(initialY + testConfig.boss.initialSpeed * 100);
         });
 
         test('降下完了後は水平移動する', () => {
@@ -136,10 +138,10 @@ describe('Boss', () => {
             // 十分に長い時間を与えて右端到達をテスト
             for (let i = 0; i < 100; i++) {
                 boss.update(deltaTime);
-                if (boss.getX() >= GAME_CONSTANTS.CANVAS.WIDTH - boss.getWidth()) break;
+                if (boss.getX() >= testConfig.canvas.width - boss.getWidth()) break;
             }
             
-            expect(boss.getX()).toBeLessThanOrEqual(GAME_CONSTANTS.CANVAS.WIDTH - boss.getWidth());
+            expect(boss.getX()).toBeLessThanOrEqual(testConfig.canvas.width - boss.getWidth());
         });
 
         test('通常の水平移動', () => {
@@ -206,7 +208,7 @@ describe('Boss', () => {
             expect(mockGameEngine.getBullets()).toHaveLength(0);
             
             // 射撃レート時間経過後
-            const fireTime = initialTime + GAME_CONSTANTS.BOSS.FIRE_RATE + 1;
+            const fireTime = initialTime + testConfig.boss.fireRate + 1;
             jest.spyOn(Date, 'now').mockReturnValue(fireTime);
             
             boss.update(100);
@@ -217,7 +219,7 @@ describe('Boss', () => {
             jest.spyOn(Date, 'now').mockReturnValue(0);
             boss.update(100);
             
-            jest.spyOn(Date, 'now').mockReturnValue(GAME_CONSTANTS.BOSS.FIRE_RATE + 1);
+            jest.spyOn(Date, 'now').mockReturnValue(testConfig.boss.fireRate + 1);
             boss.update(100);
             
             expect(mockGameEngine.getBullets()).toHaveLength(5);
@@ -227,7 +229,7 @@ describe('Boss', () => {
             jest.spyOn(Date, 'now').mockReturnValue(0);
             boss.update(100);
             
-            jest.spyOn(Date, 'now').mockReturnValue(GAME_CONSTANTS.BOSS.FIRE_RATE + 1);
+            jest.spyOn(Date, 'now').mockReturnValue(testConfig.boss.fireRate + 1);
             boss.update(100);
             
             const bullets = mockGameEngine.getBullets();
@@ -245,7 +247,7 @@ describe('Boss', () => {
             mockGameEngine.clearBullets();
             
             // 射撃レート未満の時間では発射されない
-            currentTime += GAME_CONSTANTS.BOSS.FIRE_RATE - 1;
+            currentTime += testConfig.boss.fireRate - 1;
             jest.spyOn(Date, 'now').mockReturnValue(currentTime);
             boss.update(100);
             expect(mockGameEngine.getBullets()).toHaveLength(0);
@@ -266,7 +268,7 @@ describe('Boss', () => {
 
         test('体力が0になると倒される', () => {
             // 最大体力-1まで削る
-            for (let i = 0; i < GAME_CONSTANTS.BOSS.INITIAL_HEALTH - 1; i++) {
+            for (let i = 0; i < testConfig.boss.initialHealth - 1; i++) {
                 const defeated = boss.takeDamage();
                 expect(defeated).toBe(false);
             }
@@ -364,8 +366,8 @@ describe('Boss', () => {
 
         test('低体力時のフリッカーエフェクト', () => {
             // 体力を低く設定
-            const lowHealthThreshold = Math.floor(GAME_CONSTANTS.BOSS.INITIAL_HEALTH * 0.3);
-            for (let i = 0; i < GAME_CONSTANTS.BOSS.INITIAL_HEALTH - lowHealthThreshold; i++) {
+            const lowHealthThreshold = Math.floor(testConfig.boss.initialHealth * 0.3);
+            for (let i = 0; i < testConfig.boss.initialHealth - lowHealthThreshold; i++) {
                 boss.takeDamage();
             }
             
@@ -429,7 +431,7 @@ describe('Boss', () => {
 
         test('連続ダメージでエラーが発生しない', () => {
             // 体力以上のダメージを与える
-            for (let i = 0; i < GAME_CONSTANTS.BOSS.INITIAL_HEALTH + 10; i++) {
+            for (let i = 0; i < testConfig.boss.initialHealth + 10; i++) {
                 expect(() => boss.takeDamage()).not.toThrow();
             }
         });
@@ -438,7 +440,7 @@ describe('Boss', () => {
     describe('統合テスト', () => {
         test('ボスのライフサイクル全体', () => {
             // 初期化確認
-            expect(boss.getPosition().y).toBe(-GAME_CONSTANTS.BOSS.HEIGHT);
+            expect(boss.getPosition().y).toBe(-testConfig.boss.height);
             
             // 降下フェーズ
             while (boss.getY() < 50) {
@@ -471,7 +473,7 @@ describe('Boss', () => {
             }
             
             // 射撃タイミングで更新
-            jest.spyOn(Date, 'now').mockReturnValue(GAME_CONSTANTS.BOSS.FIRE_RATE + 1);
+            jest.spyOn(Date, 'now').mockReturnValue(testConfig.boss.fireRate + 1);
             boss.update(100);
             
             expect(mockGameEngine.getBullets().length).toBeGreaterThan(0);

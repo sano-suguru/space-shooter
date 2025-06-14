@@ -1,6 +1,5 @@
 import { IGameEngine } from "../interfaces/IGameEngine";
 import { EnemyType, MovementPattern, Vector2D } from "../types";
-import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { GameObject } from "./GameObject";
 import { GameConfig, createGameConfig } from "../config/GameConfigFactory";
 

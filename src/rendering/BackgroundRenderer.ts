@@ -1,4 +1,3 @@
-import { GAME_CONSTANTS } from '../constants/GameConstants';
 import { Star } from '../entities/Star';
 import { Planet } from '../entities/Planet';
 import { Nebula } from '../entities/Nebula';

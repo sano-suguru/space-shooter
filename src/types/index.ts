@@ -1,5 +1,3 @@
-import { Player } from "../entities/Player";
-
 export type GameConstants = {
     readonly CANVAS: {
         readonly WIDTH: number;
@@ -57,7 +55,7 @@ export type GameConstants = {
         readonly TYPES: {
             readonly [key in PowerUpType]: {
                 readonly color: string;
-                readonly effect: (player: Player) => void;
+                readonly effect: ((player: any) => void) | null; // 循環依存を回避するためanyを使用
             };
         };
     };

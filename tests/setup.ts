@@ -68,7 +68,44 @@ afterAll(() => {
 // Reset all mocks after each test
 afterEach(() => {
   jest.clearAllMocks();
+  
+  // タイマーとアニメーションフレームのクリーンアップログ
+  console.log('🧹 Cleaning up timers and animation frames...');
+  
+  // 全てのタイマーをクリア
+  jest.clearAllTimers();
+  jest.useRealTimers();
+  
+  // アクティブなタイマーの数をログ出力
+  const activeTimeouts = (globalThis as any)._activeTimeouts;
+  if (activeTimeouts && activeTimeouts.size > 0) {
+    console.warn(`⚠️  ${activeTimeouts.size} active timeouts detected after test`);
+    activeTimeouts.forEach((timerId: any) => clearTimeout(timerId));
+    activeTimeouts.clear();
+  }
+  
+  // アクティブなアニメーションフレームをクリーンアップ
+  const activeFrames = (globalThis as any)._activeAnimationFrames;
+  if (activeFrames && activeFrames.size > 0) {
+    console.warn(`⚠️  ${activeFrames.size} active animation frames detected after test`);
+    activeFrames.forEach((frameId: any) => cancelAnimationFrame(frameId));
+    activeFrames.clear();
+  }
+  
+  // グローバルなアニメーションフレームをクリーンアップ
+  const activeGlobalFrames = (globalThis as any)._activeGlobalAnimationFrames;
+  if (activeGlobalFrames && activeGlobalFrames.size > 0) {
+    console.warn(`⚠️  ${activeGlobalFrames.size} active global animation frames detected after test`);
+    activeGlobalFrames.forEach((frameId: any) => clearTimeout(frameId));
+    activeGlobalFrames.clear();
+  }
 });
 
 // Global test timeout
 jest.setTimeout(10000);
+
+// テスト開始前のログ
+beforeEach(() => {
+  console.log('🧪 Starting test...');
+  jest.useFakeTimers();
+});

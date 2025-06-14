@@ -4,7 +4,6 @@ import { EventMap } from '../../src/events/EventType';
 import { IGameEngine } from '../../src/interfaces/IGameEngine';
 import { MockInputManager } from '../../src/managers/MockInputManager';
 import { MockRandomProvider } from '../../src/providers/MockRandomProvider';
-import { GAME_CONSTANTS } from '../../src/constants/GameConstants';
 import { createTestConfig, GameConfig } from '../../src/config/GameConfigFactory';
 import { PowerUpEffectService } from '../../src/services/PowerUpEffectService';
 import '../canvas.setup';
@@ -69,20 +68,45 @@ describe('Player', () => {
         jest.spyOn(Date, 'now').mockReturnValue(1000);
         
         // setTimeoutのモック - パワーアップ持続時間のため即座に実行しない
-        jest.spyOn(globalThis, 'setTimeout').mockImplementation((_callback, delay) => {
+        jest.spyOn(globalThis, 'setTimeout').mockImplementation((callback, delay) => {
             // パワーアップテスト用にタイマーIDを返すが、実際の実行は手動制御
-            return delay as any;
+            console.log(`🕐 setTimeout called with delay: ${delay}ms`);
+            const timerId = delay as any;
+            // タイマーIDを記録してクリーンアップできるようにする
+            (globalThis as any)._activeTimeouts = (globalThis as any)._activeTimeouts || new Set();
+            (globalThis as any)._activeTimeouts.add(timerId);
+            return timerId;
+        });
+        
+        // clearTimeoutのモック
+        jest.spyOn(globalThis, 'clearTimeout').mockImplementation((timerId) => {
+            console.log(`🧹 clearTimeout called for timer: ${timerId}`);
+            if ((globalThis as any)._activeTimeouts) {
+                (globalThis as any)._activeTimeouts.delete(timerId);
+            }
         });
     });
 
     afterEach(() => {
+        // アクティブなタイマーをクリーンアップ
+        const activeTimeouts = (globalThis as any)._activeTimeouts;
+        if (activeTimeouts && activeTimeouts.size > 0) {
+            console.warn(`⚠️  ${activeTimeouts.size} active timeouts detected in Player.test.ts`);
+            activeTimeouts.forEach((timerId: any) => {
+                console.log(`🧹 Clearing timeout: ${timerId}`);
+                clearTimeout(timerId);
+            });
+            activeTimeouts.clear();
+        }
+        
         jest.restoreAllMocks();
     });
 
     describe('初期化', () => {
         test('プレイヤーが正しい初期位置に配置される', () => {
-            const expectedX = GAME_CONSTANTS.CANVAS.WIDTH / 2 - GAME_CONSTANTS.PLAYER.WIDTH / 2;
-            const expectedY = GAME_CONSTANTS.CANVAS.HEIGHT - GAME_CONSTANTS.PLAYER.HEIGHT - 10;
+            const testConfig = createTestConfig();
+            const expectedX = testConfig.canvas.width / 2 - testConfig.player.width / 2;
+            const expectedY = testConfig.canvas.height - testConfig.player.height - 10;
             const position = player.getPosition();
 
             expect(position.x).toBe(expectedX);
@@ -90,13 +114,15 @@ describe('Player', () => {
         });
 
         test('初期体力が最大値に設定される', () => {
-            expect(player.getHealth()).toBe(GAME_CONSTANTS.PLAYER.MAX_HEALTH);
+            const testConfig = createTestConfig();
+            expect(player.getHealth()).toBe(testConfig.player.maxHealth);
         });
 
         test('初期位置が正しく取得できる', () => {
+            const testConfig = createTestConfig();
             const position = player.getPosition();
-            const expectedX = GAME_CONSTANTS.CANVAS.WIDTH / 2 - GAME_CONSTANTS.PLAYER.WIDTH / 2;
-            const expectedY = GAME_CONSTANTS.CANVAS.HEIGHT - GAME_CONSTANTS.PLAYER.HEIGHT - 10;
+            const expectedX = testConfig.canvas.width / 2 - testConfig.player.width / 2;
+            const expectedY = testConfig.canvas.height - testConfig.player.height - 10;
 
             expect(position.x).toBe(expectedX);
             expect(position.y).toBe(expectedY);
@@ -157,7 +183,8 @@ describe('Player', () => {
                 player.update(0.016);
             }
 
-            const maxMovement = GAME_CONSTANTS.PLAYER.MAX_SPEED * 0.016;
+            const testConfig = createTestConfig();
+            const maxMovement = testConfig.player.maxSpeed * 0.016;
             const previousPosition = player.getPosition();
             player.update(0.016);
             const movement = player.getPosition().x - previousPosition.x;
@@ -203,7 +230,8 @@ describe('Player', () => {
                 player.update(0.016);
             }
 
-            expect(player.getPosition().x).toBe(GAME_CONSTANTS.CANVAS.WIDTH - GAME_CONSTANTS.PLAYER.WIDTH);
+            const testConfig = createTestConfig();
+            expect(player.getPosition().x).toBe(testConfig.canvas.width - testConfig.player.width);
         });
 
         test('画面境界で停止する - 上端', () => {
@@ -223,7 +251,8 @@ describe('Player', () => {
                 player.update(0.016);
             }
 
-            expect(player.getPosition().y).toBe(GAME_CONSTANTS.CANVAS.HEIGHT - GAME_CONSTANTS.PLAYER.HEIGHT);
+            const testConfig = createTestConfig();
+            expect(player.getPosition().y).toBe(testConfig.canvas.height - testConfig.player.height);
         });
     });
 
@@ -269,8 +298,8 @@ describe('Player', () => {
             player.update(0.016);
             const firstCallCount = mockGameEngine.createBullet.mock.calls.length;
 
-            // 十分な時間経過
-            jest.spyOn(Date, 'now').mockReturnValue(1000 + GAME_CONSTANTS.PLAYER.FIRE_RATE + 100);
+            // 十分な時間経過（デフォルト設定の発射間隔: 200ms）
+            jest.spyOn(Date, 'now').mockReturnValue(1000 + 200 + 100); // デフォルト発射間隔
             player.update(0.016);
             const secondCallCount = mockGameEngine.createBullet.mock.calls.length;
 
@@ -343,7 +372,7 @@ describe('Player', () => {
             player.update(0.016);
             
             // RAPID_FIRE効果でfireRateが半分になるので、100ms + 10ms後に射撃可能
-            jest.spyOn(Date, 'now').mockReturnValue(1000 + GAME_CONSTANTS.PLAYER.FIRE_RATE / 2 + 10);
+            jest.spyOn(Date, 'now').mockReturnValue(1000 + 100 + 10); // デフォルト発射間隔 / 2
             player.update(0.016);
 
             // RAPID_FIRE効果で発射間隔が短くなるはず
@@ -410,7 +439,8 @@ describe('Player', () => {
             eventEmitter.on('gameOver', gameOverSpy);
 
             // 最大体力以上のダメージを与える
-            player.takeDamage(GAME_CONSTANTS.PLAYER.MAX_HEALTH + 10);
+            const testConfig = createTestConfig();
+            player.takeDamage(testConfig.player.maxHealth + 10);
 
             expect(player.getHealth()).toBe(0);
             expect(gameOverSpy).toHaveBeenCalled();
@@ -433,8 +463,8 @@ describe('Player', () => {
             player.takeDamage(10);
             const healthAfterFirstDamage = player.getHealth();
 
-            // 無敵時間経過
-            jest.spyOn(Date, 'now').mockReturnValue(1000 + GAME_CONSTANTS.PLAYER.INVINCIBILITY_TIME + 100);
+            // 無敵時間経過（デフォルト設定の無敵時間: 1000ms）
+            jest.spyOn(Date, 'now').mockReturnValue(1000 + 1000 + 100); // デフォルト無敵時間
             player.update(0.016); // 無敵状態更新
 
             // 2回目のダメージ
@@ -647,9 +677,9 @@ describe('Player', () => {
             legacyConfigPlayer.activatePowerup('RAPID_FIRE');
             
             // レガシー実装では設定の発射レートが使用される
-            // GAME_CONSTANTS.PLAYER.FIRE_RATE / 2 = 200 / 2 = 100
+            // testConfig.player.fireRate / 2 = 75 / 2 = 37.5
             // しかし、deactivateでは this.config.player.fireRate が使用される
-            expect(legacyConfigPlayer.getFireRate()).toBe(100); // GAME_CONSTANTS値
+            expect(legacyConfigPlayer.getFireRate()).toBe(37.5); // testConfig値
         });
 
         test('設定の動的変更', () => {
