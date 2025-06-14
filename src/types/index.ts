@@ -55,7 +55,7 @@ export type GameConstants = {
         readonly TYPES: {
             readonly [key in PowerUpType]: {
                 readonly color: string;
-                readonly effect: ((player: any) => void) | null; // 循環依存を回避するためanyを使用
+                readonly effect: ((player: import('../interfaces/IPlayer').IPlayer) => void) | null;
             };
         };
     };

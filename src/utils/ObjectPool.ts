@@ -65,14 +65,15 @@ export class ObjectPool<T> {
  * 複数のオブジェクトプールを管理するマネージャー
  */
 export class PoolManager {
-    private pools = new Map<string, ObjectPool<any>>();
+    private pools = new Map<string, ObjectPool<unknown>>();
 
     register<T>(name: string, pool: ObjectPool<T>): void {
-        this.pools.set(name, pool);
+        this.pools.set(name, pool as ObjectPool<unknown>);
     }
 
     getPool<T>(name: string): ObjectPool<T> | undefined {
-        return this.pools.get(name);
+        const pool = this.pools.get(name);
+        return pool as ObjectPool<T> | undefined;
     }
 
     clearAll(): void {

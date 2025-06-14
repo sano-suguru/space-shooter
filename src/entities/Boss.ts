@@ -21,7 +21,7 @@ export class Boss extends GameObject {
     private thrusterNodes: Array<{ x: number; y: number; size: number; pulse: number }> = [];
     private energyBeams: Array<{ angle: number; length: number; intensity: number; rotation: number }> = [];
 
-    constructor(game: IGameEngine, config?: GameConfig, powerUpEffectService?: PowerUpEffectService) {
+    constructor(game: IGameEngine, config?: GameConfig, _powerUpEffectService?: PowerUpEffectService) {
         // 後方互換性のため、configが未指定の場合はデフォルト設定を使用
         const gameConfig = config || createGameConfig();
 

@@ -3,10 +3,10 @@ import { Updateable } from "../types/Updateable";
 
 export abstract class GameObject implements Drawable, Updateable {
     constructor(
-        protected x: number,
-        protected y: number,
-        protected width: number,
-        protected height: number
+        public x: number,
+        public y: number,
+        public width: number,
+        public height: number
     ) { }
 
     abstract update(deltaTime: number): void;

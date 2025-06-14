@@ -367,7 +367,7 @@ export interface GameEventHandlers {
 export interface UIEventHandlers {
   onMenuOpen?: (menuType: string) => void;
   onMenuClose?: (menuType: string) => void;
-  onSettingsChange?: (key: string, value: any) => void;
+  onSettingsChange?: (key: string, value: string | number | boolean) => void;
   onThemeChange?: (theme: string) => void;
 }
 

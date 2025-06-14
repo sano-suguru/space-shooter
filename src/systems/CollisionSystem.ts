@@ -1,6 +1,10 @@
 import { GameObject } from '../entities/GameObject';
 import { Player } from '../entities/Player';
 import { Boss } from '../entities/Boss';
+import { Bullet } from '../entities/Bullet';
+import { Enemy } from '../entities/Enemy';
+import { PowerUp } from '../entities/PowerUp';
+import { IPlayer } from '../interfaces/IPlayer';
 import { EventEmitter } from '../events/EventEmitter';
 import { EventMap } from '../events/EventType';
 import { GameObjectManager } from '../managers/GameObjectManager';
@@ -27,10 +31,10 @@ export class CollisionSystem {
      * メインの衝突判定処理
      * 全ての衝突判定を統合的に実行
      */
-    public checkAllCollisions(player: Player): void {
+    public checkAllCollisions(player: IPlayer): void {
         // 衝突可能な全オブジェクトを取得
         const allObjects = this.gameObjectManager.getAllCollidableObjects();
-        allObjects.push(player);
+        allObjects.push(player as unknown as GameObject);
 
         // 空間分割による最適化を適用
         this.collisionOptimizer.updateSpatialHash(allObjects);
@@ -66,14 +70,13 @@ export class CollisionSystem {
             this.totalChecks += enemies.length; // 理論上の総当たり数
 
             for (const nearbyObj of nearbyObjects) {
-                // 型安全性を保ちつつ敵オブジェクトかチェック
-                if (enemies.includes(nearbyObj as any)) {
-                    const enemy = nearbyObj as any;
-                    if (this.checkCollision(bullet, enemy)) {
+                // 型ガードを使用して敵オブジェクトかチェック
+                if (this.isEnemy(nearbyObj) && enemies.includes(nearbyObj)) {
+                    if (this.checkCollision(bullet, nearbyObj)) {
                         bullet.deactivate();
-                        if (enemy.takeDamage()) {
-                            this.eventEmitter.emit('enemyDestroyed', enemy);
-                            this.gameObjectManager.removeEnemy(enemy);
+                        if (nearbyObj.takeDamage()) {
+                            this.eventEmitter.emit('enemyDestroyed', nearbyObj);
+                            this.gameObjectManager.removeEnemy(nearbyObj);
                         }
                         // 弾丸は一度の衝突で無効化されるが、同じ座標の敵もチェック
                     }
@@ -86,20 +89,19 @@ export class CollisionSystem {
      * 弾丸とプレイヤーの衝突判定（SpatialHash最適化版）
      * 敵弾丸がプレイヤーに当たった場合を処理
      */
-    private checkBulletPlayerCollisions(player: Player): void {
+    private checkBulletPlayerCollisions(player: IPlayer): void {
         const bullets = this.gameObjectManager.getBullets();
         if (bullets.length === 0) return;
 
-        const nearbyObjects = this.collisionOptimizer.getSpatialHash().getNearby(player);
+        const nearbyObjects = this.collisionOptimizer.getSpatialHash().getNearby(player as unknown as GameObject);
         this.spatialHashChecks += nearbyObjects.size;
         this.totalChecks += bullets.length;
 
         for (const nearbyObj of nearbyObjects) {
-            if (bullets.includes(nearbyObj as any)) {
-                const bullet = nearbyObj as any;
-                if (bullet.isActive() && this.checkCollision(player, bullet)) {
+            if (this.isBullet(nearbyObj) && bullets.includes(nearbyObj)) {
+                if (nearbyObj.isActive() && this.checkCollision(player as unknown as GameObject, nearbyObj)) {
                     this.eventEmitter.emit('playerDamaged', 20);
-                    bullet.deactivate();
+                    nearbyObj.deactivate();
                     break; // プレイヤーは一度の衝突で処理終了
                 }
             }
@@ -109,21 +111,20 @@ export class CollisionSystem {
     /**
      * プレイヤーと敵の衝突判定（SpatialHash最適化版）
      */
-    private checkPlayerEnemyCollisions(player: Player): void {
+    private checkPlayerEnemyCollisions(player: IPlayer): void {
         const enemies = this.gameObjectManager.getEnemies();
         if (enemies.length === 0) return;
 
-        const nearbyObjects = this.collisionOptimizer.getSpatialHash().getNearby(player);
+        const nearbyObjects = this.collisionOptimizer.getSpatialHash().getNearby(player as unknown as GameObject);
         this.spatialHashChecks += nearbyObjects.size;
         this.totalChecks += enemies.length;
 
         for (const nearbyObj of nearbyObjects) {
-            if (enemies.includes(nearbyObj as any)) {
-                const enemy = nearbyObj as any;
-                if (this.checkCollision(player, enemy)) {
+            if (this.isEnemy(nearbyObj) && enemies.includes(nearbyObj)) {
+                if (this.checkCollision(player as unknown as GameObject, nearbyObj)) {
                     this.eventEmitter.emit('playerDamaged', 20);
-                    this.eventEmitter.emit('enemyDestroyed', enemy);
-                    this.gameObjectManager.removeEnemy(enemy);
+                    this.eventEmitter.emit('enemyDestroyed', nearbyObj);
+                    this.gameObjectManager.removeEnemy(nearbyObj);
                 }
             }
         }
@@ -132,20 +133,19 @@ export class CollisionSystem {
     /**
      * プレイヤーとパワーアップの衝突判定（SpatialHash最適化版）
      */
-    private checkPlayerPowerupCollisions(player: Player): void {
+    private checkPlayerPowerupCollisions(player: IPlayer): void {
         const powerups = this.gameObjectManager.getPowerups();
         if (powerups.length === 0) return;
 
-        const nearbyObjects = this.collisionOptimizer.getSpatialHash().getNearby(player);
+        const nearbyObjects = this.collisionOptimizer.getSpatialHash().getNearby(player as unknown as GameObject);
         this.spatialHashChecks += nearbyObjects.size;
         this.totalChecks += powerups.length;
 
         for (const nearbyObj of nearbyObjects) {
-            if (powerups.includes(nearbyObj as any)) {
-                const powerup = nearbyObj as any;
-                if (this.checkCollision(player, powerup)) {
-                    this.eventEmitter.emit('powerUpCollected', powerup);
-                    this.gameObjectManager.removePowerUp(powerup);
+            if (this.isPowerUp(nearbyObj) && powerups.includes(nearbyObj)) {
+                if (this.checkCollision(player as unknown as GameObject, nearbyObj)) {
+                    this.eventEmitter.emit('powerUpCollected', nearbyObj);
+                    this.gameObjectManager.removePowerUp(nearbyObj);
                 }
             }
         }
@@ -154,12 +154,12 @@ export class CollisionSystem {
     /**
      * ボス戦の衝突判定（部分的SpatialHash最適化）
      */
-    private checkBossBattleCollisions(player: Player, boss: Boss): void {
+    private checkBossBattleCollisions(player: IPlayer, boss: Boss): void {
         const bullets = this.gameObjectManager.getBullets();
         const bossBullets = this.gameObjectManager.getBossBullets();
 
         // プレイヤーとボスの衝突（単体なので従来通り）
-        if (this.checkCollision(player, boss)) {
+        if (this.checkCollision(player as unknown as GameObject, boss)) {
             this.eventEmitter.emit('playerDamaged', 20);
         }
 
@@ -175,10 +175,10 @@ export class CollisionSystem {
 
         // プレイヤーとボス弾の衝突（ボス弾側を最適化）
         if (bossBullets.length > 0) {
-            const nearbyObjects = this.collisionOptimizer.getSpatialHash().getNearby(player);
+            const nearbyObjects = this.collisionOptimizer.getSpatialHash().getNearby(player as unknown as GameObject);
             bossBullets.forEach((bossBullet, index) => {
                 if (nearbyObjects.has(bossBullet)) {
-                    if (this.checkCollision(player, bossBullet)) {
+                    if (this.checkCollision(player as unknown as GameObject, bossBullet)) {
                         this.eventEmitter.emit('playerDamaged', 20);
                         // ボス弾は一度当たったら消える
                         bossBullets.splice(index, 1);
@@ -193,6 +193,27 @@ export class CollisionSystem {
      */
     private checkCollision(obj1: GameObject, obj2: GameObject): boolean {
         return checkCollision(obj1, obj2);
+    }
+
+    /**
+     * 型ガード関数：オブジェクトがEnemyかどうかを判定
+     */
+    private isEnemy(obj: GameObject): obj is Enemy {
+        return obj instanceof Enemy;
+    }
+
+    /**
+     * 型ガード関数：オブジェクトがBulletかどうかを判定
+     */
+    private isBullet(obj: GameObject): obj is Bullet {
+        return obj instanceof Bullet;
+    }
+
+    /**
+     * 型ガード関数：オブジェクトがPowerUpかどうかを判定
+     */
+    private isPowerUp(obj: GameObject): obj is PowerUp {
+        return obj instanceof PowerUp;
     }
 
     /**
@@ -216,7 +237,7 @@ export class CollisionSystem {
     /**
      * パフォーマンス測定用：処理時間を測定
      */
-    public measureCollisionPerformance(player: Player): number {
+    public measureCollisionPerformance(player: IPlayer): number {
         const startTime = performance.now();
         this.checkAllCollisions(player);
         const endTime = performance.now();

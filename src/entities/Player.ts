@@ -5,11 +5,13 @@ import { GameObject } from "./GameObject";
 import { EventMap } from "../events/EventType";
 import { IInputManager } from "../interfaces/IInputManager";
 import { IRandomProvider } from "../providers/IRandomProvider";
+import { IGame } from "../interfaces/IGame";
+import { IPlayer } from "../interfaces/IPlayer";
 import { PlayerRenderer } from "../rendering/PlayerRenderer";
 import { GameConfig, createGameConfig } from "../config/GameConfigFactory";
 import { PowerUpEffectService } from "../services/PowerUpEffectService";
 
-export class Player extends GameObject {
+export class Player extends GameObject implements IPlayer {
     private velocity: Vector2D = { x: 0, y: 0 };
     private health: number;
     private maxHealth: number;
@@ -21,7 +23,7 @@ export class Player extends GameObject {
     private lastFireTime = 0;
     private thrusterParticles: Array<{ x: number; y: number; speed: number; life: number }> = [];
     private playerRenderer: PlayerRenderer;
-    private game?: any;
+    private game?: IGame;
     private config: GameConfig;
     private powerUpEffectService?: PowerUpEffectService;
 
@@ -340,7 +342,7 @@ export class Player extends GameObject {
     /**
      * 後からGameインスタンスを設定（循環依存回避のため）
      */
-    public setGame(game: any): void {
+    public setGame(game: IGame): void {
         this.game = game;
     }
 

@@ -1,4 +1,4 @@
-import { WaveConfig } from "../types";
+import { WaveConfig, FormationType } from "../types";
 
 /**
  * ウェーブ設定データを管理するクラス
@@ -130,7 +130,7 @@ export class WaveConfiguration {
     /**
      * ランダムなフォーメーションを選択
      */
-    private static getRandomFormation(formations: string[]): any {
+    private static getRandomFormation(formations: FormationType[]): FormationType {
         return formations[Math.floor(Math.random() * formations.length)];
     }
 

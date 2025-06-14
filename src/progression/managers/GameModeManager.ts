@@ -192,18 +192,32 @@ export class GameModeManager {
 
         // Apply specific modifier mappings using type-safe property access
         if ('enemySpeed' in result && typeof result['enemySpeed'] === 'number') {
-            (result as any).enemySpeed *= modifiers.enemySpeedMultiplier;
+            this.applyModifierSafely(result, 'enemySpeed', modifiers.enemySpeedMultiplier);
         }
         
         if ('enemyHealth' in result && typeof result['enemyHealth'] === 'number') {
-            (result as any).enemyHealth *= modifiers.enemyHealthMultiplier;
+            this.applyModifierSafely(result, 'enemyHealth', modifiers.enemyHealthMultiplier);
         }
         
         if ('spawnRate' in result && typeof result['spawnRate'] === 'number') {
-            (result as any).spawnRate *= modifiers.enemySpawnRateMultiplier;
+            this.applyModifierSafely(result, 'spawnRate', modifiers.enemySpawnRateMultiplier);
         }
 
         return result;
+    }
+
+    /**
+     * 型安全にモディファイアを適用
+     */
+    private applyModifierSafely<T extends Record<string, number>>(
+        target: T,
+        key: keyof T,
+        multiplier: number
+    ): void {
+        const currentValue = target[key];
+        if (typeof currentValue === 'number') {
+            target[key] = (currentValue * multiplier) as T[keyof T];
+        }
     }
 
     /**

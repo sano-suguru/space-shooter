@@ -1,18 +1,21 @@
 import { Player } from '../../src/entities/Player';
 import { EventEmitter } from '../../src/events/EventEmitter';
 import { EventMap } from '../../src/events/EventType';
-import { IGameEngine } from '../../src/interfaces/IGameEngine';
+import { IGame } from '../../src/interfaces/IGame';
 import { MockInputManager } from '../../src/managers/MockInputManager';
 import { MockRandomProvider } from '../../src/providers/MockRandomProvider';
 import { createTestConfig, GameConfig } from '../../src/config/GameConfigFactory';
 import { PowerUpEffectService } from '../../src/services/PowerUpEffectService';
 import '../canvas.setup';
 
-// モックGameEngineクラス
-class MockGameEngine implements IGameEngine {
+// モックGameクラス
+class MockGameEngine implements IGame {
     public createBullet = jest.fn();
     public addBossBullet = jest.fn();
+    public addEnemy = jest.fn();
+    public showMessage = jest.fn();
     public getDifficultyFactor = jest.fn().mockReturnValue(1);
+    public getCurrentBossHealth = jest.fn().mockReturnValue(100);
 }
 
 describe('Player', () => {
@@ -68,7 +71,7 @@ describe('Player', () => {
         jest.spyOn(Date, 'now').mockReturnValue(1000);
         
         // setTimeoutのモック - パワーアップ持続時間のため即座に実行しない
-        jest.spyOn(globalThis, 'setTimeout').mockImplementation((callback, delay) => {
+        jest.spyOn(globalThis, 'setTimeout').mockImplementation((_callback, delay) => {
             // パワーアップテスト用にタイマーIDを返すが、実際の実行は手動制御
             console.log(`🕐 setTimeout called with delay: ${delay}ms`);
             const timerId = delay as any;
@@ -630,7 +633,8 @@ describe('Player', () => {
         });
 
         test('PowerUpEffectServiceを使用したパワーアップ', () => {
-            const initialFireRate = configPlayer.getFireRate();
+            // Test that getFireRate returns the expected value
+            configPlayer.getFireRate();
             configPlayer.activatePowerup('RAPID_FIRE');
             
             // PowerUpEffectServiceによる効果適用
@@ -673,7 +677,8 @@ describe('Player', () => {
                 // PowerUpEffectServiceなし
             );
             
-            const initialFireRate = legacyConfigPlayer.getFireRate(); // 75 (testConfig)
+            // Test that getFireRate returns the expected value for legacy config
+            legacyConfigPlayer.getFireRate(); // 75 (testConfig)
             legacyConfigPlayer.activatePowerup('RAPID_FIRE');
             
             // レガシー実装では設定の発射レートが使用される

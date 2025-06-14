@@ -56,7 +56,15 @@ export type EventMap = Readonly<{
     
     // 敵生成システムイベント
     'dynamicEnemyGenerated': (enemy: DynamicEnemyConfig) => void;
-    'enemyBatchGenerated': (enemies: DynamicEnemyConfig[], stats: any) => void;
+    'enemyBatchGenerated': (enemies: DynamicEnemyConfig[], stats: {
+        totalCount: number;
+        typeDistribution: Record<string, number>;
+        eliteCount: number;
+        averagePower: number;
+        flockCount: number;
+        specialAbilityCount: number;
+        difficultyLevel: string;
+    }) => void;
     'flockDestroyed': (flockId: string) => void;
     'enemyGenerationSystemReset': () => void;
 }> & GameCommandMap;

@@ -4,6 +4,7 @@ import { Bullet } from '../entities/Bullet';
 import { Enemy } from '../entities/Enemy';
 import { Player } from '../entities/Player';
 import { PowerUp } from '../entities/PowerUp';
+import { IGame } from '../interfaces/IGame';
 import { EventEmitter } from '../events/EventEmitter';
 import { EventMap } from '../events/EventType';
 import { GameObjectFactory } from '../factories/GameObjectFactory';
@@ -22,7 +23,7 @@ import { IMessageManager } from '../interfaces/IMessageManager';
 import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
 import { PowerUpEffectService } from '../services/PowerUpEffectService';
 
-export class Game {
+export class Game implements IGame {
     private ctx: CanvasRenderingContext2D;
     private level = 1;
     private bossSpawnScore: number = 1000;

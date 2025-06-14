@@ -1,5 +1,6 @@
 import { PowerUpType } from "../types";
 import { GameObject } from "./GameObject";
+import { IPlayer } from "../interfaces/IPlayer";
 import { GameConfig, createGameConfig } from "../config/GameConfigFactory";
 import { PowerUpEffectService } from "../services/PowerUpEffectService";
 
@@ -143,7 +144,7 @@ export class PowerUp extends GameObject {
     /**
      * PowerUp効果を適用する（PowerUpEffectServiceを使用）
      */
-    public applyEffect(player: any): void {
+    public applyEffect(player: IPlayer): void {
         if (this.effectService) {
             this.effectService.applyEffect(player, this.type);
         } else {
@@ -155,7 +156,7 @@ export class PowerUp extends GameObject {
     /**
      * 基本的な効果を直接適用（PowerUpEffectServiceが利用できない場合）
      */
-    private applyBasicEffect(player: any): void {
+    private applyBasicEffect(player: IPlayer): void {
         switch (this.type) {
             case 'RAPID_FIRE':
                 if (player.setFireRate) {

@@ -120,7 +120,8 @@ describe('Bullet', () => {
       expect(bullet.isOnScreen()).toBe(true);
       
       // 画面外に移動
-      const config = createGameConfig();
+      // Config creation test - ensuring no errors during creation
+      createGameConfig();
       for (let i = 0; i < 100; i++) {
         bullet.update(0.016);
       }

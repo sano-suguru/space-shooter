@@ -1,5 +1,5 @@
-import { createGameConfig, createTestConfig } from '../../src/config/GameConfigFactory';
-import { RealRandomProvider, RealTimeProvider } from '../../src/providers';
+import { createGameConfig } from '../../src/config/GameConfigFactory';
+import { RealRandomProvider } from '../../src/providers';
 import { Explosion } from '../../src/entities/Explosion';
 import { Star } from '../../src/entities/Star';
 import { Planet } from '../../src/entities/Planet';
@@ -11,15 +11,11 @@ import { SpaceDust } from '../../src/entities/SpaceDust';
 
 describe('Phase 5 Integration Tests - 残りのクラス移行と統合テスト', () => {
   let config: ReturnType<typeof createGameConfig>;
-  let testConfig: ReturnType<typeof createTestConfig>;
   let randomProvider: RealRandomProvider;
-  let timeProvider: RealTimeProvider;
 
   beforeEach(() => {
     config = createGameConfig();
-    testConfig = createTestConfig();
     randomProvider = new RealRandomProvider();
-    timeProvider = new RealTimeProvider();
   });
 
   describe('Explosion クラス設定注入', () => {

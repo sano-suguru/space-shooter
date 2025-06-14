@@ -1,4 +1,4 @@
-import { createGameConfig, createTestConfig, GameConfig } from '../../src/config/GameConfigFactory';
+import { createGameConfig, createTestConfig } from '../../src/config/GameConfigFactory';
 
 describe('GameConfigFactory', () => {
   describe('createGameConfig', () => {

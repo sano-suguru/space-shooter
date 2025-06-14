@@ -136,19 +136,35 @@ export class UpgradeManager {
     private addEffectToTotal(effect: UpgradeEffect): void {
         for (const [key, value] of Object.entries(effect)) {
             if (typeof value === 'number') {
-                const currentValue = (this.totalEffect as any)[key] || (
+                const typedKey = key as keyof UpgradeEffect;
+                const currentValue = this.getEffectValueSafely(typedKey) || (
                     key.endsWith('Multiplier') ? 1 : 0
                 );
                 
                 if (key.endsWith('Multiplier')) {
                     // 倍率系は乗算
-                    (this.totalEffect as any)[key] = currentValue * value;
+                    this.setEffectValueSafely(typedKey, currentValue * value);
                 } else {
                     // その他は加算
-                    (this.totalEffect as any)[key] = currentValue + value;
+                    this.setEffectValueSafely(typedKey, currentValue + value);
                 }
             }
         }
+    }
+
+    /**
+     * 型安全にエフェクト値を取得
+     */
+    private getEffectValueSafely(key: keyof UpgradeEffect): number | undefined {
+        const value = this.totalEffect[key];
+        return typeof value === 'number' ? value : undefined;
+    }
+
+    /**
+     * 型安全にエフェクト値を設定
+     */
+    private setEffectValueSafely(key: keyof UpgradeEffect, value: number): void {
+        (this.totalEffect as Record<keyof UpgradeEffect, number>)[key] = value;
     }
 
     /**

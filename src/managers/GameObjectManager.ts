@@ -12,6 +12,7 @@ import { Aurora } from '../entities/Aurora';
 import { Comet } from '../entities/Comet';
 import { MeteorShower } from '../entities/MeteorShower';
 import { SpaceDust } from '../entities/SpaceDust';
+import { IPlayer } from '../interfaces/IPlayer';
 import { EventEmitter } from '../events/EventEmitter';
 import { EventMap } from '../events/EventType';
 import { ObjectPool, PoolManager } from '../utils/ObjectPool';
@@ -29,7 +30,7 @@ export class GameObjectManager {
     private powerups: PowerUp[] = [];
     private bossBullets: BossBullet[] = [];
     private boss: Boss | null = null;
-    private player: any = null;
+    private player: IPlayer | null = null;
 
     // 背景オブジェクト配列
     private stars: Star[] = [];
@@ -333,14 +334,14 @@ export class GameObjectManager {
     /**
      * プレイヤーを設定（テスト用）
      */
-    public setPlayer(player: any): void {
+    public setPlayer(player: IPlayer): void {
         this.player = player;
     }
 
     /**
      * プレイヤーを取得（テスト用）
      */
-    public getPlayer(): any {
+    public getPlayer(): IPlayer | null {
         return this.player;
     }
 

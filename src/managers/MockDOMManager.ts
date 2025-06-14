@@ -1,6 +1,11 @@
 import { IDOMManager } from "../interfaces/IDOMManager";
 
 /**
+ * MockElementをHTMLElementとして扱うための型定義
+ */
+type MockHTMLElement = MockElement & HTMLElement;
+
+/**
  * モック要素クラス
  * テスト用のHTMLElement代替
  */
@@ -86,7 +91,7 @@ export class MockDOMManager implements IDOMManager {
   // 要素取得
   public getElementById(id: string): HTMLElement | null {
     const element = this.elements.get(id);
-    return element ? (element as any) : null;
+    return element ? (element as MockHTMLElement) : null;
   }
 
   public querySelector(selector: string): HTMLElement | null {
@@ -99,7 +104,7 @@ export class MockDOMManager implements IDOMManager {
       const className = selector.substring(1);
       for (const element of this.elements.values()) {
         if (element.classList.contains(className)) {
-          return element as any;
+          return element as MockHTMLElement;
         }
       }
     }
@@ -107,7 +112,7 @@ export class MockDOMManager implements IDOMManager {
     // tagName での検索
     for (const element of this.elements.values()) {
       if (element.tagName === selector.toLowerCase()) {
-        return element as any;
+        return element as MockHTMLElement;
       }
     }
 
@@ -117,71 +122,71 @@ export class MockDOMManager implements IDOMManager {
   // 要素作成・操作
   public createElement(tagName: string): HTMLElement {
     const element = new MockElement(tagName);
-    return element as any;
+    return element as MockHTMLElement;
   }
 
   public appendChild(parent: HTMLElement | Document, child: HTMLElement): void {
-    const parentElement = parent === document ? this.body : (parent as any);
-    const childElement = child as any;
+    const parentElement = parent === document ? this.body : (parent as unknown as MockElement);
+    const childElement = child as unknown as MockElement;
     
     parentElement.appendChild(childElement);
   }
 
   public removeChild(parent: HTMLElement | Document, child: HTMLElement): void {
-    const parentElement = parent === document ? this.body : (parent as any);
-    const childElement = child as any;
+    const parentElement = parent === document ? this.body : (parent as unknown as MockElement);
+    const childElement = child as unknown as MockElement;
     
     parentElement.removeChild(childElement);
   }
 
   // 内容・スタイル操作
   public setTextContent(element: HTMLElement, text: string): void {
-    (element as any).textContent = text;
+    (element as unknown as MockElement).textContent = text;
   }
 
   public getTextContent(element: HTMLElement): string {
-    return (element as any).textContent || '';
+    return (element as unknown as MockElement).textContent || '';
   }
 
   // CSS クラス操作
   public addClass(element: HTMLElement, className: string): void {
-    (element as any).classList.add(className);
+    (element as unknown as MockElement).classList.add(className);
   }
 
   public removeClass(element: HTMLElement, className: string): void {
-    (element as any).classList.remove(className);
+    (element as unknown as MockElement).classList.remove(className);
   }
 
   public hasClass(element: HTMLElement, className: string): boolean {
-    return (element as any).classList.contains(className);
+    return (element as unknown as MockElement).classList.contains(className);
   }
 
   // スタイル操作
   public setStyle(element: HTMLElement, property: string, value: string): void {
-    (element as any).style[property] = value;
+    (element as unknown as MockElement).style[property] = value;
   }
 
   public getStyle(element: HTMLElement, property: string): string {
-    return (element as any).style[property] || '';
+    return (element as unknown as MockElement).style[property] || '';
   }
 
   // 属性操作
   public setAttribute(element: HTMLElement, name: string, value: string): void {
-    (element as any).setAttribute(name, value);
+    (element as unknown as MockElement).setAttribute(name, value);
     
     // IDが設定された場合、要素マップに登録
     if (name === 'id') {
-      this.elements.set(value, element as any);
+      this.elements.set(value, element as unknown as MockElement);
     }
   }
 
   public getAttribute(element: HTMLElement, name: string): string | null {
-    return (element as any).getAttribute(name);
+    return (element as unknown as MockElement).getAttribute(name);
   }
 
   // イベント操作
   public addEventListener(element: HTMLElement | Document, type: string, listener: EventListener): void {
-    const key = `${element === document ? 'document' : (element as any).id || 'unknown'}_${type}`;
+    const key = `${element === document ? 'document' : (element as unknown as MockElement).id || 'unknown'}_${type}`;
     if (!this.eventListeners.has(key)) {
       this.eventListeners.set(key, []);
     }
@@ -189,7 +194,7 @@ export class MockDOMManager implements IDOMManager {
   }
 
   public removeEventListener(element: HTMLElement | Document, type: string, listener: EventListener): void {
-    const key = `${element === document ? 'document' : (element as any).id || 'unknown'}_${type}`;
+    const key = `${element === document ? 'document' : (element as unknown as MockElement).id || 'unknown'}_${type}`;
     const listeners = this.eventListeners.get(key);
     if (listeners) {
       const index = listeners.indexOf(listener);
@@ -201,27 +206,27 @@ export class MockDOMManager implements IDOMManager {
 
   // DOM ツリー操作
   public contains(parent: HTMLElement | Document, child: HTMLElement): boolean {
-    const parentElement = parent === document ? this.body : (parent as any);
-    return parentElement.contains(child);
+    const parentElement = parent === document ? this.body : (parent as unknown as MockElement);
+    return parentElement.contains(child as unknown as MockElement);
   }
 
   // 特殊操作（ゲーム用）
   public getBody(): HTMLElement {
-    return this.body as any;
+    return this.body as MockHTMLElement;
   }
 
   public createCanvas(): HTMLCanvasElement {
     const canvas = new MockElement('canvas');
     // Canvas特有のプロパティを追加
-    (canvas as any).width = 400;
-    (canvas as any).height = 600;
-    (canvas as any).getContext = jest.fn(() => ({
+    (canvas as MockElement & { width: number; height: number; getContext: jest.Mock }).width = 400;
+    (canvas as MockElement & { width: number; height: number; getContext: jest.Mock }).height = 600;
+    (canvas as MockElement & { width: number; height: number; getContext: jest.Mock }).getContext = jest.fn(() => ({
       fillRect: jest.fn(),
       strokeRect: jest.fn(),
       clearRect: jest.fn(),
       // ... 他のCanvas APIメソッド
     }));
-    return canvas as any;
+    return canvas as unknown as HTMLCanvasElement;
   }
 
   // リソース管理

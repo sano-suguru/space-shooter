@@ -198,7 +198,7 @@ export class EnemyGeneratorFactory {
      */
     private generateFlockInfo(
         request: EnemyGenerationRequest,
-        behavior: any
+        behavior: { flockingTendency: number; [key: string]: any }
     ): { flockId?: string; leaderId?: string } {
         if (behavior.flockingTendency < 0.3) {
             return {}; // 群れ傾向が低い場合は単独行動

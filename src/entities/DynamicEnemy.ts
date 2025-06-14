@@ -105,8 +105,8 @@ export class DynamicEnemy extends Enemy {
         }
 
         // デバッグ情報の表示（開発時のみ）
-        // process.envの代わりに簡単な条件を使用
-        if (typeof window !== 'undefined' && (window as any).DEBUG_MODE) {
+        // デバッグモード判定を型安全に実行
+        if (typeof window !== 'undefined' && this.isDebugMode()) {
             this.drawDebugInfo(ctx);
         }
     }
@@ -227,6 +227,17 @@ export class DynamicEnemy extends Enemy {
             const bullet = new BossBullet(x, y, velocityX, velocityY);
             this.game.addBossBullet(bullet);
         }
+    }
+
+    /**
+     * デバッグモードかどうかを判定する型安全なメソッド
+     */
+    private isDebugMode(): boolean {
+        if (typeof window === 'undefined') return false;
+        
+        // windowオブジェクトにDEBUG_MODEプロパティが存在するかチェック
+        const windowWithDebug = window as Window & { DEBUG_MODE?: boolean };
+        return Boolean(windowWithDebug.DEBUG_MODE);
     }
 
     /**

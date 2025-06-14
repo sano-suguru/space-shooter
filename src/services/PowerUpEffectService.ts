@@ -1,11 +1,11 @@
 import { PowerUpType } from '../types';
-import { Player } from '../entities/Player';
+import { IPlayer } from '../interfaces/IPlayer';
 import { GameConfig } from '../config/GameConfigFactory';
 
 export class PowerUpEffectService {
   constructor(private config: GameConfig) {}
   
-  applyEffect(player: Player, type: PowerUpType): void {
+  applyEffect(player: IPlayer, type: PowerUpType): void {
     switch (type) {
       case 'RAPID_FIRE':
         player.setFireRate(this.config.player.fireRate / 2);
@@ -21,7 +21,7 @@ export class PowerUpEffectService {
     }
   }
   
-  removeEffect(player: Player, type: PowerUpType): void {
+  removeEffect(player: IPlayer, type: PowerUpType): void {
     switch (type) {
       case 'RAPID_FIRE':
         player.setFireRate(this.config.player.fireRate);
@@ -38,7 +38,7 @@ export class PowerUpEffectService {
     }
   }
   
-  getEffectDuration(type: PowerUpType): number {
+  getEffectDuration(_type: PowerUpType): number {
     return this.config.powerup.duration;
   }
   

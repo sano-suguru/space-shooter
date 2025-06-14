@@ -3,6 +3,17 @@
  * FPS、描画時間、メモリ使用量の詳細監視とリアルタイム統計情報の収集・表示
  */
 
+// Chrome Performance Memory API の型定義
+interface PerformanceMemory {
+    usedJSHeapSize: number;
+    totalJSHeapSize: number;
+    jsHeapSizeLimit: number;
+}
+
+interface PerformanceWithMemory extends Performance {
+    memory: PerformanceMemory;
+}
+
 export interface PerformanceMetrics {
     fps: number;
     averageFPS: number;
@@ -131,8 +142,8 @@ export class PerformanceMonitor {
      * メモリ使用量を更新
      */
     public updateMemoryUsage(): void {
-        if ('memory' in performance && (performance as any).memory) {
-            const memInfo = (performance as any).memory;
+        if ('memory' in performance && this.hasMemoryInfo(performance)) {
+            const memInfo = performance.memory;
             if (memInfo && typeof memInfo.usedJSHeapSize === 'number') {
                 const usedMemoryMB = memInfo.usedJSHeapSize / (1024 * 1024);
                 
@@ -358,5 +369,12 @@ export class PerformanceMonitor {
         if (this.warnings.length > this.maxWarnings) {
             this.warnings.shift();
         }
+    }
+
+    /**
+     * 型ガード関数：performanceオブジェクトがmemoryプロパティを持つかチェック
+     */
+    private hasMemoryInfo(perf: Performance): perf is PerformanceWithMemory {
+        return 'memory' in perf && typeof (perf as any).memory === 'object';
     }
 }
