@@ -1,5 +1,6 @@
 import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { PooledParticle, globalParticlePoolManager } from "../utils/ParticlePoolManager";
+import { GameConfig } from "../config/GameConfigFactory";
 
 type AuroraType = 'borealis' | 'australis' | 'cosmic' | 'plasma' | 'solar-storm';
 
@@ -128,8 +129,14 @@ export class Aurora {
     private stormIntensity: number;
     private particleCount: number;
     private poolName: string;
+    private config: GameConfig;
 
-    constructor() {
+    constructor(config?: GameConfig) {
+        // 設定注入対応（後方互換性を保持）
+        this.config = config || {
+            canvas: { width: GAME_CONSTANTS.CANVAS.WIDTH, height: GAME_CONSTANTS.CANVAS.HEIGHT }
+        } as GameConfig;
+        
         this.auroraType = this.generateAuroraType();
         this.setupColorPalettes();
         this.currentColors = [...this.colorPalettes[this.auroraType]];
@@ -215,8 +222,8 @@ export class Aurora {
         
         for (let i = 0; i < curtainCount; i++) {
             curtains.push({
-                x: (i / curtainCount) * GAME_CONSTANTS.CANVAS.WIDTH + Math.random() * 100 - 50,
-                y: Math.random() * GAME_CONSTANTS.CANVAS.HEIGHT * 0.3 + 50,
+                x: (i / curtainCount) * this.config.canvas.width + Math.random() * 100 - 50,
+                y: Math.random() * this.config.canvas.height * 0.3 + 50,
                 width: Math.random() * 150 + 100,
                 height: Math.random() * 300 + 200,
                 baseOffset: Math.random() * Math.PI * 2,
@@ -239,8 +246,8 @@ export class Aurora {
         for (let i = 0; i < this.particleCount; i++) {
             const particle = globalParticlePoolManager.getParticle<AuroraParticle>(this.poolName);
             if (particle) {
-                particle.x = Math.random() * GAME_CONSTANTS.CANVAS.WIDTH;
-                particle.y = Math.random() * GAME_CONSTANTS.CANVAS.HEIGHT * 0.6;
+                particle.x = Math.random() * this.config.canvas.width;
+                particle.y = Math.random() * this.config.canvas.height * 0.6;
                 particle.vx = (Math.random() - 0.5) * 2;
                 particle.vy = Math.random() * 3 + 1;
                 particle.life = Math.random() * 180 + 120;
@@ -264,10 +271,10 @@ export class Aurora {
         
         for (let i = 0; i < rayCount; i++) {
             rays.push({
-                startX: Math.random() * GAME_CONSTANTS.CANVAS.WIDTH,
+                startX: Math.random() * this.config.canvas.width,
                 startY: Math.random() * 100,
-                endX: Math.random() * GAME_CONSTANTS.CANVAS.WIDTH,
-                endY: Math.random() * GAME_CONSTANTS.CANVAS.HEIGHT * 0.7 + 100,
+                endX: Math.random() * this.config.canvas.width,
+                endY: Math.random() * this.config.canvas.height * 0.7 + 100,
                 color: this.currentColors[Math.floor(Math.random() * this.currentColors.length)],
                 intensity: Math.random() * 0.6 + 0.4,
                 thickness: Math.random() * 4 + 2
@@ -312,8 +319,8 @@ export class Aurora {
                 // ライフサイクル管理 - パーティクルが非アクティブになった場合の再生成
                 if (!particle.active) {
                     // 新しいパーティクルを生成
-                    particle.x = Math.random() * GAME_CONSTANTS.CANVAS.WIDTH;
-                    particle.y = GAME_CONSTANTS.CANVAS.HEIGHT * 0.8 + Math.random() * 100;
+                    particle.x = Math.random() * this.config.canvas.width;
+                    particle.y = this.config.canvas.height * 0.8 + Math.random() * 100;
                     particle.vx = (Math.random() - 0.5) * 2;
                     particle.vy = Math.random() * 3 + 1;
                     particle.life = particle.maxLife;
@@ -332,8 +339,8 @@ export class Aurora {
         this.rays.forEach(ray => {
             ray.intensity = Math.random() * 0.8 + 0.2;
             if (Math.random() < 0.1) { // 10%の確率で位置を変更
-                ray.startX = Math.random() * GAME_CONSTANTS.CANVAS.WIDTH;
-                ray.endX = Math.random() * GAME_CONSTANTS.CANVAS.WIDTH;
+                ray.startX = Math.random() * this.config.canvas.width;
+                ray.endX = Math.random() * this.config.canvas.width;
             }
         });
     }

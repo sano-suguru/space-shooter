@@ -3,6 +3,8 @@ import { Vector2D } from "../types";
 import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { BossBullet } from "./BossBullet";
 import { GameObject } from "./GameObject";
+import { GameConfig, createGameConfig } from "../config/GameConfigFactory";
+import { PowerUpEffectService } from "../services/PowerUpEffectService";
 
 export class Boss extends GameObject {
     private health: number;
@@ -11,6 +13,7 @@ export class Boss extends GameObject {
     private game: IGameEngine;
     private animationPhase: number = 0;
     private corePulse: number = 0;
+    private config: GameConfig;
 
     // プレイヤーと統一感のある洗練された要素
     private engineGlow: { phase: number; intensity: number } = { phase: 0, intensity: 0 };
@@ -19,14 +22,19 @@ export class Boss extends GameObject {
     private thrusterNodes: Array<{ x: number; y: number; size: number; pulse: number }> = [];
     private energyBeams: Array<{ angle: number; length: number; intensity: number; rotation: number }> = [];
 
-    constructor(game: IGameEngine) {
+    constructor(game: IGameEngine, config?: GameConfig, powerUpEffectService?: PowerUpEffectService) {
+        // 後方互換性のため、configが未指定の場合はデフォルト設定を使用
+        const gameConfig = config || createGameConfig();
+
         super(
-            GAME_CONSTANTS.CANVAS.WIDTH / 2 - GAME_CONSTANTS.BOSS.WIDTH / 2,
-            -GAME_CONSTANTS.BOSS.HEIGHT,
-            GAME_CONSTANTS.BOSS.WIDTH,
-            GAME_CONSTANTS.BOSS.HEIGHT
+            gameConfig.canvas.width / 2 - gameConfig.boss.width / 2,
+            -gameConfig.boss.height,
+            gameConfig.boss.width,
+            gameConfig.boss.height
         );
-        this.health = GAME_CONSTANTS.BOSS.INITIAL_HEALTH;
+        
+        this.config = gameConfig;
+        this.health = gameConfig.boss.initialHealth;
         this.game = game;
 
         this.initializeRefinedStructure();
@@ -81,15 +89,15 @@ export class Boss extends GameObject {
 
     public update(deltaTime: number): void {
         if (this.y < 50) {
-            this.y += GAME_CONSTANTS.BOSS.INITIAL_SPEED * deltaTime;
+            this.y += this.config.boss.initialSpeed * deltaTime;
         } else {
-            const nextX = this.x + this.moveDirection * GAME_CONSTANTS.BOSS.MOVEMENT_SPEED * deltaTime;
+            const nextX = this.x + this.moveDirection * this.config.boss.movementSpeed * deltaTime;
 
             if (nextX <= 0) {
                 this.x = 0;
                 this.moveDirection = 1;
-            } else if (nextX + this.width >= GAME_CONSTANTS.CANVAS.WIDTH) {
-                this.x = GAME_CONSTANTS.CANVAS.WIDTH - this.width;
+            } else if (nextX + this.width >= this.config.canvas.width) {
+                this.x = this.config.canvas.width - this.width;
                 this.moveDirection = -1;
             } else {
                 this.x = nextX;
@@ -128,7 +136,7 @@ export class Boss extends GameObject {
         });
 
         const currentTime = Date.now();
-        if (currentTime - this.lastFireTime > GAME_CONSTANTS.BOSS.FIRE_RATE) {
+        if (currentTime - this.lastFireTime > this.config.boss.fireRate) {
             this.shoot();
             this.lastFireTime = currentTime;
         }
@@ -138,8 +146,8 @@ export class Boss extends GameObject {
         const angleSpread = Math.PI / 6;
         for (let i = -2; i <= 2; i++) {
             const angle = i * (angleSpread / 4);
-            const speedX = Math.sin(angle) * GAME_CONSTANTS.BOSS.BULLET_SPEED;
-            const speedY = Math.cos(angle) * GAME_CONSTANTS.BOSS.BULLET_SPEED;
+            const speedX = Math.sin(angle) * this.config.boss.bulletSpeed;
+            const speedY = Math.cos(angle) * this.config.boss.bulletSpeed;
             this.game.addBossBullet(new BossBullet(
                 this.x + this.width / 2,
                 this.y + this.height,
@@ -170,12 +178,12 @@ export class Boss extends GameObject {
 
         // プレイヤーと同様の深い青系グラデーション
         const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, baseRadius * 1.4);
-        gradient.addColorStop(0, GAME_CONSTANTS.PLAYER.COLORS.ACCENT); // シアン
-        gradient.addColorStop(0.4, GAME_CONSTANTS.PLAYER.COLORS.SECONDARY); // 紺碧
-        gradient.addColorStop(1, GAME_CONSTANTS.PLAYER.COLORS.PRIMARY); // 濃紺
+        gradient.addColorStop(0, this.config.player.colors.accent); // シアン
+        gradient.addColorStop(0.4, this.config.player.colors.secondary); // 紺碧
+        gradient.addColorStop(1, this.config.player.colors.primary); // 濃紺
 
         ctx.fillStyle = gradient;
-        ctx.strokeStyle = GAME_CONSTANTS.PLAYER.COLORS.ACCENT;
+        ctx.strokeStyle = this.config.player.colors.accent;
         ctx.lineWidth = 3;
 
         // プレイヤーのような幾何学的形状（複雑な多角形）
@@ -207,7 +215,7 @@ export class Boss extends GameObject {
             const alpha = Math.floor(opacity * 255).toString(16).padStart(2, '0');
 
             // プレイヤーのシールドと同様の色
-            ctx.strokeStyle = `${GAME_CONSTANTS.PLAYER.COLORS.ACCENT}${alpha}`;
+            ctx.strokeStyle = `${this.config.player.colors.accent}${alpha}`;
             ctx.lineWidth = 2 - index * 0.3;
 
             // 波打つシールドリング
@@ -241,8 +249,8 @@ export class Boss extends GameObject {
             const alpha = Math.floor(glowIntensity * 255).toString(16).padStart(2, '0');
 
             // プレイヤーの補助翼のような幾何学的形状
-            ctx.fillStyle = `${GAME_CONSTANTS.PLAYER.COLORS.SECONDARY}${alpha}`;
-            ctx.strokeStyle = `${GAME_CONSTANTS.PLAYER.COLORS.ACCENT}${alpha}`;
+            ctx.fillStyle = `${this.config.player.colors.secondary}${alpha}`;
+            ctx.strokeStyle = `${this.config.player.colors.accent}${alpha}`;
             ctx.lineWidth = 1.5;
 
             const size = panel.size;
@@ -273,9 +281,9 @@ export class Boss extends GameObject {
 
             // プレイヤーのエンジンのようなグラデーション
             const gradient = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, size * 3);
-            gradient.addColorStop(0, GAME_CONSTANTS.PLAYER.COLORS.ENGINE); // オレンジ
-            gradient.addColorStop(0.4, `${GAME_CONSTANTS.PLAYER.COLORS.ENGINE}80`);
-            gradient.addColorStop(1, `${GAME_CONSTANTS.PLAYER.COLORS.ENGINE}00`);
+            gradient.addColorStop(0, this.config.player.colors.engine); // オレンジ
+            gradient.addColorStop(0.4, `${this.config.player.colors.engine}80`);
+            gradient.addColorStop(1, `${this.config.player.colors.engine}00`);
 
             ctx.fillStyle = gradient;
             ctx.beginPath();
@@ -297,7 +305,7 @@ export class Boss extends GameObject {
             const intensity = Math.sin(beam.intensity) * 0.5 + 0.5;
             const alpha = Math.floor(intensity * 150).toString(16).padStart(2, '0');
 
-            ctx.strokeStyle = `${GAME_CONSTANTS.PLAYER.COLORS.ACCENT}${alpha}`;
+            ctx.strokeStyle = `${this.config.player.colors.accent}${alpha}`;
             ctx.lineWidth = 2;
 
             const startRadius = this.width / 4;
@@ -326,8 +334,8 @@ export class Boss extends GameObject {
         // プレイヤーのコックピットのような中央コア
         const coreGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, coreSize * 2);
         coreGradient.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
-        coreGradient.addColorStop(0.5, `${GAME_CONSTANTS.PLAYER.COLORS.ACCENT}CC`);
-        coreGradient.addColorStop(1, `${GAME_CONSTANTS.PLAYER.COLORS.PRIMARY}80`);
+        coreGradient.addColorStop(0.5, `${this.config.player.colors.accent}CC`);
+        coreGradient.addColorStop(1, `${this.config.player.colors.primary}80`);
 
         ctx.fillStyle = coreGradient;
         ctx.beginPath();
@@ -335,16 +343,16 @@ export class Boss extends GameObject {
         ctx.fill();
 
         // メインコア
-        ctx.fillStyle = GAME_CONSTANTS.PLAYER.COLORS.ACCENT;
+        ctx.fillStyle = this.config.player.colors.accent;
         ctx.beginPath();
         ctx.arc(0, 0, coreSize, 0, Math.PI * 2);
         ctx.fill();
 
         // プレイヤーのエンジンのような輝き
         const engineGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, engineGlowSize);
-        engineGradient.addColorStop(0, GAME_CONSTANTS.PLAYER.COLORS.ENGINE);
-        engineGradient.addColorStop(0.5, `${GAME_CONSTANTS.PLAYER.COLORS.ENGINE}80`);
-        engineGradient.addColorStop(1, `${GAME_CONSTANTS.PLAYER.COLORS.ENGINE}00`);
+        engineGradient.addColorStop(0, this.config.player.colors.engine);
+        engineGradient.addColorStop(0.5, `${this.config.player.colors.engine}80`);
+        engineGradient.addColorStop(1, `${this.config.player.colors.engine}00`);
 
         ctx.fillStyle = engineGradient;
         ctx.beginPath();
@@ -367,7 +375,7 @@ export class Boss extends GameObject {
     }
 
     private drawHealthBar(ctx: CanvasRenderingContext2D): void {
-        const healthPercentage = this.health / GAME_CONSTANTS.BOSS.INITIAL_HEALTH;
+        const healthPercentage = this.health / this.config.boss.initialHealth;
         const barWidth = this.width + 20;
         const barHeight = 8;
 
@@ -378,10 +386,10 @@ export class Boss extends GameObject {
         // プレイヤーの色と統一感のあるグラデーション
         const gradient = ctx.createLinearGradient(this.x - 8, 0, this.x - 8 + barWidth - 4, 0);
         if (healthPercentage > 0.6) {
-            gradient.addColorStop(0, GAME_CONSTANTS.PLAYER.COLORS.ACCENT);
+            gradient.addColorStop(0, this.config.player.colors.accent);
             gradient.addColorStop(1, '#88ffff');
         } else if (healthPercentage > 0.3) {
-            gradient.addColorStop(0, GAME_CONSTANTS.PLAYER.COLORS.ENGINE);
+            gradient.addColorStop(0, this.config.player.colors.engine);
             gradient.addColorStop(1, '#ffcc88');
         } else {
             gradient.addColorStop(0, '#ff4444');

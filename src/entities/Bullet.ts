@@ -1,5 +1,6 @@
 import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { GameObject } from "./GameObject";
+import { GameConfig, createGameConfig } from "../config/GameConfigFactory";
 
 interface TrailPoint {
     x: number;
@@ -9,7 +10,7 @@ interface TrailPoint {
 
 export class Bullet extends GameObject {
     private active: boolean = true;
-    private speed: number = GAME_CONSTANTS.BULLET.SPEED;
+    private speed: number;
     private color: string = '#ff0000';
     private animationTime: number = 0;
     private trail: TrailPoint[] = [];
@@ -18,9 +19,16 @@ export class Bullet extends GameObject {
     private rotation: number = 0;
     private rotationSpeed: number = 0.2;
     private pulsePhase: number = 0;
+    private config: GameConfig;
 
-    constructor(x: number = 0, y: number = 0) {
-        super(x, y, GAME_CONSTANTS.BULLET.WIDTH, GAME_CONSTANTS.BULLET.HEIGHT);
+    constructor(x: number = 0, y: number = 0, config?: GameConfig) {
+        // 後方互換性のため、configが未指定の場合はデフォルト設定を使用
+        const gameConfig = config || createGameConfig();
+        
+        super(x, y, gameConfig.bullet.width, gameConfig.bullet.height);
+        
+        this.config = gameConfig;
+        this.speed = gameConfig.bullet.speed;
     }
 
     /**
@@ -30,7 +38,7 @@ export class Bullet extends GameObject {
         this.x = x;
         this.y = y;
         this.active = true;
-        this.speed = speed ?? GAME_CONSTANTS.BULLET.SPEED;
+        this.speed = speed ?? this.config.bullet.speed;
         this.color = color ?? '#00aaff';
         this.animationTime = 0;
         this.trail = [];
@@ -51,7 +59,7 @@ export class Bullet extends GameObject {
         this.x = 0;
         this.y = 0;
         this.active = false;
-        this.speed = GAME_CONSTANTS.BULLET.SPEED;
+        this.speed = this.config.bullet.speed;
         this.color = '#00aaff';
         this.animationTime = 0;
         this.trail = [];

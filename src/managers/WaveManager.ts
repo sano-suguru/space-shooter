@@ -7,6 +7,7 @@ import { Game } from "../core/Game";
 import { WaveConfiguration } from "../data/WaveConfiguration";
 import { Enemy } from "../entities/Enemy";
 import { DynamicEnemy } from "../entities/DynamicEnemy";
+import { GameConfig, createGameConfig } from "../config/GameConfigFactory";
 
 export class WaveManager {
     private currentWave: number = 0;
@@ -19,7 +20,8 @@ export class WaveManager {
     constructor(
         private eventEmitter: EventEmitter<EventMap>,
         private gameObjectFactory: GameObjectFactory,
-        private game: Game
+        private game: Game,
+        private config: GameConfig = createGameConfig()
     ) {
         this.setupEventListeners();
         // 動的敵生成が利用可能かチェック
@@ -61,7 +63,7 @@ export class WaveManager {
     };
 
     public startNextWave(): boolean {
-        if (!GAME_CONSTANTS.WAVE.SYSTEM_ENABLED) {
+        if (!this.config.wave.systemEnabled) {
             return false;
         }
 
@@ -167,8 +169,8 @@ export class WaveManager {
 
     private generateFormation(type: FormationType, count: number, offsetX: number, offsetY: number): Vector2D[] {
         const positions: Vector2D[] = [];
-        const spacing = GAME_CONSTANTS.WAVE.FORMATION_SPACING;
-        const centerX = GAME_CONSTANTS.CANVAS.WIDTH / 2 + offsetX;
+        const spacing = this.config.wave.formationSpacing;
+        const centerX = this.config.canvas.width / 2 + offsetX;
         const centerY = -50 - offsetY;
 
         switch (type) {
@@ -299,7 +301,7 @@ export class WaveManager {
         }
 
         // ウェーブクリアボーナス
-        const bonusScore = completedWave.bonusScore * GAME_CONSTANTS.WAVE.CLEAR_BONUS_MULTIPLIER;
+        const bonusScore = completedWave.bonusScore * this.config.wave.clearBonusMultiplier;
         this.eventEmitter.emit('waveCompleted', this.currentWave, bonusScore);
 
         this.game.showWaveMessage(`Wave ${this.currentWave} Complete! Bonus: ${bonusScore}`);

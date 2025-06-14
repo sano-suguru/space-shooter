@@ -1,4 +1,5 @@
 import { GAME_CONSTANTS } from '../constants/GameConstants';
+import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
 
 /**
  * プレイヤーの描画処理を専門に扱うクラス
@@ -7,6 +8,8 @@ import { GAME_CONSTANTS } from '../constants/GameConstants';
  */
 export class PlayerRenderer {
     private animationTime = 0;
+
+    constructor(private config: GameConfig = createGameConfig()) {}
 
     /**
      * プレイヤー全体の描画処理
@@ -47,7 +50,7 @@ export class PlayerRenderer {
         ctx.translate(x + width / 2, y + height / 2);
 
         // メインボディ
-        ctx.fillStyle = invincible ? 'rgba(255, 0, 0, 0.5)' : GAME_CONSTANTS.PLAYER.COLORS.PRIMARY;
+        ctx.fillStyle = invincible ? 'rgba(255, 0, 0, 0.5)' : this.config.player.colors.primary;
         ctx.beginPath();
         ctx.moveTo(0, -height / 2);
         ctx.lineTo(-width / 2, height / 2);
@@ -71,7 +74,7 @@ export class PlayerRenderer {
      * 補助翼の描画
      */
     private drawWings(ctx: CanvasRenderingContext2D, width: number, height: number): void {
-        ctx.fillStyle = GAME_CONSTANTS.PLAYER.COLORS.SECONDARY;
+        ctx.fillStyle = this.config.player.colors.secondary;
         
         // 左翼
         ctx.beginPath();
@@ -94,7 +97,7 @@ export class PlayerRenderer {
      * コックピットの描画
      */
     private drawCockpit(ctx: CanvasRenderingContext2D, width: number, height: number): void {
-        ctx.fillStyle = GAME_CONSTANTS.PLAYER.COLORS.ACCENT;
+        ctx.fillStyle = this.config.player.colors.accent;
         ctx.beginPath();
         ctx.ellipse(0, -height / 6, width / 6, height / 6, 0, 0, Math.PI * 2);
         ctx.fill();
@@ -109,7 +112,7 @@ export class PlayerRenderer {
             0, height / 2,
             0, 0, height / 2, engineGlowSize
         );
-        gradient.addColorStop(0, GAME_CONSTANTS.PLAYER.COLORS.ENGINE);
+        gradient.addColorStop(0, this.config.player.colors.engine);
         gradient.addColorStop(0.5, 'rgba(255, 100, 0, 0.5)');
         gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
         ctx.fillStyle = gradient;

@@ -5,6 +5,8 @@ import { IGameEngine } from '../../src/interfaces/IGameEngine';
 import { MockInputManager } from '../../src/managers/MockInputManager';
 import { MockRandomProvider } from '../../src/providers/MockRandomProvider';
 import { GAME_CONSTANTS } from '../../src/constants/GameConstants';
+import { createTestConfig, GameConfig } from '../../src/config/GameConfigFactory';
+import { PowerUpEffectService } from '../../src/services/PowerUpEffectService';
 import '../canvas.setup';
 
 // モックGameEngineクラス
@@ -531,6 +533,157 @@ describe('Player', () => {
             player.update(0.016);
 
             expect(newMockGame.createBullet).toHaveBeenCalled();
+        });
+    });
+
+    describe('設定注入機能', () => {
+        let testConfig: GameConfig;
+        let powerUpEffectService: PowerUpEffectService;
+        let configPlayer: Player;
+
+        beforeEach(() => {
+            testConfig = createTestConfig({
+                player: {
+                    maxHealth: 150,
+                    fireRate: 75,
+                    maxSpeed: 12,
+                    acceleration: 2.0
+                },
+                canvas: {
+                    width: 800,
+                    height: 600
+                }
+            });
+            powerUpEffectService = new PowerUpEffectService(testConfig);
+            
+            configPlayer = new Player(
+                eventEmitter,
+                mockInputManager,
+                mockRandomProvider,
+                testConfig,
+                powerUpEffectService
+            );
+            configPlayer.setGame(mockGameEngine);
+        });
+
+        test('設定注入されたプレイヤーの初期化', () => {
+            expect(configPlayer.getHealth()).toBe(150);
+            expect(configPlayer.getMaxHealth()).toBe(150);
+            expect(configPlayer.getFireRate()).toBe(75);
+            
+            // カスタムキャンバスサイズでの位置計算
+            const expectedX = testConfig.canvas.width / 2 - testConfig.player.width / 2;
+            const expectedY = testConfig.canvas.height - testConfig.player.height - 10;
+            expect(configPlayer.getPosition().x).toBe(expectedX);
+            expect(configPlayer.getPosition().y).toBe(expectedY);
+        });
+
+        test('設定に基づく移動パラメータ', () => {
+            const initialPosition = configPlayer.getPosition();
+            mockInputManager.simulateKeyDown('ArrowRight');
+            
+            configPlayer.update(0.016);
+            
+            // カスタム加速度での移動を確認
+            const movement = configPlayer.getPosition().x - initialPosition.x;
+            expect(Math.abs(movement)).toBeCloseTo(2.0, 1); // acceleration: 2.0
+        });
+
+        test('設定に基づく境界制限', () => {
+            // 右端まで移動
+            mockInputManager.simulateKeyDown('ArrowRight');
+            for (let i = 0; i < 1000; i++) {
+                configPlayer.update(0.016);
+            }
+            
+            expect(configPlayer.getPosition().x).toBe(testConfig.canvas.width - testConfig.player.width);
+        });
+
+        test('PowerUpEffectServiceを使用したパワーアップ', () => {
+            const initialFireRate = configPlayer.getFireRate();
+            configPlayer.activatePowerup('RAPID_FIRE');
+            
+            // PowerUpEffectServiceによる効果適用
+            expect(configPlayer.getFireRate()).toBe(testConfig.player.fireRate / 2);
+            expect(configPlayer.getFireRate()).toBe(37.5); // 75 / 2
+        });
+
+        test('設定に基づく無敵時間', () => {
+            // テスト設定では無敵時間が短い（100ms）
+            jest.spyOn(Date, 'now').mockReturnValue(1000);
+            configPlayer.takeDamage(10);
+            const healthAfterFirstDamage = configPlayer.getHealth();
+            
+            // 短い無敵時間経過後
+            jest.spyOn(Date, 'now').mockReturnValue(1000 + testConfig.player.invincibilityTime + 10);
+            configPlayer.update(0.016);
+            
+            configPlayer.takeDamage(10);
+            expect(configPlayer.getHealth()).toBeLessThan(healthAfterFirstDamage);
+        });
+
+        test('レガシー互換性 - 設定なしでの初期化', () => {
+            const legacyPlayer = new Player(
+                eventEmitter,
+                mockInputManager,
+                mockRandomProvider
+            );
+            
+            // デフォルト設定が使用される
+            expect(legacyPlayer.getHealth()).toBe(100);
+            expect(legacyPlayer.getFireRate()).toBe(200);
+        });
+
+        test('PowerUpEffectServiceなしでのレガシー動作', () => {
+            const legacyConfigPlayer = new Player(
+                eventEmitter,
+                mockInputManager,
+                mockRandomProvider,
+                testConfig
+                // PowerUpEffectServiceなし
+            );
+            
+            const initialFireRate = legacyConfigPlayer.getFireRate(); // 75 (testConfig)
+            legacyConfigPlayer.activatePowerup('RAPID_FIRE');
+            
+            // レガシー実装では設定の発射レートが使用される
+            // GAME_CONSTANTS.PLAYER.FIRE_RATE / 2 = 200 / 2 = 100
+            // しかし、deactivateでは this.config.player.fireRate が使用される
+            expect(legacyConfigPlayer.getFireRate()).toBe(100); // GAME_CONSTANTS値
+        });
+
+        test('設定の動的変更', () => {
+            const newService = new PowerUpEffectService(createTestConfig({
+                player: { fireRate: 300 }
+            }));
+            
+            configPlayer.setPowerUpEffectService(newService);
+            configPlayer.activatePowerup('RAPID_FIRE');
+            
+            // 新しいサービスの設定が使用される
+            expect(configPlayer.getFireRate()).toBe(150); // 300 / 2
+        });
+
+        test('設定取得メソッド', () => {
+            expect(configPlayer.getConfig()).toBe(testConfig);
+            expect(configPlayer.getBulletType()).toBe('single');
+            expect(configPlayer.isShieldActive()).toBe(false);
+        });
+
+        test('カスタム設定での射撃間隔', () => {
+            const mockBullet = { x: 100, y: 100 };
+            mockGameEngine.createBullet.mockReturnValue(mockBullet);
+            mockInputManager.simulateKeyDown(' ');
+            
+            // 最初の射撃
+            jest.spyOn(Date, 'now').mockReturnValue(1000);
+            configPlayer.update(0.016);
+            
+            // カスタム発射間隔（75ms）後に2回目の射撃
+            jest.spyOn(Date, 'now').mockReturnValue(1000 + 75 + 10);
+            configPlayer.update(0.016);
+            
+            expect(mockGameEngine.createBullet).toHaveBeenCalledTimes(2);
         });
     });
 });

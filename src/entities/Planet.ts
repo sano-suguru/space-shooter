@@ -1,4 +1,5 @@
 import { GAME_CONSTANTS } from "../constants/GameConstants";
+import { GameConfig } from "../config/GameConfigFactory";
 
 type PlanetType = 'rocky' | 'gas-giant' | 'ice-world' | 'lava-world' | 'desert' | 'ocean-world';
 
@@ -45,10 +46,16 @@ export class Planet {
     private cloudRotation: number;
     private cloudSpeed: number;
     private glowIntensity: number;
+    private config: GameConfig;
 
-    constructor() {
-        this.x = Math.random() * GAME_CONSTANTS.CANVAS.WIDTH;
-        this.y = Math.random() * GAME_CONSTANTS.CANVAS.HEIGHT;
+    constructor(config?: GameConfig) {
+        // 設定注入対応（後方互換性を保持）
+        this.config = config || {
+            canvas: { width: GAME_CONSTANTS.CANVAS.WIDTH, height: GAME_CONSTANTS.CANVAS.HEIGHT }
+        } as GameConfig;
+        
+        this.x = Math.random() * this.config.canvas.width;
+        this.y = Math.random() * this.config.canvas.height;
         this.radius = Math.random() * 40 + 25;
         this.planetType = this.generatePlanetType();
         this.generatePlanetColors();

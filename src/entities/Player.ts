@@ -7,6 +7,8 @@ import { EventMap } from "../events/EventType";
 import { IInputManager } from "../interfaces/IInputManager";
 import { IRandomProvider } from "../providers/IRandomProvider";
 import { PlayerRenderer } from "../rendering/PlayerRenderer";
+import { GameConfig, createGameConfig } from "../config/GameConfigFactory";
+import { PowerUpEffectService } from "../services/PowerUpEffectService";
 
 export class Player extends GameObject {
     private velocity: Vector2D = { x: 0, y: 0 };
@@ -21,22 +23,39 @@ export class Player extends GameObject {
     private thrusterParticles: Array<{ x: number; y: number; speed: number; life: number }> = [];
     private playerRenderer: PlayerRenderer;
     private game?: any;
+    private config: GameConfig;
+    private powerUpEffectService?: PowerUpEffectService;
 
     constructor(
         private eventEmitter: EventEmitter<EventMap>,
         private inputManager: IInputManager,
-        private randomProvider: IRandomProvider
+        private randomProvider: IRandomProvider,
+        config?: GameConfig,
+        powerUpEffectService?: PowerUpEffectService
     ) {
+        // 後方互換性のため、設定が提供されない場合はデフォルト設定を使用
+        const gameConfig = config || Player.createLegacyConfig();
+        
         super(
-            GAME_CONSTANTS.CANVAS.WIDTH / 2 - GAME_CONSTANTS.PLAYER.WIDTH / 2,
-            GAME_CONSTANTS.CANVAS.HEIGHT - GAME_CONSTANTS.PLAYER.HEIGHT - 10,
-            GAME_CONSTANTS.PLAYER.WIDTH,
-            GAME_CONSTANTS.PLAYER.HEIGHT
+            gameConfig.canvas.width / 2 - gameConfig.player.width / 2,
+            gameConfig.canvas.height - gameConfig.player.height - 10,
+            gameConfig.player.width,
+            gameConfig.player.height
         );
-        this.health = GAME_CONSTANTS.PLAYER.MAX_HEALTH;
-        this.maxHealth = GAME_CONSTANTS.PLAYER.MAX_HEALTH;
-        this.fireRate = GAME_CONSTANTS.PLAYER.FIRE_RATE;
-        this.playerRenderer = new PlayerRenderer();
+        
+        this.config = gameConfig;
+        this.powerUpEffectService = powerUpEffectService;
+        this.health = this.config.player.maxHealth;
+        this.maxHealth = this.config.player.maxHealth;
+        this.fireRate = this.config.player.fireRate;
+        this.playerRenderer = new PlayerRenderer(this.config);
+    }
+
+    /**
+     * レガシー設定を作成（後方互換性のため）
+     */
+    private static createLegacyConfig(): GameConfig {
+        return createGameConfig();
     }
 
     public setKeyState(_key: string, _isPressed: boolean): void {
@@ -63,46 +82,46 @@ export class Player extends GameObject {
     }
 
     private updateVelocity(): void {
-        const { ACCELERATION, DECELERATION, MAX_SPEED } = GAME_CONSTANTS.PLAYER;
+        const { acceleration, deceleration, maxSpeed } = this.config.player;
 
         // X軸移動
         if (this.inputManager.isKeyPressed('ArrowLeft')) {
-            this.velocity.x = Math.max(this.velocity.x - ACCELERATION, -MAX_SPEED);
+            this.velocity.x = Math.max(this.velocity.x - acceleration, -maxSpeed);
         } else if (this.inputManager.isKeyPressed('ArrowRight')) {
-            this.velocity.x = Math.min(this.velocity.x + ACCELERATION, MAX_SPEED);
+            this.velocity.x = Math.min(this.velocity.x + acceleration, maxSpeed);
         } else {
             // X軸の減速
             if (this.velocity.x > 0) {
-                this.velocity.x = Math.max(0, this.velocity.x - DECELERATION);
+                this.velocity.x = Math.max(0, this.velocity.x - deceleration);
             } else if (this.velocity.x < 0) {
-                this.velocity.x = Math.min(0, this.velocity.x + DECELERATION);
+                this.velocity.x = Math.min(0, this.velocity.x + deceleration);
             }
         }
 
         // Y軸移動
         if (this.inputManager.isKeyPressed('ArrowUp')) {
-            this.velocity.y = Math.max(this.velocity.y - ACCELERATION, -MAX_SPEED);
+            this.velocity.y = Math.max(this.velocity.y - acceleration, -maxSpeed);
         } else if (this.inputManager.isKeyPressed('ArrowDown')) {
-            this.velocity.y = Math.min(this.velocity.y + ACCELERATION, MAX_SPEED);
+            this.velocity.y = Math.min(this.velocity.y + acceleration, maxSpeed);
         } else {
             // Y軸の減速
             if (this.velocity.y > 0) {
-                this.velocity.y = Math.max(0, this.velocity.y - DECELERATION);
+                this.velocity.y = Math.max(0, this.velocity.y - deceleration);
             } else if (this.velocity.y < 0) {
-                this.velocity.y = Math.min(0, this.velocity.y + DECELERATION);
+                this.velocity.y = Math.min(0, this.velocity.y + deceleration);
             }
         }
     }
 
     private clampPosition(): void {
-        const { CANVAS } = GAME_CONSTANTS;
+        const { canvas } = this.config;
 
         // X軸の制限
         if (this.x < 0) {
             this.x = 0;
             this.velocity.x = 0;
-        } else if (this.x > CANVAS.WIDTH - this.width) {
-            this.x = CANVAS.WIDTH - this.width;
+        } else if (this.x > canvas.width - this.width) {
+            this.x = canvas.width - this.width;
             this.velocity.x = 0;
         }
 
@@ -110,8 +129,8 @@ export class Player extends GameObject {
         if (this.y < 0) {
             this.y = 0;
             this.velocity.y = 0;
-        } else if (this.y > CANVAS.HEIGHT - this.height) {
-            this.y = CANVAS.HEIGHT - this.height;
+        } else if (this.y > canvas.height - this.height) {
+            this.y = canvas.height - this.height;
             this.velocity.y = 0;
         }
     }
@@ -125,7 +144,7 @@ export class Player extends GameObject {
     private shoot(): void {
         const currentTime = Date.now();
         if (currentTime - this.lastFireTime >= this.fireRate) {
-            const centerX = this.x + this.width / 2 - GAME_CONSTANTS.BULLET.WIDTH / 2;
+            const centerX = this.x + this.width / 2 - this.config.bullet.width / 2;
 
             if (this.bulletType === 'single') {
                 const bullet = this.createBullet(centerX, this.y);
@@ -159,7 +178,7 @@ export class Player extends GameObject {
      * 弾丸を作成（プール使用 or フォールバック）
      */
     private createBullet(x: number, y: number, speed?: number, color?: string): Bullet | null {
-        const bulletSpeed = speed || GAME_CONSTANTS.BULLET.SPEED;
+        const bulletSpeed = speed || this.config.bullet.speed;
         
         if (this.game) {
             return this.game.createBullet(x, y, bulletSpeed, color);
@@ -172,7 +191,7 @@ export class Player extends GameObject {
     }
 
     private updateInvincibility(): void {
-        if (this.invincible && Date.now() - this.lastHitTime > GAME_CONSTANTS.PLAYER.INVINCIBILITY_TIME) {
+        if (this.invincible && Date.now() - this.lastHitTime > this.config.player.invincibilityTime) {
             this.invincible = false;
         }
     }
@@ -233,17 +252,31 @@ export class Player extends GameObject {
     }
 
     public activatePowerup(type: PowerUpType): void {
-        const powerup = GAME_CONSTANTS.POWERUP.TYPES[type];
-        powerup.effect(this);
-        this.eventEmitter.emit('powerUpActivated', type);
+        if (this.powerUpEffectService) {
+            // 新しいPowerUpEffectServiceを使用
+            this.powerUpEffectService.applyEffect(this, type);
+            this.eventEmitter.emit('powerUpActivated', type);
 
-        setTimeout(() => this.deactivatePowerup(type), GAME_CONSTANTS.POWERUP.DURATION);
+            const duration = this.powerUpEffectService.getEffectDuration(type);
+            setTimeout(() => {
+                this.powerUpEffectService?.removeEffect(this, type);
+                this.eventEmitter.emit('powerUpDeactivated', type);
+            }, duration);
+        } else {
+            // レガシー実装（後方互換性のため）
+            const powerup = GAME_CONSTANTS.POWERUP.TYPES[type];
+            powerup.effect(this);
+            this.eventEmitter.emit('powerUpActivated', type);
+
+            setTimeout(() => this.deactivatePowerup(type), GAME_CONSTANTS.POWERUP.DURATION);
+        }
     }
 
     private deactivatePowerup(type: PowerUpType): void {
+        // レガシー実装（後方互換性のため）
         switch (type) {
             case 'RAPID_FIRE':
-                this.fireRate = GAME_CONSTANTS.PLAYER.FIRE_RATE;
+                this.fireRate = this.config.player.fireRate;
                 break;
             case 'TRIPLE_SHOT':
                 this.bulletType = 'single';
@@ -294,5 +327,40 @@ export class Player extends GameObject {
      */
     public setGame(game: any): void {
         this.game = game;
+    }
+
+    /**
+     * 現在の発射レートを取得（テスト用）
+     */
+    public getFireRate(): number {
+        return this.fireRate;
+    }
+
+    /**
+     * 現在の弾丸タイプを取得（テスト用）
+     */
+    public getBulletType(): 'single' | 'triple' {
+        return this.bulletType;
+    }
+
+    /**
+     * シールドの状態を取得（テスト用）
+     */
+    public isShieldActive(): boolean {
+        return this.shieldActive;
+    }
+
+    /**
+     * 設定を取得（テスト用）
+     */
+    public getConfig(): GameConfig {
+        return this.config;
+    }
+
+    /**
+     * PowerUpEffectServiceを設定（テスト用）
+     */
+    public setPowerUpEffectService(service: PowerUpEffectService): void {
+        this.powerUpEffectService = service;
     }
 }

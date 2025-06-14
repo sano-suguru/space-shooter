@@ -1,6 +1,7 @@
 import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { IRandomProvider } from "../providers";
 import { PooledParticle, globalParticlePoolManager } from "../utils/ParticlePoolManager";
+import { GameConfig } from "../config/GameConfigFactory";
 
 interface DustParticle extends PooledParticle {
     baseX: number;
@@ -136,9 +137,15 @@ export class SpaceDust {
     private cloudLifetime: number;
     private cloudAge: number;
     private poolName: string;
+    private config: GameConfig;
 
-    constructor(randomProvider: IRandomProvider) {
+    constructor(randomProvider: IRandomProvider, config?: GameConfig) {
         this.randomProvider = randomProvider;
+        // 設定注入対応（後方互換性を保持）
+        this.config = config || {
+            canvas: { width: GAME_CONSTANTS.CANVAS.WIDTH, height: GAME_CONSTANTS.CANVAS.HEIGHT }
+        } as GameConfig;
+        
         this.particles = [];
         this.cloudCenter = { x: 0, y: 0 };
         this.cloudRadius = 0;
@@ -175,8 +182,8 @@ export class SpaceDust {
 
         // 雲の中心位置をランダムに設定
         this.cloudCenter = {
-            x: this.randomProvider.random() * GAME_CONSTANTS.CANVAS.WIDTH,
-            y: this.randomProvider.random() * GAME_CONSTANTS.CANVAS.HEIGHT
+            x: this.randomProvider.random() * this.config.canvas.width,
+            y: this.randomProvider.random() * this.config.canvas.height
         };
 
         // 雲の半径とパーティクル数を設定
@@ -266,14 +273,14 @@ export class SpaceDust {
 
         // 画面外に出た場合は反対側に再配置
         if (this.cloudCenter.x < -this.cloudRadius) {
-            this.cloudCenter.x = GAME_CONSTANTS.CANVAS.WIDTH + this.cloudRadius;
-        } else if (this.cloudCenter.x > GAME_CONSTANTS.CANVAS.WIDTH + this.cloudRadius) {
+            this.cloudCenter.x = this.config.canvas.width + this.cloudRadius;
+        } else if (this.cloudCenter.x > this.config.canvas.width + this.cloudRadius) {
             this.cloudCenter.x = -this.cloudRadius;
         }
 
         if (this.cloudCenter.y < -this.cloudRadius) {
-            this.cloudCenter.y = GAME_CONSTANTS.CANVAS.HEIGHT + this.cloudRadius;
-        } else if (this.cloudCenter.y > GAME_CONSTANTS.CANVAS.HEIGHT + this.cloudRadius) {
+            this.cloudCenter.y = this.config.canvas.height + this.cloudRadius;
+        } else if (this.cloudCenter.y > this.config.canvas.height + this.cloudRadius) {
             this.cloudCenter.y = -this.cloudRadius;
         }
 

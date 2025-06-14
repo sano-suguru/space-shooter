@@ -2,6 +2,7 @@ import { IGameEngine } from "../interfaces/IGameEngine";
 import { EnemyType, MovementPattern, Vector2D } from "../types";
 import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { GameObject } from "./GameObject";
+import { GameConfig, createGameConfig } from "../config/GameConfigFactory";
 
 export class Enemy extends GameObject {
     private health: number;
@@ -9,15 +10,30 @@ export class Enemy extends GameObject {
     private movementPattern: MovementPattern;
     private enemyType: EnemyType;
     private animationPhase: number = 0;
+    private config: GameConfig;
 
-    constructor(x: number = 0, y: number = 0, enemyType: EnemyType = 'SMALL', game?: IGameEngine) {
-        const config = GAME_CONSTANTS.ENEMY.TYPES[enemyType];
-        super(x, y, config.width, config.height);
+    constructor(
+        x: number = 0,
+        y: number = 0,
+        enemyType: EnemyType = 'SMALL',
+        game?: IGameEngine,
+        config?: GameConfig
+    ) {
+        // 後方互換性のため、configが未指定の場合はデフォルト設定を使用
+        const gameConfig = config || createGameConfig();
 
+        const enemyTypeConfig = gameConfig.enemy.types[enemyType];
+        if (!enemyTypeConfig) {
+            throw new Error(`Invalid enemy type: ${enemyType}`);
+        }
+
+        super(x, y, enemyTypeConfig.width, enemyTypeConfig.height);
+
+        this.config = gameConfig;
         this.enemyType = enemyType;
-        this.health = config.health;
+        this.health = enemyTypeConfig.health;
         const speedMultiplier = game ? 1 + game.getDifficultyFactor() : 1;
-        this.speed = config.speed * speedMultiplier;
+        this.speed = enemyTypeConfig.speed * speedMultiplier;
         // GameConstants.tsにmovementPatternがないため、enemyTypeから推定
         this.movementPattern = this.getMovementPatternFromType(enemyType);
     }
@@ -41,7 +57,7 @@ export class Enemy extends GameObject {
     }
 
     public draw(ctx: CanvasRenderingContext2D): void {
-        const config = GAME_CONSTANTS.ENEMY.TYPES[this.enemyType];
+        const enemyTypeConfig = this.config.enemy.types[this.enemyType];
 
         ctx.save();
         ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
@@ -49,13 +65,13 @@ export class Enemy extends GameObject {
         // エネミータイプに応じた描画
         switch (this.enemyType) {
             case 'SMALL':
-                this.drawBasicEnemy(ctx, config.color);
+                this.drawBasicEnemy(ctx, enemyTypeConfig.color);
                 break;
             case 'MEDIUM':
-                this.drawFastEnemy(ctx, config.color);
+                this.drawFastEnemy(ctx, enemyTypeConfig.color);
                 break;
             case 'LARGE':
-                this.drawHeavyEnemy(ctx, config.color);
+                this.drawHeavyEnemy(ctx, enemyTypeConfig.color);
                 break;
         }
 
@@ -172,11 +188,11 @@ export class Enemy extends GameObject {
     }
 
     public isOnScreen(): boolean {
-        return this.y < GAME_CONSTANTS.CANVAS.HEIGHT + 50;
+        return this.y < this.config.canvas.height + 50;
     }
 
     public getScore(): number {
-        return GAME_CONSTANTS.ENEMY.TYPES[this.enemyType].score;
+        return this.config.enemy.types[this.enemyType].score;
     }
 
     public getPosition(): Vector2D {

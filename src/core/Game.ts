@@ -20,6 +20,8 @@ import { GameRenderer } from '../rendering/GameRenderer';
 import { IInputManager } from '../interfaces/IInputManager';
 import { IRandomProvider } from '../providers/IRandomProvider';
 import { IMessageManager } from '../interfaces/IMessageManager';
+import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
+import { PowerUpEffectService } from '../services/PowerUpEffectService';
 
 export class Game {
     private ctx: CanvasRenderingContext2D;
@@ -27,7 +29,7 @@ export class Game {
     private bossSpawnScore: number = 1000;
     private currentScore: number = 0;
     private difficultyFactor: number = 0;
-    private currentBossHealth: number = GAME_CONSTANTS.BOSS.INITIAL_HEALTH;
+    private currentBossHealth: number;
     private gameEngine!: GameEngine;
     private gameObjectManager!: GameObjectManager;
     private collisionSystem!: CollisionSystem;
@@ -45,11 +47,14 @@ export class Game {
         private stateManager: GameStateManager,
         private inputManager: IInputManager,
         private randomProvider: IRandomProvider,
-        private messageManager: IMessageManager
+        private messageManager: IMessageManager,
+        private config: GameConfig = createGameConfig(),
+        private powerUpEffectService: PowerUpEffectService = new PowerUpEffectService(createGameConfig())
     ) {
         this.ctx = this.canvas.getContext('2d') as CanvasRenderingContext2D;
-        this.canvas.width = GAME_CONSTANTS.CANVAS.WIDTH;
-        this.canvas.height = GAME_CONSTANTS.CANVAS.HEIGHT;
+        this.canvas.width = this.config.canvas.width;
+        this.canvas.height = this.config.canvas.height;
+        this.currentBossHealth = this.config.boss.initialHealth;
         this.initializeGameObjects();
         this.initializeCollisionSystem();
         this.setupEventListeners();
@@ -60,15 +65,15 @@ export class Game {
         // 動的敵生成システムを有効化
         this.gameObjectFactory.setDynamicEnemyEnabled(true);
 
-        // WaveManagerを初期化
-        this.waveManager = new WaveManager(this.eventEmitter, this.gameObjectFactory, this);
+        // WaveManagerを初期化（設定を渡す）
+        this.waveManager = new WaveManager(this.eventEmitter, this.gameObjectFactory, this, this.config);
         
         // WaveManagerで動的敵生成を有効化し、プレイヤーレベルを設定
         this.waveManager.setUseDynamicEnemies(true);
         this.waveManager.setPlayerLevel(this.level);
 
-        // BackgroundRendererを初期化
-        this.backgroundRenderer = new BackgroundRenderer();
+        // BackgroundRendererを初期化（設定を渡す）
+        this.backgroundRenderer = new BackgroundRenderer(this.config);
 
         // GameRendererを初期化
         this.gameRenderer = new GameRenderer(this.ctx, this.backgroundRenderer);
@@ -86,10 +91,10 @@ export class Game {
         // GameObjectManagerを初期化
         this.gameObjectManager = new GameObjectManager(this.eventEmitter);
 
-        // 従来の背景オブジェクトを作成
-        const stars = Array.from({ length: GAME_CONSTANTS.BACKGROUND.STAR_COUNT }, () => this.gameObjectFactory.createStar());
-        const planets = Array.from({ length: GAME_CONSTANTS.BACKGROUND.PLANET_COUNT }, () => this.gameObjectFactory.createPlanet());
-        const nebulas = Array.from({ length: GAME_CONSTANTS.BACKGROUND.NEBULA_COUNT }, () => this.gameObjectFactory.createNebula());
+        // 従来の背景オブジェクトを作成（設定を使用）
+        const stars = Array.from({ length: this.config.background.starCount }, () => this.gameObjectFactory.createStar());
+        const planets = Array.from({ length: this.config.background.planetCount }, () => this.gameObjectFactory.createPlanet());
+        const nebulas = Array.from({ length: this.config.background.nebulaCount }, () => this.gameObjectFactory.createNebula());
         const auroras = Array.from({ length: 2 }, () => this.gameObjectFactory.createAurora());
 
         // 新しい幻想的なエンティティを作成
@@ -182,7 +187,7 @@ export class Game {
     public start(): void {
         this.eventEmitter.emit('gameStarted');
         this.gameEngine.start();
-        setInterval(this.spawnEnemy, GAME_CONSTANTS.ENEMY.SPAWN_INTERVAL);
+        setInterval(this.spawnEnemy, this.config.enemy.spawnInterval);
     }
 
     /**
@@ -204,7 +209,7 @@ export class Game {
         this.gameObjectManager.updateAllObjects(deltaTime);
 
         // ウェーブシステムのアップデート
-        if (GAME_CONSTANTS.WAVE.SYSTEM_ENABLED) {
+        if (this.config.wave.systemEnabled) {
             this.waveManager.update();
         }
 
@@ -215,7 +220,7 @@ export class Game {
     }
 
     private spawnBoss(): void {
-        const boss = new Boss(this);
+        const boss = new Boss(this, this.config, this.powerUpEffectService);
         this.gameObjectManager.setBoss(boss);
         this.eventEmitter.emit('bossSpawned');
         this.showMessage("ボスが出現しました！", 3000, 'important');
@@ -238,7 +243,7 @@ export class Game {
 
     private spawnEnemy = (): void => {
         if (this.stateManager.isPlaying() && !this.gameObjectManager.getBoss()) {
-            const enemyTypes = Object.keys(GAME_CONSTANTS.ENEMY.TYPES) as EnemyType[];
+            const enemyTypes = Object.keys(this.config.enemy.types) as EnemyType[];
             const randomType = enemyTypes[Math.floor(this.randomProvider.random() * enemyTypes.length)];
             
             // 動的敵生成を使用（フォールバック機能付き）
@@ -257,7 +262,7 @@ export class Game {
             );
             this.gameObjectManager.addEnemy(enemy);
 
-            if (this.randomProvider.random() < GAME_CONSTANTS.POWERUP.SPAWN_CHANCE) {
+            if (this.randomProvider.random() < this.config.powerup.spawnChance) {
                 const powerup = this.gameObjectFactory.createPowerUp();
                 this.gameObjectManager.addPowerUp(powerup);
             }
@@ -274,14 +279,14 @@ export class Game {
     }
 
     public resetGame(): void {
-        this.player = new Player(this.eventEmitter, this.inputManager, this.randomProvider);
+        this.player = new Player(this.eventEmitter, this.inputManager, this.randomProvider, this.config, this.powerUpEffectService);
         this.player.setGame(this);
         this.gameObjectManager.reset();
         this.level = 1;
         this.bossSpawnScore = 1000;
         this.scoreManager = new ScoreManager(this.eventEmitter);
         this.difficultyFactor = 0;
-        this.currentBossHealth = GAME_CONSTANTS.BOSS.INITIAL_HEALTH;
+        this.currentBossHealth = this.config.boss.initialHealth;
     }
 
     private handleBossDefeat(): void {
@@ -309,7 +314,7 @@ export class Game {
 
         this.difficultyFactor = this.level * 0.1;
 
-        this.currentBossHealth = GAME_CONSTANTS.BOSS.INITIAL_HEALTH + (this.level - 1) * 10;
+        this.currentBossHealth = this.config.boss.initialHealth + (this.level - 1) * 10;
 
         this.bossSpawnScore = this.scoreManager.getScore() + 1000;
 
@@ -397,7 +402,7 @@ export class Game {
      * ゲームの開始時にウェーブシステムを開始
      */
     public startWaveSystem(): void {
-        if (GAME_CONSTANTS.WAVE.SYSTEM_ENABLED && this.waveManager) {
+        if (this.config.wave.systemEnabled && this.waveManager) {
             this.waveManager.startNextWave();
         }
     }

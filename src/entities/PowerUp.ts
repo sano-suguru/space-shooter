@@ -1,6 +1,8 @@
 import { PowerUpType } from "../types";
 import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { GameObject } from "./GameObject";
+import { GameConfig, createGameConfig } from "../config/GameConfigFactory";
+import { PowerUpEffectService } from "../services/PowerUpEffectService";
 
 export class PowerUp extends GameObject {
     private type: PowerUpType;
@@ -11,21 +13,40 @@ export class PowerUp extends GameObject {
     private glowDirection: number = 1;
     private trail: Array<{ x: number; y: number; alpha: number }> = [];
     private trailUpdateCounter: number = 0;
+    private config: GameConfig;
+    private effectService?: PowerUpEffectService;
 
-    constructor(x: number, y: number) {
-        super(x, y, GAME_CONSTANTS.POWERUP.WIDTH, GAME_CONSTANTS.POWERUP.HEIGHT);
+    constructor(
+        x: number,
+        y: number,
+        config?: GameConfig,
+        effectService?: PowerUpEffectService
+    ) {
+        // 後方互換性のため、configが未指定の場合はデフォルト設定を使用
+        const gameConfig = config || createGameConfig();
+        
+        super(x, y, gameConfig.powerup.width, gameConfig.powerup.height);
+        
+        this.config = gameConfig;
+        this.effectService = effectService;
         this.type = this.getRandomPowerUpType();
-        this.color = GAME_CONSTANTS.POWERUP.TYPES[this.type].color;
+        this.color = this.getPowerUpColor(this.type);
         this.rotationSpeed = Math.random() * 0.1 + 0.05;
     }
 
     private getRandomPowerUpType(): PowerUpType {
+        // 後方互換性のため、GAME_CONSTANTSからタイプを取得
         const types = Object.keys(GAME_CONSTANTS.POWERUP.TYPES) as PowerUpType[];
         return types[Math.floor(Math.random() * types.length)];
     }
 
+    private getPowerUpColor(type: PowerUpType): string {
+        // 後方互換性のため、GAME_CONSTANTSから色を取得
+        return GAME_CONSTANTS.POWERUP.TYPES[type].color;
+    }
+
     public update(deltaTime: number): void {
-        this.y += GAME_CONSTANTS.POWERUP.SPEED * deltaTime;
+        this.y += this.config.powerup.speed * deltaTime;
         this.rotation += this.rotationSpeed * deltaTime;
 
         // Update glow effect
@@ -113,10 +134,25 @@ export class PowerUp extends GameObject {
     }
 
     public isOnScreen(): boolean {
-        return this.y < GAME_CONSTANTS.CANVAS.HEIGHT;
+        return this.y < this.config.canvas.height;
     }
 
     public getType(): PowerUpType {
         return this.type;
+    }
+
+    /**
+     * PowerUp効果を適用する（PowerUpEffectServiceを使用）
+     */
+    public applyEffect(player: any): void {
+        if (this.effectService) {
+            this.effectService.applyEffect(player, this.type);
+        } else {
+            // 後方互換性のため、直接効果を適用
+            const effect = GAME_CONSTANTS.POWERUP.TYPES[this.type].effect;
+            if (effect) {
+                effect(player);
+            }
+        }
     }
 }

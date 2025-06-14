@@ -1,5 +1,6 @@
 import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { PooledParticle, globalParticlePoolManager } from "../utils/ParticlePoolManager";
+import { GameConfig } from "../config/GameConfigFactory";
 
 type NebulaType = 'emission' | 'reflection' | 'dark' | 'supernova-remnant' | 'planetary' | 'spiral';
 
@@ -131,10 +132,16 @@ export class Nebula {
     private energyLevel: number;
     private particleCount: number;
     private poolName: string;
+    private config: GameConfig;
 
-    constructor() {
-        this.x = Math.random() * GAME_CONSTANTS.CANVAS.WIDTH;
-        this.y = Math.random() * GAME_CONSTANTS.CANVAS.HEIGHT;
+    constructor(config?: GameConfig) {
+        // 設定注入対応（後方互換性を保持）
+        this.config = config || {
+            canvas: { width: GAME_CONSTANTS.CANVAS.WIDTH, height: GAME_CONSTANTS.CANVAS.HEIGHT }
+        } as GameConfig;
+        
+        this.x = Math.random() * this.config.canvas.width;
+        this.y = Math.random() * this.config.canvas.height;
         this.width = Math.random() * 300 + 150;
         this.height = Math.random() * 300 + 150;
         this.nebulaType = this.generateNebulaType();

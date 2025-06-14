@@ -1,5 +1,6 @@
 import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { IRandomProvider } from "../providers";
+import { GameConfig } from "../config/GameConfigFactory";
 
 export class Comet {
     private x!: number;
@@ -15,9 +16,15 @@ export class Comet {
     private isActive: boolean;
     private spawnTimer: number;
     private spawnInterval!: number;
+    private config: GameConfig;
 
-    constructor(randomProvider: IRandomProvider) {
+    constructor(randomProvider: IRandomProvider, config?: GameConfig) {
         this.randomProvider = randomProvider;
+        // 設定注入対応（後方互換性を保持）
+        this.config = config || {
+            canvas: { width: GAME_CONSTANTS.CANVAS.WIDTH, height: GAME_CONSTANTS.CANVAS.HEIGHT }
+        } as GameConfig;
+        
         this.spawnInterval = this.randomProvider.random() * 5000 + 2000; // 2-7秒間隔（短縮）
         this.spawnTimer = 0;
         this.isActive = true; // 初期状態でアクティブに
@@ -32,35 +39,35 @@ export class Comet {
         
         switch (side) {
             case 0: // 上から
-                this.x = this.randomProvider.random() * GAME_CONSTANTS.CANVAS.WIDTH;
+                this.x = this.randomProvider.random() * this.config.canvas.width;
                 this.y = -50;
-                this.velocity = { 
-                    x: (this.randomProvider.random() - 0.5) * speed, 
-                    y: speed 
+                this.velocity = {
+                    x: (this.randomProvider.random() - 0.5) * speed,
+                    y: speed
                 };
                 break;
             case 1: // 右から
-                this.x = GAME_CONSTANTS.CANVAS.WIDTH + 50;
-                this.y = this.randomProvider.random() * GAME_CONSTANTS.CANVAS.HEIGHT;
-                this.velocity = { 
-                    x: -speed, 
-                    y: (this.randomProvider.random() - 0.5) * speed 
+                this.x = this.config.canvas.width + 50;
+                this.y = this.randomProvider.random() * this.config.canvas.height;
+                this.velocity = {
+                    x: -speed,
+                    y: (this.randomProvider.random() - 0.5) * speed
                 };
                 break;
             case 2: // 下から
-                this.x = this.randomProvider.random() * GAME_CONSTANTS.CANVAS.WIDTH;
-                this.y = GAME_CONSTANTS.CANVAS.HEIGHT + 50;
-                this.velocity = { 
-                    x: (this.randomProvider.random() - 0.5) * speed, 
-                    y: -speed 
+                this.x = this.randomProvider.random() * this.config.canvas.width;
+                this.y = this.config.canvas.height + 50;
+                this.velocity = {
+                    x: (this.randomProvider.random() - 0.5) * speed,
+                    y: -speed
                 };
                 break;
             case 3: // 左から
                 this.x = -50;
-                this.y = this.randomProvider.random() * GAME_CONSTANTS.CANVAS.HEIGHT;
-                this.velocity = { 
-                    x: speed, 
-                    y: (this.randomProvider.random() - 0.5) * speed 
+                this.y = this.randomProvider.random() * this.config.canvas.height;
+                this.velocity = {
+                    x: speed,
+                    y: (this.randomProvider.random() - 0.5) * speed
                 };
                 break;
         }
@@ -121,8 +128,8 @@ export class Comet {
         this.glowIntensity = Math.sin(this.glowPhase) * 0.5 + 0.7;
 
         // 画面外に出たら非アクティブに
-        if (this.x < -100 || this.x > GAME_CONSTANTS.CANVAS.WIDTH + 100 ||
-            this.y < -100 || this.y > GAME_CONSTANTS.CANVAS.HEIGHT + 100) {
+        if (this.x < -100 || this.x > this.config.canvas.width + 100 ||
+            this.y < -100 || this.y > this.config.canvas.height + 100) {
             this.isActive = false;
             this.initializeComet();
         }

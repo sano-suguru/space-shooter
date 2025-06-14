@@ -1,5 +1,6 @@
 import { Vector2D } from "../types";
 import { GAME_CONSTANTS } from "../constants/GameConstants";
+import { GameConfig } from "../config/GameConfigFactory";
 
 interface Particle {
     x: number;
@@ -31,13 +32,18 @@ export class Explosion {
     private y: number = 0;
     private particles: Particle[] = [];
     private shockWaves: ShockWave[] = [];
-    private duration: number = GAME_CONSTANTS.EXPLOSION.DURATION;
+    private duration: number;
     private currentFrame: number = 0;
     private active: boolean = false;
     private size: number = 1;
+    private config: GameConfig;
 
-    constructor() {
-        // デフォルトコンストラクタ（オブジェクトプール用）
+    constructor(config?: GameConfig) {
+        // 設定注入対応（後方互換性を保持）
+        this.config = config || {
+            explosion: { duration: GAME_CONSTANTS.EXPLOSION.DURATION }
+        } as GameConfig;
+        this.duration = this.config.explosion.duration;
     }
 
     /**
@@ -47,7 +53,7 @@ export class Explosion {
         this.x = x;
         this.y = y;
         this.size = size;
-        this.duration = GAME_CONSTANTS.EXPLOSION.DURATION;
+        this.duration = this.config.explosion.duration;
         this.currentFrame = 0;
         this.active = true;
         this.generateParticles();

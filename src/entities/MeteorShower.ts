@@ -1,5 +1,6 @@
 import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { IRandomProvider } from "../providers";
+import { GameConfig } from "../config/GameConfigFactory";
 
 interface MeteorParticle {
     x: number;
@@ -22,9 +23,15 @@ export class MeteorShower {
     private showerTimer: number;
     private direction: { x: number; y: number };
     private intensity: number;
+    private config: GameConfig;
 
-    constructor(randomProvider: IRandomProvider) {
+    constructor(randomProvider: IRandomProvider, config?: GameConfig) {
         this.randomProvider = randomProvider;
+        // 設定注入対応（後方互換性を保持）
+        this.config = config || {
+            canvas: { width: GAME_CONSTANTS.CANVAS.WIDTH, height: GAME_CONSTANTS.CANVAS.HEIGHT }
+        } as GameConfig;
+        
         this.meteors = [];
         this.isActive = false;
         this.spawnTimer = 0;
@@ -61,8 +68,8 @@ export class MeteorShower {
         const perpendicular = { x: -this.direction.y, y: this.direction.x };
         
         // 群れの中心位置をランダムに決定
-        const centerX = this.randomProvider.random() * GAME_CONSTANTS.CANVAS.WIDTH;
-        const centerY = this.randomProvider.random() * GAME_CONSTANTS.CANVAS.HEIGHT;
+        const centerX = this.randomProvider.random() * this.config.canvas.width;
+        const centerY = this.randomProvider.random() * this.config.canvas.height;
         
         // 垂直方向に散らばりを持たせる
         const spread = (this.randomProvider.random() - 0.5) * 400;
@@ -144,8 +151,8 @@ export class MeteorShower {
         // 画面外に出たり、透明度が0になった流星を削除
         this.meteors = this.meteors.filter(meteor => {
             return meteor.alpha > 0 &&
-                   meteor.x >= -50 && meteor.x <= GAME_CONSTANTS.CANVAS.WIDTH + 50 &&
-                   meteor.y >= -50 && meteor.y <= GAME_CONSTANTS.CANVAS.HEIGHT + 50;
+                   meteor.x >= -50 && meteor.x <= this.config.canvas.width + 50 &&
+                   meteor.y >= -50 && meteor.y <= this.config.canvas.height + 50;
         });
 
         // 流星群終了

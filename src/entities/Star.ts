@@ -1,5 +1,6 @@
 import { GAME_CONSTANTS } from "../constants/GameConstants";
 import { IRandomProvider } from "../providers";
+import { GameConfig } from "../config/GameConfigFactory";
 
 type StarType = 'main-sequence' | 'giant' | 'supergiant' | 'white-dwarf' | 'binary' | 'variable';
 
@@ -25,11 +26,17 @@ export class Star {
     private pulsePhase: number;
     private secondarySize?: number; // バイナリ星用
     private secondaryPhase?: number; // バイナリ星用
+    private config: GameConfig;
 
-    constructor(randomProvider: IRandomProvider) {
+    constructor(randomProvider: IRandomProvider, config?: GameConfig) {
         this.randomProvider = randomProvider;
-        this.x = this.randomProvider.random() * GAME_CONSTANTS.CANVAS.WIDTH;
-        this.y = this.randomProvider.random() * GAME_CONSTANTS.CANVAS.HEIGHT;
+        // 設定注入対応（後方互換性を保持）
+        this.config = config || {
+            canvas: { width: GAME_CONSTANTS.CANVAS.WIDTH, height: GAME_CONSTANTS.CANVAS.HEIGHT }
+        } as GameConfig;
+        
+        this.x = this.randomProvider.random() * this.config.canvas.width;
+        this.y = this.randomProvider.random() * this.config.canvas.height;
         this.speed = this.randomProvider.random() * 10 + 5;
         this.twinkleSpeed = this.randomProvider.random() * 0.05 + 0.01;
         this.twinkleOffset = this.randomProvider.random() * Math.PI * 2;
@@ -156,9 +163,9 @@ export class Star {
 
     public update(deltaTime: number): void {
         this.y += this.speed * deltaTime;
-        if (this.y > GAME_CONSTANTS.CANVAS.HEIGHT) {
+        if (this.y > this.config.canvas.height) {
             this.y = 0;
-            this.x = this.randomProvider.random() * GAME_CONSTANTS.CANVAS.WIDTH;
+            this.x = this.randomProvider.random() * this.config.canvas.width;
         }
         
         this.twinkleOffset += this.twinkleSpeed;

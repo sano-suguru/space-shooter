@@ -8,6 +8,7 @@ import { MeteorShower } from '../entities/MeteorShower';
 import { SpaceDust } from '../entities/SpaceDust';
 import { PerformanceMonitor, PerformanceMetrics } from '../utils/PerformanceMonitor';
 import { LODManager, LODLevel } from './LODManager';
+import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
 
 /**
  * 背景レンダリング最適化クラス
@@ -49,7 +50,7 @@ export class BackgroundRenderer {
     private lodManager: LODManager;
     private lastUpdateTime = 0;
 
-    constructor() {
+    constructor(private config: GameConfig = createGameConfig()) {
         this.initializeCaches();
         this.performanceMonitor = new PerformanceMonitor();
         this.lodManager = new LODManager(this.performanceMonitor);
@@ -60,8 +61,8 @@ export class BackgroundRenderer {
      * キャッシュ用オフスクリーンキャンバスを初期化
      */
     private initializeCaches(): void {
-        const width = GAME_CONSTANTS.CANVAS.WIDTH;
-        const height = GAME_CONSTANTS.CANVAS.HEIGHT;
+        const width = this.config.canvas.width;
+        const height = this.config.canvas.height;
 
         // 背景グラデーション用キャッシュ
         this.backgroundCache = document.createElement('canvas');
@@ -93,13 +94,13 @@ export class BackgroundRenderer {
      */
     private renderBackgroundToCache(): void {
         const ctx = this.backgroundCacheCtx;
-        const gradient = ctx.createLinearGradient(0, 0, 0, GAME_CONSTANTS.CANVAS.HEIGHT);
+        const gradient = ctx.createLinearGradient(0, 0, 0, this.config.canvas.height);
         gradient.addColorStop(0, 'rgba(10, 10, 35, 1)');
         gradient.addColorStop(0.5, 'rgba(20, 20, 50, 1)');
         gradient.addColorStop(1, 'rgba(30, 30, 70, 1)');
 
         ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, GAME_CONSTANTS.CANVAS.WIDTH, GAME_CONSTANTS.CANVAS.HEIGHT);
+        ctx.fillRect(0, 0, this.config.canvas.width, this.config.canvas.height);
 
         this.backgroundCacheValid = true;
     }
@@ -112,9 +113,9 @@ export class BackgroundRenderer {
         
         // より深い宇宙感のある多層グラデーション
         const gradient = ctx.createRadialGradient(
-            GAME_CONSTANTS.CANVAS.WIDTH * 0.3, GAME_CONSTANTS.CANVAS.HEIGHT * 0.2, 0,
-            GAME_CONSTANTS.CANVAS.WIDTH * 0.5, GAME_CONSTANTS.CANVAS.HEIGHT * 0.5, 
-            Math.max(GAME_CONSTANTS.CANVAS.WIDTH, GAME_CONSTANTS.CANVAS.HEIGHT)
+            this.config.canvas.width * 0.3, this.config.canvas.height * 0.2, 0,
+            this.config.canvas.width * 0.5, this.config.canvas.height * 0.5,
+            Math.max(this.config.canvas.width, this.config.canvas.height)
         );
         
         gradient.addColorStop(0, 'rgba(25, 25, 60, 1)');    // 中心部 - 深い青紫
@@ -123,7 +124,7 @@ export class BackgroundRenderer {
         gradient.addColorStop(1, 'rgba(5, 5, 15, 1)');      // 最外層 - ほぼ黒
 
         ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, GAME_CONSTANTS.CANVAS.WIDTH, GAME_CONSTANTS.CANVAS.HEIGHT);
+        ctx.fillRect(0, 0, this.config.canvas.width, this.config.canvas.height);
 
         // 微細な星の輝きをオーバーレイとして追加
         this.addStardustOverlay(ctx);
@@ -139,8 +140,8 @@ export class BackgroundRenderer {
         
         // ランダムな微細な光点を散りばめる
         for (let i = 0; i < 200; i++) {
-            const x = Math.random() * GAME_CONSTANTS.CANVAS.WIDTH;
-            const y = Math.random() * GAME_CONSTANTS.CANVAS.HEIGHT;
+            const x = Math.random() * this.config.canvas.width;
+            const y = Math.random() * this.config.canvas.height;
             const size = Math.random() * 0.8 + 0.2;
             const alpha = Math.random() * 0.3 + 0.1;
             
@@ -158,7 +159,7 @@ export class BackgroundRenderer {
      */
     private renderNebulaToCache(nebulas: Nebula[]): void {
         const ctx = this.nebulaCacheCtx;
-        ctx.clearRect(0, 0, GAME_CONSTANTS.CANVAS.WIDTH, GAME_CONSTANTS.CANVAS.HEIGHT);
+        ctx.clearRect(0, 0, this.config.canvas.width, this.config.canvas.height);
 
         nebulas.forEach(nebula => {
             nebula.draw(ctx);
@@ -172,7 +173,7 @@ export class BackgroundRenderer {
      */
     private renderPlanetsToCache(planets: Planet[]): void {
         const ctx = this.planetCacheCtx;
-        ctx.clearRect(0, 0, GAME_CONSTANTS.CANVAS.WIDTH, GAME_CONSTANTS.CANVAS.HEIGHT);
+        ctx.clearRect(0, 0, this.config.canvas.width, this.config.canvas.height);
 
         planets.forEach(planet => {
             planet.draw(ctx);
@@ -188,7 +189,7 @@ export class BackgroundRenderer {
      */
     private renderStaticElementsToCache(nebulas: Nebula[], planets: Planet[]): void {
         const ctx = this.staticElementsCacheCtx;
-        ctx.clearRect(0, 0, GAME_CONSTANTS.CANVAS.WIDTH, GAME_CONSTANTS.CANVAS.HEIGHT);
+        ctx.clearRect(0, 0, this.config.canvas.width, this.config.canvas.height);
 
         // 1. 背景グラデーション
         if (!this.backgroundCacheValid) {
@@ -413,12 +414,12 @@ export class BackgroundRenderer {
         const startTime = performance.now();
 
         // 背景グラデーション
-        const gradient = ctx.createLinearGradient(0, 0, 0, GAME_CONSTANTS.CANVAS.HEIGHT);
+        const gradient = ctx.createLinearGradient(0, 0, 0, this.config.canvas.height);
         gradient.addColorStop(0, 'rgba(10, 10, 35, 1)');
         gradient.addColorStop(0.5, 'rgba(20, 20, 50, 1)');
         gradient.addColorStop(1, 'rgba(30, 30, 70, 1)');
         ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, GAME_CONSTANTS.CANVAS.WIDTH, GAME_CONSTANTS.CANVAS.HEIGHT);
+        ctx.fillRect(0, 0, this.config.canvas.width, this.config.canvas.height);
 
         // 全要素を毎フレーム描画
         nebulas.forEach(nebula => nebula.draw(ctx));
