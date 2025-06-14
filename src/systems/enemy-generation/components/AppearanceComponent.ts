@@ -31,7 +31,12 @@ export class AppearanceComponent {
   /**
    * 色設定を生成
    */
-  private generateColors(baseConfig?: Partial<AppearanceConfig>) {
+  private generateColors(baseConfig?: Partial<AppearanceConfig>): {
+    baseShape: 'hexagon' | 'triangle' | 'octagon' | 'star' | 'diamond';
+    primaryColor: string;
+    secondaryColor: string;
+    accentColor: string;
+  } {
     return {
       baseShape:
         baseConfig?.baseShape ?? this.randomProvider.randomChoice(BASE_SHAPES),
@@ -50,7 +55,12 @@ export class AppearanceComponent {
   /**
    * プロパティを生成
    */
-  private generateProperties(baseConfig?: Partial<AppearanceConfig>) {
+  private generateProperties(baseConfig?: Partial<AppearanceConfig>): {
+    size: number;
+    glowIntensity: number;
+    animationSpeed: number;
+    trailEffect: boolean;
+  } {
     return {
       size: this.generateVariation(
         baseConfig?.size ?? 1.0,

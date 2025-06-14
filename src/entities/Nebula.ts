@@ -623,7 +623,9 @@ export class Nebula {
   /**
    * プール統計情報を取得（デバッグ用）
    */
-  public getPoolStats() {
+  public getPoolStats(): ReturnType<
+    typeof globalParticlePoolManager.getPoolStats
+  > {
     return globalParticlePoolManager.getPoolStats(this.poolName);
   }
 }

@@ -72,102 +72,124 @@ export class Star {
     const baseSize = this.randomProvider.random() * 2 + 1;
 
     switch (type) {
-      case 'main-sequence': {
-        const tempClass = this.randomProvider.random();
-        if (tempClass < 0.3) {
-          // O, B類星 - 青白い
-          return {
-            color: '#B0E0E6',
-            glowColor: '#87CEEB',
-            size: baseSize * 1.2,
-            brightness: 0.9,
-            twinkleIntensity: 0.8,
-          };
-        } else if (tempClass < 0.6) {
-          // A, F類星 - 白い
-          return {
-            color: '#FFFFFF',
-            glowColor: '#E6E6FA',
-            size: baseSize,
-            brightness: 0.8,
-            twinkleIntensity: 0.7,
-          };
-        } else if (tempClass < 0.8) {
-          // G類星 - 黄色（太陽類似）
-          return {
-            color: '#FFFF99',
-            glowColor: '#FFFACD',
-            size: baseSize,
-            brightness: 0.7,
-            twinkleIntensity: 0.6,
-          };
-        } else {
-          // K, M類星 - 赤い
-          return {
-            color: '#FFB6C1',
-            glowColor: '#FFA07A',
-            size: baseSize * 0.8,
-            brightness: 0.6,
-            twinkleIntensity: 0.9,
-          };
-        }
-      }
-
+      case 'main-sequence':
+        return this.getMainSequenceProperties(baseSize);
       case 'giant':
-        return {
-          color: '#FF6347',
-          glowColor: '#FF4500',
-          size: baseSize * 2.5,
-          brightness: 1.0,
-          twinkleIntensity: 0.5,
-        };
-
+        return this.getGiantProperties(baseSize);
       case 'supergiant':
-        return {
-          color: '#FF0000',
-          glowColor: '#DC143C',
-          size: baseSize * 4,
-          brightness: 1.2,
-          twinkleIntensity: 0.3,
-        };
-
+        return this.getSuperGiantProperties(baseSize);
       case 'white-dwarf':
-        return {
-          color: '#E0E0E0',
-          glowColor: '#D3D3D3',
-          size: baseSize * 0.5,
-          brightness: 0.9,
-          twinkleIntensity: 1.2,
-        };
-
+        return this.getWhiteDwarfProperties(baseSize);
       case 'variable':
-        return {
-          color: '#DA70D6',
-          glowColor: '#DDA0DD',
-          size: baseSize * 1.5,
-          brightness: 0.8,
-          twinkleIntensity: 0.4,
-          pulseSpeed: 0.02 + this.randomProvider.random() * 0.03,
-        };
-
+        return this.getVariableProperties(baseSize);
       case 'binary':
-        return {
-          color: '#FFD700',
-          glowColor: '#FFA500',
-          size: baseSize * 1.3,
-          brightness: 0.9,
-          twinkleIntensity: 0.6,
-        };
-
+        return this.getBinaryProperties(baseSize);
       default:
-        return {
-          color: '#FFFFFF',
-          glowColor: '#E6E6FA',
-          size: baseSize,
-          brightness: 0.7,
-          twinkleIntensity: 0.7,
-        };
+        return this.getDefaultProperties(baseSize);
     }
+  }
+
+  private getMainSequenceProperties(baseSize: number): StarProperties {
+    const tempClass = this.randomProvider.random();
+
+    if (tempClass < 0.3) {
+      // O, B類星 - 青白い
+      return {
+        color: '#B0E0E6',
+        glowColor: '#87CEEB',
+        size: baseSize * 1.2,
+        brightness: 0.9,
+        twinkleIntensity: 0.8,
+      };
+    } else if (tempClass < 0.6) {
+      // A, F類星 - 白い
+      return {
+        color: '#FFFFFF',
+        glowColor: '#E6E6FA',
+        size: baseSize,
+        brightness: 0.8,
+        twinkleIntensity: 0.7,
+      };
+    } else if (tempClass < 0.8) {
+      // G類星 - 黄色（太陽類似）
+      return {
+        color: '#FFFF99',
+        glowColor: '#FFFACD',
+        size: baseSize,
+        brightness: 0.7,
+        twinkleIntensity: 0.6,
+      };
+    } else {
+      // K, M類星 - 赤い
+      return {
+        color: '#FFB6C1',
+        glowColor: '#FFA07A',
+        size: baseSize * 0.8,
+        brightness: 0.6,
+        twinkleIntensity: 0.9,
+      };
+    }
+  }
+
+  private getGiantProperties(baseSize: number): StarProperties {
+    return {
+      color: '#FF6347',
+      glowColor: '#FF4500',
+      size: baseSize * 2.5,
+      brightness: 1.0,
+      twinkleIntensity: 0.5,
+    };
+  }
+
+  private getSuperGiantProperties(baseSize: number): StarProperties {
+    return {
+      color: '#FF0000',
+      glowColor: '#DC143C',
+      size: baseSize * 4,
+      brightness: 1.2,
+      twinkleIntensity: 0.3,
+    };
+  }
+
+  private getWhiteDwarfProperties(baseSize: number): StarProperties {
+    return {
+      color: '#E0E0E0',
+      glowColor: '#D3D3D3',
+      size: baseSize * 0.5,
+      brightness: 0.9,
+      twinkleIntensity: 1.2,
+    };
+  }
+
+  private getVariableProperties(baseSize: number): StarProperties {
+    return {
+      color: '#DA70D6',
+      glowColor: '#DDA0DD',
+      size: baseSize * 1.5,
+      brightness: 0.8,
+      twinkleIntensity: 0.4,
+      pulseSpeed: 0.02 + this.randomProvider.random() * 0.03,
+    };
+  }
+
+  private getBinaryProperties(baseSize: number): StarProperties {
+    return {
+      color: '#FFD700',
+      glowColor: '#FFA500',
+      size: baseSize * 1.3,
+      brightness: 0.9,
+      twinkleIntensity: 0.6,
+    };
+  }
+
+  private getDefaultProperties(baseSize: number): StarProperties {
+    return {
+      color: '#FFFFFF',
+      glowColor: '#E6E6FA',
+      size: baseSize,
+      brightness: 0.7,
+      twinkleIntensity: 0.7,
+    };
   }
 
   public update(deltaTime: number): void {
@@ -188,37 +210,77 @@ export class Star {
   public draw(ctx: CanvasRenderingContext2D): void {
     ctx.save();
 
-    const twinkle = Math.sin(this.twinkleOffset) * 0.5 + 0.5;
-    const twinkleEffect = this.properties.twinkleIntensity * twinkle;
-
-    if (
-      this.starType === 'binary' &&
-      this.secondarySize &&
-      this.secondaryPhase !== undefined
-    ) {
-      // バイナリ星の描画
-      this.drawBinaryStar(ctx, twinkleEffect);
-    } else if (this.starType === 'variable') {
-      // 変光星の描画
-      this.drawVariableStar(ctx, twinkleEffect);
-    } else {
-      // 通常の星の描画
-      this.drawRegularStar(ctx, twinkleEffect);
-    }
+    const twinkleEffect = this.calculateTwinkleEffect();
+    this.renderStarByType(ctx, twinkleEffect);
 
     ctx.restore();
+  }
+
+  private calculateTwinkleEffect(): number {
+    const twinkle = Math.sin(this.twinkleOffset) * 0.5 + 0.5;
+    return this.properties.twinkleIntensity * twinkle;
+  }
+
+  private renderStarByType(
+    ctx: CanvasRenderingContext2D,
+    twinkleEffect: number
+  ): void {
+    if (this.isBinaryStar()) {
+      this.drawBinaryStar(ctx, twinkleEffect);
+    } else if (this.starType === 'variable') {
+      this.drawVariableStar(ctx, twinkleEffect);
+    } else {
+      this.drawRegularStar(ctx, twinkleEffect);
+    }
+  }
+
+  private isBinaryStar(): boolean {
+    return (
+      this.starType === 'binary' &&
+      this.secondarySize !== undefined &&
+      this.secondaryPhase !== undefined
+    );
   }
 
   private drawRegularStar(
     ctx: CanvasRenderingContext2D,
     twinkleEffect: number
   ): void {
+    const { currentSize, alpha } = this.calculateStarParameters(twinkleEffect);
+
+    this.drawGlowEffect(ctx, currentSize, alpha);
+    this.drawStarCore(ctx, currentSize, alpha);
+  }
+
+  private calculateStarParameters(twinkleEffect: number): {
+    currentSize: number;
+    alpha: number;
+  } {
     const currentSize = this.baseSize * (0.8 + twinkleEffect * 0.4);
     const alpha = this.properties.brightness * (0.6 + twinkleEffect * 0.4);
+    return { currentSize, alpha };
+  }
 
-    // グロー効果
+  private drawGlowEffect(
+    ctx: CanvasRenderingContext2D,
+    currentSize: number,
+    alpha: number
+  ): void {
     ctx.globalCompositeOperation = 'screen';
     const glowSize = currentSize * 3;
+    const glowGradient = this.createGlowGradient(ctx, glowSize, alpha);
+
+    ctx.fillStyle = glowGradient;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, glowSize, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  private createGlowGradient(
+    ctx: CanvasRenderingContext2D,
+    glowSize: number,
+    alpha: number
+  ): CanvasGradient {
     const glowGradient = ctx.createRadialGradient(
       this.x,
       this.y,
@@ -239,12 +301,14 @@ export class Star {
     );
     glowGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
-    ctx.fillStyle = glowGradient;
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, glowSize, 0, Math.PI * 2);
-    ctx.fill();
+    return glowGradient;
+  }
 
-    // 星の本体
+  private drawStarCore(
+    ctx: CanvasRenderingContext2D,
+    currentSize: number,
+    alpha: number
+  ): void {
     ctx.globalCompositeOperation = 'source-over';
     const coreRgb = this.hexToRgb(this.properties.color);
     ctx.fillStyle = `rgba(${coreRgb.r}, ${coreRgb.g}, ${coreRgb.b}, ${alpha})`;
@@ -263,7 +327,6 @@ export class Star {
     const alpha =
       this.properties.brightness * (0.4 + pulse * 0.6 + twinkleEffect * 0.2);
 
-    // パルスする星の描画
     this.drawStarWithEffect(ctx, currentSize, alpha, pulse);
   }
 
@@ -271,39 +334,47 @@ export class Star {
     ctx: CanvasRenderingContext2D,
     twinkleEffect: number
   ): void {
-    const orbitRadius = this.baseSize * 2;
-    const primarySize = this.baseSize * (0.8 + twinkleEffect * 0.3);
-    const secondarySize = this.secondarySize! * (0.8 + twinkleEffect * 0.3);
+    const { primaryPos, secondaryPos, primarySize, secondarySize } =
+      this.calculateBinaryStarPositions(twinkleEffect);
 
-    // 主星の位置
-    const primary = {
-      x: this.x + Math.cos(this.secondaryPhase!) * orbitRadius * 0.6,
-      y: this.y + Math.sin(this.secondaryPhase!) * orbitRadius * 0.3,
-    };
-
-    // 伴星の位置
-    const secondary = {
-      x: this.x - Math.cos(this.secondaryPhase!) * orbitRadius * 0.4,
-      y: this.y - Math.sin(this.secondaryPhase!) * orbitRadius * 0.2,
-    };
-
-    // 主星を描画
     this.drawStarAt(
       ctx,
-      primary.x,
-      primary.y,
+      primaryPos.x,
+      primaryPos.y,
       primarySize,
       this.properties.brightness * (0.7 + twinkleEffect * 0.3)
     );
 
-    // 伴星を描画（少し暗く）
     this.drawStarAt(
       ctx,
-      secondary.x,
-      secondary.y,
+      secondaryPos.x,
+      secondaryPos.y,
       secondarySize,
       this.properties.brightness * (0.5 + twinkleEffect * 0.2)
     );
+  }
+
+  private calculateBinaryStarPositions(twinkleEffect: number): {
+    primaryPos: { x: number; y: number };
+    secondaryPos: { x: number; y: number };
+    primarySize: number;
+    secondarySize: number;
+  } {
+    const orbitRadius = this.baseSize * 2;
+    const primarySize = this.baseSize * (0.8 + twinkleEffect * 0.3);
+    const secondarySize = this.secondarySize! * (0.8 + twinkleEffect * 0.3);
+
+    const primaryPos = {
+      x: this.x + Math.cos(this.secondaryPhase!) * orbitRadius * 0.6,
+      y: this.y + Math.sin(this.secondaryPhase!) * orbitRadius * 0.3,
+    };
+
+    const secondaryPos = {
+      x: this.x - Math.cos(this.secondaryPhase!) * orbitRadius * 0.4,
+      y: this.y - Math.sin(this.secondaryPhase!) * orbitRadius * 0.2,
+    };
+
+    return { primaryPos, secondaryPos, primarySize, secondarySize };
   }
 
   private drawStarWithEffect(

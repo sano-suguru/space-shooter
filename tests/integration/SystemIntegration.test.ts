@@ -3,12 +3,13 @@ import { Enemy } from '../../src/entities/Enemy';
 import { EventEmitter } from '../../src/events/EventEmitter';
 import { EventMap } from '../../src/events/EventType';
 import { GameObjectFactory } from '../../src/factories/GameObjectFactory';
+import { IGame } from '../../src/interfaces/IGame';
 import { WaveManager } from '../../src/managers/WaveManager';
 import { ProgressManager } from '../../src/progression/managers/ProgressManager';
 import { RealRandomProvider } from '../../src/providers/RealRandomProvider';
 
 // モックゲームクラス
-class MockGame {
+class MockGame implements Partial<IGame> {
   private enemies: Array<Enemy | DynamicEnemy> = [];
   private messages: string[] = [];
 
@@ -20,7 +21,24 @@ class MockGame {
     this.messages.push(message);
   }
 
-  getStateManager() {
+  showMessage(message: string): void {
+    this.messages.push(message);
+  }
+
+  createBullet(): null {
+    // Mock implementation
+    return null;
+  }
+
+  addBossBullet(): void {
+    // Mock implementation
+  }
+
+  getCurrentBossHealth(): number {
+    return 100;
+  }
+
+  getStateManager(): { isPlaying: () => boolean } {
     return {
       isPlaying: () => true,
     };
@@ -64,7 +82,7 @@ describe('システム統合テスト', () => {
     waveManager = new WaveManager(
       eventEmitter,
       gameObjectFactory,
-      mockGame as any
+      mockGame as unknown as ConstructorParameters<typeof WaveManager>[2]
     );
 
     // ProgressManagerを初期化
@@ -83,7 +101,7 @@ describe('システム統合テスト', () => {
     test('動的敵生成が正常に動作する', () => {
       const enemy = gameObjectFactory.createDynamicEnemy(
         'SMALL',
-        mockGame as any
+        mockGame as unknown as IGame
       );
 
       expect(enemy).toBeDefined();
@@ -103,7 +121,7 @@ describe('システム統合テスト', () => {
 
       const enemy = gameObjectFactory.createDynamicEnemy(
         'MEDIUM',
-        mockGame as any
+        mockGame as unknown as IGame
       );
 
       expect(enemy).toBeDefined();
@@ -119,7 +137,7 @@ describe('システム統合テスト', () => {
           { type: 'SMALL', count: 2 },
           { type: 'MEDIUM', count: 1 },
         ],
-        mockGame as any
+        mockGame as unknown as IGame
       );
 
       expect(enemies).toHaveLength(3);
@@ -218,7 +236,10 @@ describe('システム統合テスト', () => {
       waveManager.setUseDynamicEnemies(true);
 
       // 敵を生成
-      gameObjectFactory.createDynamicEnemy('LARGE', mockGame as any);
+      gameObjectFactory.createDynamicEnemy(
+        'LARGE',
+        mockGame as unknown as IGame
+      );
 
       const stats = gameObjectFactory.getDynamicEnemyStatistics();
       expect(stats).toBeDefined();
@@ -231,7 +252,10 @@ describe('システム統合テスト', () => {
       // システムを使用状態にする
       waveManager.setUseDynamicEnemies(true);
       waveManager.startNextWave();
-      gameObjectFactory.createDynamicEnemy('SMALL', mockGame as any);
+      gameObjectFactory.createDynamicEnemy(
+        'SMALL',
+        mockGame as unknown as IGame
+      );
 
       // リセット実行
       waveManager.reset();
@@ -253,7 +277,7 @@ describe('システム統合テスト', () => {
       // 意図的にエラーを発生させるため、無効な設定を使用
       const enemy = gameObjectFactory.createDynamicEnemySafe(
         'SMALL',
-        mockGame as any,
+        mockGame as unknown as IGame,
         undefined,
         { x: -1000, y: -1000 } // 無効な位置
       );
@@ -268,7 +292,10 @@ describe('システム統合テスト', () => {
 
       expect(basicFactory.isDynamicEnemyEnabled()).toBe(false);
 
-      const enemy = basicFactory.createDynamicEnemy('MEDIUM', mockGame as any);
+      const enemy = basicFactory.createDynamicEnemy(
+        'MEDIUM',
+        mockGame as unknown as IGame
+      );
       expect(enemy instanceof Enemy).toBe(true);
       expect(enemy instanceof DynamicEnemy).toBe(false);
     });

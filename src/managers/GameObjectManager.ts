@@ -382,7 +382,7 @@ export class GameObjectManager {
   /**
    * パーティクルプールの統計情報を取得（デバッグ用）
    */
-  public getParticlePoolStats() {
+  public getParticlePoolStats(): ParticlePoolStats {
     return this.particlePoolManager.getStats();
   }
 

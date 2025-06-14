@@ -38,11 +38,11 @@ export class LazyComponentErrorBoundary extends React.Component<
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
     console.error('Lazy component loading error:', error, errorInfo);
   }
 
-  render() {
+  render(): React.ReactNode {
     if (this.state.hasError && this.state.error) {
       const FallbackComponent = this.props.fallback ?? DefaultErrorFallback;
       return <FallbackComponent error={this.state.error} />;
@@ -68,7 +68,9 @@ export const withLazyLoading = <P extends object>(
   LazyComponent: React.LazyExoticComponent<ComponentType<P>>,
   loadingMessage?: string,
   ErrorFallback?: React.ComponentType<{ error: Error }>
-) => {
+): React.ForwardRefExoticComponent<
+  React.PropsWithoutRef<P> & React.RefAttributes<HTMLElement>
+> => {
   return React.forwardRef<HTMLElement, P>((props, ref) => (
     <LazyComponentErrorBoundary fallback={ErrorFallback}>
       <Suspense fallback={<LazyLoadingSpinner message={loadingMessage} />}>
@@ -186,7 +188,11 @@ export class ComponentPreloader {
 }
 
 // 段階的ロードのフック
-export const useProgressiveLoading = () => {
+export const useProgressiveLoading = (): {
+  loadingStage: 'initial' | 'core' | 'secondary' | 'complete';
+  startProgressiveLoad: () => Promise<void>;
+  isLoading: boolean;
+} => {
   const [loadingStage, setLoadingStage] = React.useState<
     'initial' | 'core' | 'secondary' | 'complete'
   >('initial');

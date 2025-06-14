@@ -57,7 +57,7 @@ export class ParticlePoolManager {
     createFn: () => T,
     config: ParticlePoolConfig
   ): void {
-    const resetFn = (particle: T) => {
+    const resetFn = (particle: T): void => {
       particle.active = false;
       particle.reset();
     };

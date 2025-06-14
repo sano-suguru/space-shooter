@@ -209,7 +209,10 @@ export class EnemyGenerationSystem {
   /**
    * 環境コンテキストを取得
    */
-  private getEnvironmentalContext(position: Vector2D) {
+  private getEnvironmentalContext(position: Vector2D): {
+    nearbyObjects: string[];
+    activeEffects: string[];
+  } {
     // 実際の実装では、背景オブジェクトとの距離を計算
     // ここでは簡略化
     const nearbyObjects: string[] = [];

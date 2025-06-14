@@ -59,6 +59,8 @@ describe('Boss', () => {
     } as unknown as CanvasRenderingContext2D;
 
     mockGameEngine = new MockGameEngine();
+    // 診断ログ: any型使用の問題を特定
+    console.log('DEBUG: Boss test - any型使用箇所を特定');
     boss = new Boss(mockGameEngine as any, testConfig);
   });
 

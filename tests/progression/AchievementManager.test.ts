@@ -14,7 +14,12 @@ import type {
 import type { PlayerProfile } from '../../src/progression/types/PlayerProfile';
 
 // LocalStorage のモック
-const mockLocalStorage = (() => {
+const mockLocalStorage = ((): {
+  getItem: jest.MockedFunction<(key: string) => string | null>;
+  setItem: jest.MockedFunction<(key: string, value: string) => void>;
+  removeItem: jest.MockedFunction<(key: string) => void>;
+  clear: jest.MockedFunction<() => void>;
+} => {
   let store: Record<string, string> = {};
   return {
     getItem: jest.fn((key: string) => store[key] || null),

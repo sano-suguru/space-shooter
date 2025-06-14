@@ -310,7 +310,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     description: '1時間以内でウェーブ10に到達する',
     category: 'mastery',
     difficulty: 'platinum',
-    condition: (_profile, session) => {
+    condition: (_profile, session): boolean => {
       return session
         ? session.waveReached >= 10 && session.playTime <= 3600
         : false;
@@ -339,7 +339,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     description: '???',
     category: 'special',
     difficulty: 'platinum',
-    condition: profile => {
+    condition: (profile): boolean => {
       // 全ての非隠しアチーブメントを達成
       return profile.completedAchievements.length >= 20;
     },

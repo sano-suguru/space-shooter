@@ -17,7 +17,7 @@ export const AchievementCategoryTabs: React.FC<
   className = '',
   ...props
 }) => {
-  const handleCategoryClick = (categoryId: AchievementCategory) => {
+  const handleCategoryClick = (categoryId: AchievementCategory): void => {
     onCategoryChange(categoryId);
   };
 

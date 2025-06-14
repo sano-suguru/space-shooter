@@ -35,32 +35,84 @@ export class EnemyGeneratorFactory {
   public generateDynamicEnemy(
     request: EnemyGenerationRequest
   ): DynamicEnemyConfig {
-    // 難易度修正値を計算
-    const difficultyModifiers =
-      this.difficultySystem.calculateSmoothDifficultyModifiers(
-        request.difficultyFactors
-      );
+    const difficultyModifiers = this.calculateDifficultyModifiers(request);
+    const isElite = this.determineEliteStatus(difficultyModifiers);
 
-    // エリート敵かどうかを判定
-    const isElite = this.randomProvider.randomChance(
+    const components = this.generateBaseComponents(request);
+    const enhancedComponents = this.applyDifficultyAdjustments(
+      components,
+      request,
+      isElite
+    );
+
+    const environmentalEffects = this.generateEnvironmentalEffects(request);
+    const adjustedComponents = this.applyEnvironmentalEffects(
+      enhancedComponents,
+      environmentalEffects
+    );
+
+    const flockInfo = this.generateFlockInfo(
+      request,
+      adjustedComponents.behavior
+    );
+    const validatedComponents = this.validateComponents(adjustedComponents);
+
+    return this.createFinalConfig(
+      request,
+      validatedComponents,
+      environmentalEffects,
+      isElite,
+      flockInfo
+    );
+  }
+
+  private calculateDifficultyModifiers(
+    request: EnemyGenerationRequest
+  ): ReturnType<
+    DifficultyAdjustmentSystem['calculateSmoothDifficultyModifiers']
+  > {
+    return this.difficultySystem.calculateSmoothDifficultyModifiers(
+      request.difficultyFactors
+    );
+  }
+
+  private determineEliteStatus(
+    difficultyModifiers: ReturnType<
+      DifficultyAdjustmentSystem['calculateSmoothDifficultyModifiers']
+    >
+  ): boolean {
+    return this.randomProvider.randomChance(
       difficultyModifiers.eliteEnemyChance
     );
+  }
 
-    // 基本設定を取得
+  private generateBaseComponents(request: EnemyGenerationRequest): {
+    appearance: ReturnType<AppearanceComponent['generateRandomAppearance']>;
+    stats: ReturnType<StatsComponent['generateBaseStats']>;
+    behavior: ReturnType<BehaviorComponent['generateRandomBehavior']>;
+    attack: ReturnType<AttackAbilityComponent['generateRandomAttackAbility']>;
+  } {
     const baseTemplate = ENEMY_BASE_TEMPLATES[request.baseType];
 
-    // 各コンポーネントを生成
-    let appearance = this.appearanceComponent.generateRandomAppearance(
-      baseTemplate.appearance
-    );
-    let stats = this.statsComponent.generateBaseStats(request.baseType);
-    let behavior = this.behaviorComponent.generateRandomBehavior(
-      request.baseType
-    );
-    let attack = this.attackComponent.generateRandomAttackAbility(
-      request.baseType,
-      request.difficultyFactors.playerLevel
-    );
+    return {
+      appearance: this.appearanceComponent.generateRandomAppearance(
+        baseTemplate.appearance
+      ),
+      stats: this.statsComponent.generateBaseStats(request.baseType),
+      behavior: this.behaviorComponent.generateRandomBehavior(request.baseType),
+      attack: this.attackComponent.generateRandomAttackAbility(
+        request.baseType,
+        request.difficultyFactors.playerLevel
+      ),
+    };
+  }
+
+  private applyDifficultyAdjustments(
+    components: ReturnType<EnemyGeneratorFactory['generateBaseComponents']>,
+    request: EnemyGenerationRequest,
+    isElite: boolean
+  ): typeof components {
+    let { appearance, stats, behavior, attack } = components;
 
     // 難易度調整を適用
     stats = this.statsComponent.generateAdjustedStats(
@@ -76,8 +128,17 @@ export class EnemyGeneratorFactory {
       attack = this.attackComponent.generateEliteAttackAbility(attack);
     }
 
-    // 環境効果を適用
-    const environmentalEffects = this.generateEnvironmentalEffects(request);
+    return { appearance, stats, behavior, attack };
+  }
+
+  private applyEnvironmentalEffects(
+    components: ReturnType<EnemyGeneratorFactory['generateBaseComponents']>,
+    environmentalEffects: ReturnType<
+      EnemyGeneratorFactory['generateEnvironmentalEffects']
+    >
+  ): typeof components {
+    let { stats, behavior } = components;
+
     if (environmentalEffects.length > 0) {
       environmentalEffects.forEach(effect => {
         stats = this.statsComponent.applyEnvironmentalEffects(
@@ -92,21 +153,36 @@ export class EnemyGeneratorFactory {
       });
     }
 
-    // 群れ行動の設定
-    const flockInfo = this.generateFlockInfo(request, behavior);
+    return { ...components, stats, behavior };
+  }
 
-    // 妥当性チェック
-    stats = this.statsComponent.validateStats(stats);
-    behavior = this.behaviorComponent.validateBehavior(behavior);
-    attack = this.attackComponent.validateAttackAbility(attack);
+  private validateComponents(
+    components: ReturnType<EnemyGeneratorFactory['generateBaseComponents']>
+  ): typeof components {
+    return {
+      ...components,
+      stats: this.statsComponent.validateStats(components.stats),
+      behavior: this.behaviorComponent.validateBehavior(components.behavior),
+      attack: this.attackComponent.validateAttackAbility(components.attack),
+    };
+  }
 
+  private createFinalConfig(
+    request: EnemyGenerationRequest,
+    components: ReturnType<EnemyGeneratorFactory['generateBaseComponents']>,
+    environmentalEffects: ReturnType<
+      EnemyGeneratorFactory['generateEnvironmentalEffects']
+    >,
+    isElite: boolean,
+    flockInfo: { flockId?: string; leaderId?: string }
+  ): DynamicEnemyConfig {
     return {
       baseType: request.baseType,
       position: request.position,
-      appearance,
-      stats,
-      behavior,
-      attack,
+      appearance: components.appearance,
+      stats: components.stats,
+      behavior: components.behavior,
+      attack: components.attack,
       difficultyFactors: request.difficultyFactors,
       environmentalEffects,
       isElite,
@@ -180,8 +256,18 @@ export class EnemyGeneratorFactory {
   /**
    * 環境効果を生成
    */
-  private generateEnvironmentalEffects(request: EnemyGenerationRequest) {
-    const effects = [];
+  private generateEnvironmentalEffects(request: EnemyGenerationRequest): Array<{
+    triggerZone: 'nebula' | 'planet' | 'asteroid_field';
+    effectType: 'stealth' | 'damage_boost' | 'speed_boost' | 'shield_regen';
+    intensity: number;
+    duration: number;
+  }> {
+    const effects: Array<{
+      triggerZone: 'nebula' | 'planet' | 'asteroid_field';
+      effectType: 'stealth' | 'damage_boost' | 'speed_boost' | 'shield_regen';
+      intensity: number;
+      duration: number;
+    }> = [];
 
     if (request.environmentalContext?.activeEffects) {
       effects.push(...request.environmentalContext.activeEffects);

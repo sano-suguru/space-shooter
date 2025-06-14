@@ -87,101 +87,140 @@ type DeepPartial<T> = {
 export function createGameConfig(
   overrides?: DeepPartial<GameConfig>
 ): GameConfig {
-  const defaultConfig: GameConfig = {
-    canvas: {
-      width: 400,
-      height: 600,
-    },
-    player: {
-      width: 50,
-      height: 50,
-      maxSpeed: 8,
-      acceleration: 1.2,
-      deceleration: 0.6,
-      maxHealth: 100,
-      invincibilityTime: 1000,
-      fireRate: 200,
-      colors: {
-        primary: '#1a237e',
-        secondary: '#3f51b5',
-        accent: '#00bcd4',
-        engine: '#ff9800',
-      },
-    },
-    bullet: {
-      width: 5,
-      height: 15,
-      speed: 600,
-    },
-    enemy: {
-      spawnInterval: 1000,
-      types: {
-        SMALL: {
-          width: 30,
-          height: 30,
-          speed: 180,
-          health: 1,
-          score: 10,
-          color: '#7c4dff',
-        },
-        MEDIUM: {
-          width: 50,
-          height: 50,
-          speed: 120,
-          health: 2,
-          score: 20,
-          color: '#26c6da',
-        },
-        LARGE: {
-          width: 70,
-          height: 70,
-          speed: 60,
-          health: 3,
-          score: 30,
-          color: '#66bb6a',
-        },
-      },
-    },
-    powerup: {
-      width: 30,
-      height: 30,
-      speed: 100,
-      duration: 10000,
-      spawnChance: 0.05,
-      types: {
-        RAPID_FIRE: { color: '#66bb6a' },
-        TRIPLE_SHOT: { color: '#7c4dff' },
-        SHIELD: { color: '#26c6da' },
-      },
-    },
-    boss: {
-      width: 150,
-      height: 150,
-      bulletSpeed: 200,
-      fireRate: 1000,
-      initialHealth: 50,
-      initialSpeed: 50,
-      movementSpeed: 50,
-    },
-    explosion: {
-      duration: 30,
-    },
-    background: {
-      starCount: 100,
-      planetCount: 2,
-      nebulaCount: 1,
-    },
-    wave: {
-      systemEnabled: true,
-      clearBonusMultiplier: 2,
-      formationSpacing: 40,
-      spawnDelayBase: 200,
-      waveClearDelay: 2000,
-    },
-  };
-
+  const defaultConfig = createDefaultConfig();
   const mergedConfig = deepMerge(defaultConfig, overrides ?? {});
   return validateConfig(mergedConfig);
+}
+
+function createDefaultConfig(): GameConfig {
+  return {
+    canvas: createCanvasConfig(),
+    player: createPlayerConfig(),
+    bullet: createBulletConfig(),
+    enemy: createEnemyConfig(),
+    powerup: createPowerUpConfig(),
+    boss: createBossConfig(),
+    explosion: createExplosionConfig(),
+    background: createBackgroundConfig(),
+    wave: createWaveConfig(),
+  };
+}
+
+function createCanvasConfig(): GameConfig['canvas'] {
+  return {
+    width: 400,
+    height: 600,
+  };
+}
+
+function createPlayerConfig(): GameConfig['player'] {
+  return {
+    width: 50,
+    height: 50,
+    maxSpeed: 8,
+    acceleration: 1.2,
+    deceleration: 0.6,
+    maxHealth: 100,
+    invincibilityTime: 1000,
+    fireRate: 200,
+    colors: {
+      primary: '#1a237e',
+      secondary: '#3f51b5',
+      accent: '#00bcd4',
+      engine: '#ff9800',
+    },
+  };
+}
+
+function createBulletConfig(): GameConfig['bullet'] {
+  return {
+    width: 5,
+    height: 15,
+    speed: 600,
+  };
+}
+
+function createEnemyConfig(): GameConfig['enemy'] {
+  return {
+    spawnInterval: 1000,
+    types: {
+      SMALL: {
+        width: 30,
+        height: 30,
+        speed: 180,
+        health: 1,
+        score: 10,
+        color: '#7c4dff',
+      },
+      MEDIUM: {
+        width: 50,
+        height: 50,
+        speed: 120,
+        health: 2,
+        score: 20,
+        color: '#26c6da',
+      },
+      LARGE: {
+        width: 70,
+        height: 70,
+        speed: 60,
+        health: 3,
+        score: 30,
+        color: '#66bb6a',
+      },
+    },
+  };
+}
+
+function createPowerUpConfig(): GameConfig['powerup'] {
+  return {
+    width: 30,
+    height: 30,
+    speed: 100,
+    duration: 10000,
+    spawnChance: 0.05,
+    types: {
+      RAPID_FIRE: { color: '#66bb6a' },
+      TRIPLE_SHOT: { color: '#7c4dff' },
+      SHIELD: { color: '#26c6da' },
+    },
+  };
+}
+
+function createBossConfig(): GameConfig['boss'] {
+  return {
+    width: 150,
+    height: 150,
+    bulletSpeed: 200,
+    fireRate: 1000,
+    initialHealth: 50,
+    initialSpeed: 50,
+    movementSpeed: 50,
+  };
+}
+
+function createExplosionConfig(): GameConfig['explosion'] {
+  return {
+    duration: 30,
+  };
+}
+
+function createBackgroundConfig(): GameConfig['background'] {
+  return {
+    starCount: 100,
+    planetCount: 2,
+    nebulaCount: 1,
+  };
+}
+
+function createWaveConfig(): GameConfig['wave'] {
+  return {
+    systemEnabled: true,
+    clearBonusMultiplier: 2,
+    formationSpacing: 40,
+    spawnDelayBase: 200,
+    waveClearDelay: 2000,
+  };
 }
 
 export function createTestConfig(

@@ -27,20 +27,20 @@ export class MockElement {
   constructor(tagName: string) {
     this.tagName = tagName.toLowerCase();
     this.classList = {
-      add: (className: string) => {
+      add: (className: string): void => {
         const classes = this.className.split(' ').filter(c => c);
         if (!classes.includes(className)) {
           classes.push(className);
           this.className = classes.join(' ');
         }
       },
-      remove: (className: string) => {
+      remove: (className: string): void => {
         const classes = this.className
           .split(' ')
           .filter(c => c && c !== className);
         this.className = classes.join(' ');
       },
-      contains: (className: string) => {
+      contains: (className: string): boolean => {
         return this.className.split(' ').includes(className);
       },
     };

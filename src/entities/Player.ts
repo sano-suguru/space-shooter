@@ -65,7 +65,6 @@ export class Player extends GameObject implements IPlayer {
     return createGameConfig();
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public setKeyState(_key: string, _pressed: boolean): void {
     // この方法は非推奨 - InputManagerを直接使用してください
     // 後方互換性のために残しています

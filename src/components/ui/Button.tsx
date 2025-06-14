@@ -169,13 +169,16 @@ const createMouseHandlers = (
   loading: boolean,
   buttonStyles: React.CSSProperties,
   hoverStyles: React.CSSProperties
-) => ({
-  onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => {
+): {
+  onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => void;
+} => ({
+  onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>): void => {
     if (!disabled && !loading) {
       Object.assign(e.currentTarget.style, hoverStyles);
     }
   },
-  onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => {
+  onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>): void => {
     if (!disabled && !loading) {
       Object.assign(e.currentTarget.style, buttonStyles);
     }
@@ -224,7 +227,7 @@ export const Button: React.FC<ButtonProps> = ({
   testId,
   ...props
 }) => {
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>): void => {
     if (disabled || loading) return;
     onClick?.(event);
   };

@@ -311,19 +311,49 @@ export class BackgroundRenderer {
     spaceDusts: SpaceDust[],
     deltaTime: number
   ): void {
-    // パフォーマンス監視開始
+    const startTime = this.initializePerformanceMonitoring();
+    const { lodSettings, currentLOD } = this.updateLODSystem(deltaTime);
+
+    this.renderStaticElements(ctx, nebulas, planets, currentLOD, lodSettings);
+    this.renderDynamicElements(
+      ctx,
+      stars,
+      comets,
+      meteorShowers,
+      spaceDusts,
+      auroras,
+      currentLOD,
+      lodSettings
+    );
+
+    this.finalizePerformanceMonitoring(startTime);
+  }
+
+  private initializePerformanceMonitoring(): number {
     this.performanceMonitor.startFrame();
-    const startTime = performance.now();
-
-    // LODシステム更新
-    this.lodManager.updateLOD(deltaTime);
-    const lodSettings = this.lodManager.getCurrentSettings();
-    const currentLOD = this.lodManager.getCurrentLevel();
-
-    // メモリ使用量更新
     this.performanceMonitor.updateMemoryUsage();
+    return performance.now();
+  }
 
-    // Phase 2: 静的要素統合キャッシュの使用
+  private updateLODSystem(deltaTime: number): {
+    lodSettings: ReturnType<LODManager['getCurrentSettings']>;
+    currentLOD: ReturnType<LODManager['getCurrentLevel']>;
+  } {
+    this.lodManager.updateLOD(deltaTime);
+    return {
+      lodSettings: this.lodManager.getCurrentSettings(),
+      currentLOD: this.lodManager.getCurrentLevel(),
+    };
+  }
+
+  private renderStaticElements(
+    ctx: CanvasRenderingContext2D,
+    nebulas: Nebula[],
+    planets: Planet[],
+    currentLOD: ReturnType<LODManager['getCurrentLevel']>,
+    lodSettings: ReturnType<LODManager['getCurrentSettings']>
+  ): void {
+    // 静的要素統合キャッシュの更新
     if (
       !this.staticElementsCacheValid ||
       this.planetCacheFrameCounter >= this.planetCacheUpdateInterval
@@ -331,35 +361,70 @@ export class BackgroundRenderer {
       this.renderStaticElementsToCache(nebulas, planets);
     }
 
-    // 静的要素を一括描画（背景、星雲、惑星）
+    // 静的要素の描画
     if (currentLOD !== LODLevel.LOW) {
       ctx.globalAlpha = lodSettings.effectIntensity;
       ctx.drawImage(this.staticElementsCache, 0, 0);
       ctx.globalAlpha = 1.0;
     } else {
-      // 低品質モードでは背景のみ
-      if (!this.backgroundCacheValid) {
-        this.renderEnhancedBackgroundToCache();
-      }
-      ctx.drawImage(this.backgroundCache, 0, 0);
+      this.renderLowQualityBackground(ctx);
     }
+  }
 
-    // 動的要素の描画
-    // 3. 宇宙塵雲（LOD調整）
+  private renderLowQualityBackground(ctx: CanvasRenderingContext2D): void {
+    if (!this.backgroundCacheValid) {
+      this.renderEnhancedBackgroundToCache();
+    }
+    ctx.drawImage(this.backgroundCache, 0, 0);
+  }
+
+  private renderDynamicElements(
+    ctx: CanvasRenderingContext2D,
+    stars: Star[],
+    comets: Comet[],
+    meteorShowers: MeteorShower[],
+    spaceDusts: SpaceDust[],
+    auroras: Aurora[],
+    currentLOD: ReturnType<LODManager['getCurrentLevel']>,
+    lodSettings: ReturnType<LODManager['getCurrentSettings']>
+  ): void {
+    this.renderSpaceDusts(ctx, spaceDusts, lodSettings);
+    this.renderStars(ctx, stars, lodSettings);
+    this.renderMeteorShowers(ctx, meteorShowers, currentLOD, lodSettings);
+    this.renderComets(ctx, comets, lodSettings);
+    this.renderAuroras(ctx, auroras, lodSettings);
+  }
+
+  private renderSpaceDusts(
+    ctx: CanvasRenderingContext2D,
+    spaceDusts: SpaceDust[],
+    lodSettings: ReturnType<LODManager['getCurrentSettings']>
+  ): void {
     const adjustedSpaceDusts = this.getAdjustedEntityArray(
       spaceDusts,
       lodSettings.particleMultiplier
     );
     adjustedSpaceDusts.forEach(dust => dust.draw(ctx));
+  }
 
-    // 5. 星（LOD調整）
+  private renderStars(
+    ctx: CanvasRenderingContext2D,
+    stars: Star[],
+    lodSettings: ReturnType<LODManager['getCurrentSettings']>
+  ): void {
     const adjustedStars = this.getAdjustedEntityArray(
       stars,
       lodSettings.particleMultiplier
     );
     adjustedStars.forEach(star => star.draw(ctx));
+  }
 
-    // 6. 流星群（中品質以上で描画）
+  private renderMeteorShowers(
+    ctx: CanvasRenderingContext2D,
+    meteorShowers: MeteorShower[],
+    currentLOD: ReturnType<LODManager['getCurrentLevel']>,
+    lodSettings: ReturnType<LODManager['getCurrentSettings']>
+  ): void {
     if (currentLOD !== LODLevel.LOW) {
       const adjustedMeteorShowers = this.getAdjustedEntityArray(
         meteorShowers,
@@ -367,15 +432,25 @@ export class BackgroundRenderer {
       );
       adjustedMeteorShowers.forEach(shower => shower.draw(ctx));
     }
+  }
 
-    // 7. 彗星（LOD調整）
+  private renderComets(
+    ctx: CanvasRenderingContext2D,
+    comets: Comet[],
+    lodSettings: ReturnType<LODManager['getCurrentSettings']>
+  ): void {
     const adjustedComets = this.getAdjustedEntityArray(
       comets,
       lodSettings.particleMultiplier
     );
     adjustedComets.forEach(comet => comet.draw(ctx));
+  }
 
-    // 8. オーロラ（LOD調整）
+  private renderAuroras(
+    ctx: CanvasRenderingContext2D,
+    auroras: Aurora[],
+    lodSettings: ReturnType<LODManager['getCurrentSettings']>
+  ): void {
     const adjustedAuroras = this.getAdjustedEntityArray(
       auroras,
       lodSettings.particleMultiplier
@@ -383,8 +458,9 @@ export class BackgroundRenderer {
     ctx.globalAlpha = lodSettings.effectIntensity;
     adjustedAuroras.forEach(aurora => aurora.draw(ctx));
     ctx.globalAlpha = 1.0;
+  }
 
-    // パフォーマンス測定終了
+  private finalizePerformanceMonitoring(startTime: number): void {
     const endTime = performance.now();
     const renderTime = endTime - startTime;
     this.recordRenderTime(renderTime);

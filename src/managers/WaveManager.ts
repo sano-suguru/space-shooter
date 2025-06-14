@@ -369,7 +369,9 @@ export class WaveManager {
   /**
    * 動的敵生成の統計情報を取得
    */
-  public getDynamicEnemyStatistics() {
+  public getDynamicEnemyStatistics(): ReturnType<
+    GameObjectFactory['getDynamicEnemyStatistics']
+  > {
     if (!this.useDynamicEnemies) {
       return null;
     }
@@ -379,7 +381,15 @@ export class WaveManager {
   /**
    * WaveManagerの状態情報を取得
    */
-  public getWaveManagerInfo() {
+  public getWaveManagerInfo(): {
+    currentWave: number;
+    waveActive: boolean;
+    enemiesRemaining: number;
+    spawnQueueLength: number;
+    useDynamicEnemies: boolean;
+    playerLevel: number;
+    dynamicEnemyStats: ReturnType<WaveManager['getDynamicEnemyStatistics']>;
+  } {
     return {
       currentWave: this.currentWave,
       waveActive: this.waveActive,

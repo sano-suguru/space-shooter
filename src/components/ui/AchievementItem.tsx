@@ -15,11 +15,11 @@ export const AchievementItem: React.FC<AchievementItemProps> = ({
   className = '',
   ...props
 }) => {
-  const handleClick = () => {
+  const handleClick = (): void => {
     onSelect?.(achievement);
   };
 
-  const createRewardText = () => {
+  const createRewardText = (): string | null => {
     const rewards = [];
 
     if (achievement.reward.coins > 0) {
@@ -33,7 +33,7 @@ export const AchievementItem: React.FC<AchievementItemProps> = ({
     return rewards.length > 0 ? `報酬: ${rewards.join(', ')}` : null;
   };
 
-  const getProgressText = () => {
+  const getProgressText = (): string => {
     if (isCompleted) return '完了！';
     if (progress) return `${progress.current}/${progress.required}`;
     return '進捗なし';

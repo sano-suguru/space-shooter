@@ -255,7 +255,9 @@ export class GameObjectFactory {
   /**
    * 動的敵生成システムの統計情報を取得
    */
-  public getDynamicEnemyStatistics() {
+  public getDynamicEnemyStatistics(): ReturnType<
+    EnemyGenerationSystem['getGenerationStatistics']
+  > | null {
     if (!this.enemyGenerationSystem) {
       return null;
     }
@@ -292,7 +294,11 @@ export class GameObjectFactory {
   /**
    * デバッグ情報を取得
    */
-  public getDebugInfo() {
+  public getDebugInfo(): {
+    dynamicEnemyEnabled: boolean;
+    message?: string;
+    systemInfo?: ReturnType<EnemyGenerationSystem['getDebugInfo']>;
+  } {
     if (!this.enemyGenerationSystem) {
       return {
         dynamicEnemyEnabled: false,

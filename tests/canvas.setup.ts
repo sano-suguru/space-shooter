@@ -6,7 +6,7 @@ if (typeof HTMLCanvasElement === 'undefined') {
   (globalThis as any).HTMLCanvasElement = class HTMLCanvasElement {
     width = 400;
     height = 600;
-    getContext() {
+    getContext(): null {
       return null;
     }
   };
@@ -99,7 +99,7 @@ Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
 });
 
 // Complete Canvas 2D Context mock
-const createMockContext = () => ({
+const createMockContext = (): Record<string, unknown> => ({
   // Canvas 2D Context methods
   fillRect: jest.fn(),
   clearRect: jest.fn(),

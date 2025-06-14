@@ -16,7 +16,11 @@ declare global {
 
 // Custom matchers for game testing
 expect.extend({
-  toBeWithinRange(received: number, floor: number, ceiling: number) {
+  toBeWithinRange(
+    received: number,
+    floor: number,
+    ceiling: number
+  ): { message: () => string; pass: boolean } {
     const pass = received >= floor && received <= ceiling;
     if (pass) {
       return {
@@ -33,7 +37,10 @@ expect.extend({
     }
   },
 
-  toHaveValidGameObject(received: unknown) {
+  toHaveValidGameObject(received: unknown): {
+    message: () => string;
+    pass: boolean;
+  } {
     const hasRequiredProperties =
       received &&
       typeof received === 'object' &&
@@ -65,12 +72,12 @@ expect.extend({
 const originalConsoleError = console.error;
 const originalConsoleWarn = console.warn;
 
-beforeAll(() => {
+beforeAll((): void => {
   console.error = jest.fn();
   console.warn = jest.fn();
 });
 
-afterAll(() => {
+afterAll((): void => {
   console.error = originalConsoleError;
   console.warn = originalConsoleWarn;
 });

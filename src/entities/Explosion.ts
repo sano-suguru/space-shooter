@@ -214,154 +214,202 @@ export class Explosion {
     const progress = this.currentFrame / this.duration;
 
     ctx.save();
+    this.drawShockWaves(ctx);
+    this.drawCoreFlash(ctx, progress);
+    this.drawParticles(ctx);
+    ctx.restore();
+  }
 
-    // 衝撃波の描画
+  /**
+   * 衝撃波を描画
+   */
+  private drawShockWaves(ctx: CanvasRenderingContext2D): void {
     this.shockWaves.forEach(shockWave => {
       if (shockWave.alpha > 0 && shockWave.radius > 0) {
-        // 安全な半径値を確保
-        const safeOuterRadius = Math.max(0.1, shockWave.radius);
-        const safeInnerRadius = Math.max(0.1, shockWave.radius - 2);
-
-        ctx.strokeStyle = `rgba(255, 200, 100, ${shockWave.alpha})`;
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(shockWave.x, shockWave.y, safeOuterRadius, 0, Math.PI * 2);
-        ctx.stroke();
-
-        // 内側の光輪（半径が十分大きい場合のみ描画）
-        if (shockWave.radius > 3) {
-          ctx.strokeStyle = `rgba(255, 255, 255, ${shockWave.alpha * 0.5})`;
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.arc(shockWave.x, shockWave.y, safeInnerRadius, 0, Math.PI * 2);
-          ctx.stroke();
-        }
+        this.drawSingleShockWave(ctx, shockWave);
       }
     });
+  }
 
-    // コア爆発の光
-    if (progress < 0.3) {
-      const flashAlpha = (0.3 - progress) / 0.3;
-      const flashRadius = 80 * this.size * (1 - progress);
+  /**
+   * 単一の衝撃波を描画
+   */
+  private drawSingleShockWave(
+    ctx: CanvasRenderingContext2D,
+    shockWave: ShockWave
+  ): void {
+    // 安全な半径値を確保
+    const safeOuterRadius = Math.max(0.1, shockWave.radius);
+    const safeInnerRadius = Math.max(0.1, shockWave.radius - 2);
 
-      const flashGradient = ctx.createRadialGradient(
-        this.x,
-        this.y,
-        0,
-        this.x,
-        this.y,
-        flashRadius
-      );
-      flashGradient.addColorStop(0, `rgba(255, 255, 200, ${flashAlpha * 0.8})`);
-      flashGradient.addColorStop(
-        0.5,
-        `rgba(255, 150, 50, ${flashAlpha * 0.4})`
-      );
-      flashGradient.addColorStop(1, `rgba(255, 0, 0, 0)`);
+    // 外側の輪
+    ctx.strokeStyle = `rgba(255, 200, 100, ${shockWave.alpha})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(shockWave.x, shockWave.y, safeOuterRadius, 0, Math.PI * 2);
+    ctx.stroke();
 
-      ctx.fillStyle = flashGradient;
+    // 内側の光輪（半径が十分大きい場合のみ描画）
+    if (shockWave.radius > 3) {
+      ctx.strokeStyle = `rgba(255, 255, 255, ${shockWave.alpha * 0.5})`;
+      ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.arc(this.x, this.y, flashRadius, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.arc(shockWave.x, shockWave.y, safeInnerRadius, 0, Math.PI * 2);
+      ctx.stroke();
     }
+  }
 
-    // パーティクルの描画
+  /**
+   * コア爆発の光を描画
+   */
+  private drawCoreFlash(ctx: CanvasRenderingContext2D, progress: number): void {
+    if (progress >= 0.3) return;
+
+    const flashAlpha = (0.3 - progress) / 0.3;
+    const flashRadius = 80 * this.size * (1 - progress);
+
+    const flashGradient = ctx.createRadialGradient(
+      this.x,
+      this.y,
+      0,
+      this.x,
+      this.y,
+      flashRadius
+    );
+    flashGradient.addColorStop(0, `rgba(255, 255, 200, ${flashAlpha * 0.8})`);
+    flashGradient.addColorStop(0.5, `rgba(255, 150, 50, ${flashAlpha * 0.4})`);
+    flashGradient.addColorStop(1, `rgba(255, 0, 0, 0)`);
+
+    ctx.fillStyle = flashGradient;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, flashRadius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  /**
+   * パーティクルを描画
+   */
+  private drawParticles(ctx: CanvasRenderingContext2D): void {
     this.particles.forEach(particle => {
-      // 安全ガード：負の半径やNaN値をチェック
       if (particle.radius <= 0 || !isFinite(particle.radius)) {
         return; // 無効なパーティクルをスキップ
       }
-
-      const lifeRatio = particle.life / particle.maxLife;
-      let alpha = lifeRatio;
-
-      ctx.save();
-      ctx.translate(particle.x, particle.y);
-      ctx.rotate(particle.rotation);
-
-      // 半径を再度安全な値に正規化
-      const safeRadius = Math.max(0.1, particle.radius);
-
-      switch (particle.type) {
-        case 'core': {
-          // コアパーティクル（明るい中心部）
-          const coreGradient = ctx.createRadialGradient(
-            0,
-            0,
-            0,
-            0,
-            0,
-            safeRadius
-          );
-          coreGradient.addColorStop(0, particle.color);
-          coreGradient.addColorStop(
-            0.7,
-            particle.color.replace(/[\d.]+\)/, `${alpha * 0.6})`)
-          );
-          coreGradient.addColorStop(
-            1,
-            particle.color.replace(/[\d.]+\)/, '0)')
-          );
-
-          ctx.fillStyle = coreGradient;
-          ctx.beginPath();
-          ctx.arc(0, 0, safeRadius, 0, Math.PI * 2);
-          ctx.fill();
-          break;
-        }
-
-        case 'spark':
-          // 火花（線状）
-          ctx.strokeStyle = particle.color.replace(/[\d.]+\)/, `${alpha})`);
-          ctx.lineWidth = Math.max(0.1, safeRadius * 0.3);
-          ctx.lineCap = 'round';
-          ctx.beginPath();
-          ctx.moveTo(-safeRadius, 0);
-          ctx.lineTo(safeRadius, 0);
-          ctx.stroke();
-          break;
-
-        case 'smoke':
-          // 煙（半透明の円）
-          alpha *= 0.4;
-          ctx.fillStyle = particle.color.replace(/[\d.]+\)/, `${alpha})`);
-          ctx.beginPath();
-          ctx.arc(0, 0, safeRadius, 0, Math.PI * 2);
-          ctx.fill();
-          break;
-
-        case 'ember': {
-          // 燃えかす（小さな明るい点）
-          const emberGradient = ctx.createRadialGradient(
-            0,
-            0,
-            0,
-            0,
-            0,
-            safeRadius
-          );
-          emberGradient.addColorStop(0, `rgba(255, 100, 0, ${alpha})`);
-          emberGradient.addColorStop(
-            0.5,
-            particle.color.replace(/[\d.]+\)/, `${alpha * 0.7})`)
-          );
-          emberGradient.addColorStop(
-            1,
-            particle.color.replace(/[\d.]+\)/, '0)')
-          );
-
-          ctx.fillStyle = emberGradient;
-          ctx.beginPath();
-          ctx.arc(0, 0, safeRadius, 0, Math.PI * 2);
-          ctx.fill();
-          break;
-        }
-      }
-
-      ctx.restore();
+      this.drawSingleParticle(ctx, particle);
     });
+  }
+
+  /**
+   * 単一のパーティクルを描画
+   */
+  private drawSingleParticle(
+    ctx: CanvasRenderingContext2D,
+    particle: Particle
+  ): void {
+    const lifeRatio = particle.life / particle.maxLife;
+    let alpha = lifeRatio;
+
+    ctx.save();
+    ctx.translate(particle.x, particle.y);
+    ctx.rotate(particle.rotation);
+
+    const safeRadius = Math.max(0.1, particle.radius);
+
+    switch (particle.type) {
+      case 'core':
+        this.drawCoreParticle(ctx, particle, safeRadius, alpha);
+        break;
+      case 'spark':
+        this.drawSparkParticle(ctx, particle, safeRadius, alpha);
+        break;
+      case 'smoke':
+        this.drawSmokeParticle(ctx, particle, safeRadius, alpha);
+        break;
+      case 'ember':
+        this.drawEmberParticle(ctx, particle, safeRadius, alpha);
+        break;
+    }
 
     ctx.restore();
+  }
+
+  /**
+   * コアパーティクルを描画
+   */
+  private drawCoreParticle(
+    ctx: CanvasRenderingContext2D,
+    particle: Particle,
+    safeRadius: number,
+    alpha: number
+  ): void {
+    const coreGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, safeRadius);
+    coreGradient.addColorStop(0, particle.color);
+    coreGradient.addColorStop(
+      0.7,
+      particle.color.replace(/[\d.]+\)/, `${alpha * 0.6})`)
+    );
+    coreGradient.addColorStop(1, particle.color.replace(/[\d.]+\)/, '0)'));
+
+    ctx.fillStyle = coreGradient;
+    ctx.beginPath();
+    ctx.arc(0, 0, safeRadius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  /**
+   * 火花パーティクルを描画
+   */
+  private drawSparkParticle(
+    ctx: CanvasRenderingContext2D,
+    particle: Particle,
+    safeRadius: number,
+    alpha: number
+  ): void {
+    ctx.strokeStyle = particle.color.replace(/[\d.]+\)/, `${alpha})`);
+    ctx.lineWidth = Math.max(0.1, safeRadius * 0.3);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-safeRadius, 0);
+    ctx.lineTo(safeRadius, 0);
+    ctx.stroke();
+  }
+
+  /**
+   * 煙パーティクルを描画
+   */
+  private drawSmokeParticle(
+    ctx: CanvasRenderingContext2D,
+    particle: Particle,
+    safeRadius: number,
+    alpha: number
+  ): void {
+    const smokeAlpha = alpha * 0.4;
+    ctx.fillStyle = particle.color.replace(/[\d.]+\)/, `${smokeAlpha})`);
+    ctx.beginPath();
+    ctx.arc(0, 0, safeRadius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  /**
+   * 燃えかすパーティクルを描画
+   */
+  private drawEmberParticle(
+    ctx: CanvasRenderingContext2D,
+    particle: Particle,
+    safeRadius: number,
+    alpha: number
+  ): void {
+    const emberGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, safeRadius);
+    emberGradient.addColorStop(0, `rgba(255, 100, 0, ${alpha})`);
+    emberGradient.addColorStop(
+      0.5,
+      particle.color.replace(/[\d.]+\)/, `${alpha * 0.7})`)
+    );
+    emberGradient.addColorStop(1, particle.color.replace(/[\d.]+\)/, '0)'));
+
+    ctx.fillStyle = emberGradient;
+    ctx.beginPath();
+    ctx.arc(0, 0, safeRadius, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   public isFinished(): boolean {

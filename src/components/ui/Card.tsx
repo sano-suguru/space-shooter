@@ -103,8 +103,11 @@ const createCardMouseHandlers = (
   clickable: boolean,
   cardStyles: React.CSSProperties,
   hoverStyles: React.CSSProperties
-) => ({
-  onMouseEnter: (e: React.MouseEvent<HTMLDivElement>) => {
+): {
+  onMouseEnter: (e: React.MouseEvent<HTMLDivElement>) => void;
+  onMouseLeave: (e: React.MouseEvent<HTMLDivElement>) => void;
+} => ({
+  onMouseEnter: (e: React.MouseEvent<HTMLDivElement>): void => {
     if (hoverable || clickable) {
       Object.assign(e.currentTarget.style, hoverStyles);
       const glowElement = e.currentTarget.querySelector(
@@ -115,7 +118,7 @@ const createCardMouseHandlers = (
       }
     }
   },
-  onMouseLeave: (e: React.MouseEvent<HTMLDivElement>) => {
+  onMouseLeave: (e: React.MouseEvent<HTMLDivElement>): void => {
     if (hoverable || clickable) {
       Object.assign(e.currentTarget.style, cardStyles);
       const glowElement = e.currentTarget.querySelector(
@@ -176,23 +179,71 @@ const renderFooter = (footer?: React.ReactNode): React.ReactElement | null => {
  * ゲーム風スタイルのCardコンポーネント
  * Space Shooterゲームのデザインに最適化
  */
-export const Card: React.FC<CardProps> = ({
-  children,
-  className = '',
-  style,
-  size = 'medium',
-  title,
-  headerIcon,
-  footer,
-  hoverable = false,
-  clickable = false,
-  onClick,
-  bordered = true,
-  shadowLevel = 'medium',
-  testId,
-  ...props
-}) => {
-  const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
+export const Card: React.FC<CardProps> = props => {
+  const {
+    children,
+    className = '',
+    style,
+    size = 'medium',
+    title,
+    headerIcon,
+    footer,
+    hoverable = false,
+    clickable = false,
+    onClick,
+    bordered = true,
+    shadowLevel = 'medium',
+    testId,
+    ...restProps
+  } = props;
+
+  const { handleClick, cardStyles, mouseHandlers } = useCardLogic(
+    size,
+    shadowLevel,
+    bordered,
+    clickable,
+    hoverable,
+    onClick,
+    style
+  );
+
+  return (
+    <div
+      className={`space-shooter-card ${className}`}
+      style={cardStyles}
+      onClick={handleClick}
+      data-testid={testId}
+      {...mouseHandlers}
+      {...restProps}
+    >
+      <CardGlowEffect hoverable={hoverable} clickable={clickable} />
+      {renderHeader(title, headerIcon)}
+      <div className='card-content'>{children}</div>
+      {renderFooter(footer)}
+    </div>
+  );
+};
+
+/**
+ * カードのロジックを管理するカスタムフック
+ */
+const useCardLogic = (
+  size: ComponentSize,
+  shadowLevel: CardProps['shadowLevel'],
+  bordered: boolean,
+  clickable: boolean,
+  hoverable: boolean,
+  onClick?: (event: React.MouseEvent<HTMLDivElement>) => void,
+  style?: React.CSSProperties
+): {
+  handleClick: (event: React.MouseEvent<HTMLDivElement>) => void;
+  cardStyles: React.CSSProperties;
+  mouseHandlers: {
+    onMouseEnter: (e: React.MouseEvent<HTMLDivElement>) => void;
+    onMouseLeave: (e: React.MouseEvent<HTMLDivElement>) => void;
+  };
+} => {
+  const handleClick = (event: React.MouseEvent<HTMLDivElement>): void => {
     if (onClick && clickable) {
       onClick(event);
     }
@@ -220,6 +271,18 @@ export const Card: React.FC<CardProps> = ({
     hoverStyles
   );
 
+  return { handleClick, cardStyles, mouseHandlers };
+};
+
+/**
+ * カードのグロー効果コンポーネント
+ */
+const CardGlowEffect: React.FC<{
+  hoverable: boolean;
+  clickable: boolean;
+}> = ({ hoverable, clickable }) => {
+  if (!hoverable && !clickable) return null;
+
   const glowEffectStyles: React.CSSProperties = {
     position: 'absolute',
     top: '0',
@@ -233,30 +296,7 @@ export const Card: React.FC<CardProps> = ({
     pointerEvents: 'none',
   };
 
-  return (
-    <div
-      className={`space-shooter-card ${className}`}
-      style={cardStyles}
-      onClick={handleClick}
-      data-testid={testId}
-      {...mouseHandlers}
-      {...props}
-    >
-      {/* グロー効果 */}
-      {(hoverable || clickable) && (
-        <div className='card-glow' style={glowEffectStyles} />
-      )}
-
-      {/* ヘッダー */}
-      {renderHeader(title, headerIcon)}
-
-      {/* メインコンテンツ */}
-      <div className='card-content'>{children}</div>
-
-      {/* フッター */}
-      {renderFooter(footer)}
-    </div>
-  );
+  return <div className='card-glow' style={glowEffectStyles} />;
 };
 
 export default Card;

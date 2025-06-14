@@ -113,28 +113,34 @@ export class GameRenderer {
   /**
    * 背景レンダリングパフォーマンス統計を取得（レガシー）
    */
-  public getBackgroundPerformanceStats() {
+  public getBackgroundPerformanceStats(): ReturnType<
+    BackgroundRenderer['getPerformanceStats']
+  > {
     return this.backgroundRenderer.getPerformanceStats();
   }
 
   /**
    * 詳細な背景レンダリングパフォーマンス統計を取得
    */
-  public getDetailedBackgroundPerformanceStats() {
+  public getDetailedBackgroundPerformanceStats(): ReturnType<
+    BackgroundRenderer['getDetailedPerformanceStats']
+  > {
     return this.backgroundRenderer.getDetailedPerformanceStats();
   }
 
   /**
    * パフォーマンス監視システムへのアクセス
    */
-  public getPerformanceMonitor() {
+  public getPerformanceMonitor(): ReturnType<
+    BackgroundRenderer['getPerformanceMonitor']
+  > {
     return this.backgroundRenderer.getPerformanceMonitor();
   }
 
   /**
    * LOD管理システムへのアクセス
    */
-  public getLODManager() {
+  public getLODManager(): ReturnType<BackgroundRenderer['getLODManager']> {
     return this.backgroundRenderer.getLODManager();
   }
 

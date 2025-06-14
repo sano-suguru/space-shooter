@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 
+import { PlayerProfile } from '../../progression/types/PlayerProfile';
+import { UpgradeConfig } from '../../progression/types/Upgrade';
 import { UpgradeShopProps, UpgradeCategory } from '../../types/react/index';
 
 import { Button } from './Button';
@@ -12,24 +14,94 @@ import { UpgradeItem } from './UpgradeItem';
  * アップグレードショップメインコンポーネント
  * プレイヤーがアップグレードを購入できるショップUI
  */
-export const UpgradeShop: React.FC<UpgradeShopProps> = ({
-  isVisible,
-  playerProfile,
-  availableUpgrades,
-  onClose,
-  onPurchase,
-  onCategoryChange,
-  className = '',
-  style,
-  testId = 'upgrade-shop',
-  ...props
-}) => {
+export const UpgradeShop: React.FC<UpgradeShopProps> = props => {
+  const {
+    isVisible,
+    playerProfile,
+    availableUpgrades,
+    onClose,
+    onPurchase,
+    onCategoryChange,
+    className = '',
+    style,
+    testId = 'upgrade-shop',
+    ...restProps
+  } = props;
+
   const [currentCategory, setCurrentCategory] =
     useState<UpgradeCategory>('weapon');
   const [purchaseInProgress, setPurchaseInProgress] = useState<string | null>(
     null
   );
 
+  const { categories, filteredUpgrades, handleCategoryChange, handlePurchase } =
+    useUpgradeShopLogic(
+      availableUpgrades,
+      currentCategory,
+      setCurrentCategory,
+      onCategoryChange,
+      onPurchase,
+      purchaseInProgress,
+      setPurchaseInProgress
+    );
+
+  if (!isVisible) {
+    console.log('🛒 UpgradeShop not visible, returning null');
+    return null;
+  }
+
+  console.log('🛒 UpgradeShop rendering with:', {
+    isVisible,
+    currentCategory,
+    filteredUpgrades: filteredUpgrades.length,
+    availableUpgrades: availableUpgrades.length,
+    playerProfile: { coins: playerProfile.coins, level: playerProfile.level },
+  });
+
+  return (
+    <div
+      className={`upgrade-shop ${className}`}
+      style={style}
+      data-testid={testId}
+      {...restProps}
+    >
+      <Card className='upgrade-shop-container' size='large'>
+        <UpgradeShopHeader playerProfile={playerProfile} onClose={onClose} />
+        <CategoryTabs
+          currentCategory={currentCategory}
+          onCategoryChange={handleCategoryChange}
+          categories={categories}
+          className='shop-categories'
+        />
+        <UpgradeList
+          filteredUpgrades={filteredUpgrades}
+          playerProfile={playerProfile}
+          handlePurchase={handlePurchase}
+          purchaseInProgress={purchaseInProgress}
+        />
+        <UpgradeShopFooter />
+      </Card>
+    </div>
+  );
+};
+
+/**
+ * アップグレードショップのロジックを管理するカスタムフック
+ */
+const useUpgradeShopLogic = (
+  availableUpgrades: UpgradeConfig[],
+  currentCategory: UpgradeCategory,
+  setCurrentCategory: React.Dispatch<React.SetStateAction<UpgradeCategory>>,
+  onCategoryChange: ((category: UpgradeCategory) => void) | undefined,
+  onPurchase: (upgradeId: string) => Promise<boolean>,
+  purchaseInProgress: string | null,
+  setPurchaseInProgress: React.Dispatch<React.SetStateAction<string | null>>
+): {
+  categories: { id: UpgradeCategory; name: string; icon: string }[];
+  filteredUpgrades: UpgradeConfig[];
+  handleCategoryChange: (category: UpgradeCategory) => void;
+  handlePurchase: (upgradeId: string) => Promise<void>;
+} => {
   // カテゴリ定義
   const categories = useMemo(
     () => [
@@ -53,7 +125,7 @@ export const UpgradeShop: React.FC<UpgradeShopProps> = ({
       setCurrentCategory(category);
       onCategoryChange?.(category);
     },
-    [onCategoryChange]
+    [onCategoryChange, setCurrentCategory]
   );
 
   // アップグレード購入ハンドラ
@@ -68,94 +140,88 @@ export const UpgradeShop: React.FC<UpgradeShopProps> = ({
         setPurchaseInProgress(null);
       }
     },
-    [onPurchase, purchaseInProgress]
+    [onPurchase, purchaseInProgress, setPurchaseInProgress]
   );
 
-  // ショップが非表示の場合は何も表示しない
-  if (!isVisible) {
-    console.log('🛒 UpgradeShop not visible, returning null');
-    return null;
-  }
-
-  console.log('🛒 UpgradeShop rendering with:', {
-    isVisible,
-    currentCategory,
-    filteredUpgrades: filteredUpgrades.length,
-    availableUpgrades: availableUpgrades.length,
-    playerProfile: { coins: playerProfile.coins, level: playerProfile.level },
-  });
-
-  return (
-    <div
-      className={`upgrade-shop ${className}`}
-      style={style}
-      data-testid={testId}
-      {...props}
-    >
-      <Card className='upgrade-shop-container' size='large'>
-        {/* ショップヘッダー */}
-        <div className='upgrade-shop-header'>
-          <div className='shop-title'>
-            <h2>🛠️ アップグレードショップ</h2>
-            <Button
-              variant='secondary'
-              size='small'
-              onClick={onClose}
-              className='close-button'
-              data-testid='close-shop-button'
-            >
-              ×
-            </Button>
-          </div>
-
-          {/* プレイヤー統計 */}
-          <PlayerStats profile={playerProfile} className='shop-player-stats' />
-        </div>
-
-        {/* カテゴリータブ */}
-        <CategoryTabs
-          currentCategory={currentCategory}
-          onCategoryChange={handleCategoryChange}
-          categories={categories}
-          className='shop-categories'
-        />
-
-        {/* アップグレードリスト */}
-        <div className='upgrade-list' data-testid='upgrade-list'>
-          {filteredUpgrades.length === 0 ? (
-            <div className='no-upgrades'>
-              <p>このカテゴリーには利用可能なアップグレードがありません</p>
-            </div>
-          ) : (
-            filteredUpgrades.map(upgrade => {
-              const currentLevel =
-                playerProfile.equippedUpgrades[upgrade.id] || 0;
-              return (
-                <UpgradeItem
-                  key={upgrade.id}
-                  upgrade={upgrade}
-                  currentLevel={currentLevel}
-                  playerProfile={playerProfile}
-                  onPurchase={(upgradeId: string) => {
-                    handlePurchase(upgradeId).catch(console.error);
-                  }}
-                  disabled={purchaseInProgress === upgrade.id}
-                  className='shop-upgrade-item'
-                />
-              );
-            })
-          )}
-        </div>
-
-        {/* フッター（必要に応じて） */}
-        <div className='upgrade-shop-footer'>
-          <p className='shop-hint'>
-            💡 アップグレードはゲーム中に即座に適用されます
-          </p>
-        </div>
-      </Card>
-    </div>
-  );
+  return {
+    categories,
+    filteredUpgrades,
+    handleCategoryChange,
+    handlePurchase,
+  };
 };
+
+/**
+ * ショップヘッダーコンポーネント
+ */
+const UpgradeShopHeader: React.FC<{
+  playerProfile: PlayerProfile;
+  onClose: () => void;
+}> = ({ playerProfile, onClose }) => (
+  <div className='upgrade-shop-header'>
+    <div className='shop-title'>
+      <h2>🛠️ アップグレードショップ</h2>
+      <Button
+        variant='secondary'
+        size='small'
+        onClick={onClose}
+        className='close-button'
+        data-testid='close-shop-button'
+      >
+        ×
+      </Button>
+    </div>
+    <PlayerStats profile={playerProfile} className='shop-player-stats' />
+  </div>
+);
+
+/**
+ * アップグレードリストコンポーネント
+ */
+const UpgradeList: React.FC<{
+  filteredUpgrades: UpgradeConfig[];
+  playerProfile: PlayerProfile;
+  handlePurchase: (upgradeId: string) => Promise<void>;
+  purchaseInProgress: string | null;
+}> = ({
+  filteredUpgrades,
+  playerProfile,
+  handlePurchase,
+  purchaseInProgress,
+}) => (
+  <div className='upgrade-list' data-testid='upgrade-list'>
+    {filteredUpgrades.length === 0 ? (
+      <div className='no-upgrades'>
+        <p>このカテゴリーには利用可能なアップグレードがありません</p>
+      </div>
+    ) : (
+      filteredUpgrades.map(upgrade => {
+        const currentLevel = playerProfile.equippedUpgrades[upgrade.id] ?? 0;
+        return (
+          <UpgradeItem
+            key={upgrade.id}
+            upgrade={upgrade}
+            currentLevel={currentLevel}
+            playerProfile={playerProfile}
+            onPurchase={(upgradeId: string) => {
+              handlePurchase(upgradeId).catch(console.error);
+            }}
+            disabled={purchaseInProgress === upgrade.id}
+            className='shop-upgrade-item'
+          />
+        );
+      })
+    )}
+  </div>
+);
+
+/**
+ * ショップフッターコンポーネント
+ */
+const UpgradeShopFooter: React.FC = () => (
+  <div className='upgrade-shop-footer'>
+    <p className='shop-hint'>💡 アップグレードはゲーム中に即座に適用されます</p>
+  </div>
+);
 
 export default UpgradeShop;

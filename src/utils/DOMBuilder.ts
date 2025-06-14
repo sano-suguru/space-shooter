@@ -128,21 +128,24 @@ export class DOMBuilder {
  * Helper functions for common patterns
  */
 export const DOM = {
-  div: (className?: string, children?: (HTMLElement | string)[]) =>
+  div: (className?: string, children?: (HTMLElement | string)[]): HTMLElement =>
     DOMBuilder.createElement({ tag: 'div', className, children }),
 
-  span: (className?: string, text?: string) =>
+  span: (className?: string, text?: string): HTMLElement =>
     DOMBuilder.createElement({ tag: 'span', className, textContent: text }),
 
-  button: (className: string, text: string, onClick: (e: MouseEvent) => void) =>
-    DOMBuilder.createButton(text, className, onClick),
+  button: (
+    className: string,
+    text: string,
+    onClick: (e: MouseEvent) => void
+  ): HTMLElement => DOMBuilder.createButton(text, className, onClick),
 
-  h2: (text: string, className?: string) =>
+  h2: (text: string, className?: string): HTMLElement =>
     DOMBuilder.createElement({ tag: 'h2', className, textContent: text }),
 
-  h3: (text: string, className?: string) =>
+  h3: (text: string, className?: string): HTMLElement =>
     DOMBuilder.createElement({ tag: 'h3', className, textContent: text }),
 
-  p: (text: string, className?: string) =>
+  p: (text: string, className?: string): HTMLElement =>
     DOMBuilder.createElement({ tag: 'p', className, textContent: text }),
 };

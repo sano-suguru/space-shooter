@@ -485,28 +485,34 @@ export class Game implements IGame {
   /**
    * 背景レンダリングパフォーマンス統計を取得（レガシー）
    */
-  public getBackgroundPerformanceStats() {
+  public getBackgroundPerformanceStats(): ReturnType<
+    GameRenderer['getBackgroundPerformanceStats']
+  > {
     return this.gameRenderer.getBackgroundPerformanceStats();
   }
 
   /**
    * 詳細な背景レンダリングパフォーマンス統計を取得
    */
-  public getDetailedBackgroundPerformanceStats() {
+  public getDetailedBackgroundPerformanceStats(): ReturnType<
+    GameRenderer['getDetailedBackgroundPerformanceStats']
+  > {
     return this.gameRenderer.getDetailedBackgroundPerformanceStats();
   }
 
   /**
    * パフォーマンス監視システムへのアクセス
    */
-  public getPerformanceMonitor() {
+  public getPerformanceMonitor(): ReturnType<
+    GameRenderer['getPerformanceMonitor']
+  > {
     return this.gameRenderer.getPerformanceMonitor();
   }
 
   /**
    * LOD管理システムへのアクセス
    */
-  public getLODManager() {
+  public getLODManager(): ReturnType<GameRenderer['getLODManager']> {
     return this.gameRenderer.getLODManager();
   }
 
@@ -520,7 +526,14 @@ export class Game implements IGame {
   /**
    * 全パフォーマンス統計を取得（統合）
    */
-  public getAllPerformanceStats() {
+  public getAllPerformanceStats(): {
+    background: ReturnType<Game['getDetailedBackgroundPerformanceStats']>;
+    pools: ReturnType<GameObjectManager['getAllPoolStats']>;
+    performance: ReturnType<
+      ReturnType<Game['getPerformanceMonitor']>['getDetailedStats']
+    >;
+    lod: ReturnType<ReturnType<Game['getLODManager']>['getLODStats']>;
+  } {
     return {
       background: this.getDetailedBackgroundPerformanceStats(),
       pools: this.gameObjectManager.getAllPoolStats(),
