@@ -55,7 +55,7 @@ export class Planet {
 
   constructor(config?: GameConfig) {
     // 設定注入対応（後方互換性を保持）
-    this.config = config || createGameConfig();
+    this.config = config ?? createGameConfig();
 
     this.x = Math.random() * this.config.canvas.width;
     this.y = Math.random() * this.config.canvas.height;

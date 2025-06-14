@@ -1,8 +1,8 @@
-import { Explosion } from '../../src/entities/Explosion';
 import {
   createTestConfig,
   GameConfig,
 } from '../../src/config/GameConfigFactory';
+import { Explosion } from '../../src/entities/Explosion';
 
 describe('Explosion', () => {
   let explosion: Explosion;

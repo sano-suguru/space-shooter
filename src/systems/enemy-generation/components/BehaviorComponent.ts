@@ -1,11 +1,11 @@
-import { BehaviorConfig, BehaviorPattern } from '../../types/EnemyGeneration';
 import {
   ENEMY_BASE_TEMPLATES,
   VARIATION_RANGES,
   ADVANCED_BEHAVIOR_PATTERNS,
 } from '../../../data/EnemyTemplates';
-import { EnemyType, Vector2D } from '../../../types';
 import { IRandomProvider } from '../../../providers/IRandomProvider';
+import { EnemyType, Vector2D } from '../../../types';
+import { BehaviorConfig, BehaviorPattern } from '../../types/EnemyGeneration';
 
 export class BehaviorComponent {
   private randomProvider: IRandomProvider;
@@ -138,7 +138,7 @@ export class BehaviorComponent {
         newPos.x += Math.sin(animationPhase) * 30 * deltaTime;
         break;
 
-      case 'spiral':
+      case 'spiral': {
         const spiralConfig = ADVANCED_BEHAVIOR_PATTERNS.spiral;
         const spiralAngle = animationPhase * spiralConfig.spiralSpeed;
         const spiralRadius =
@@ -147,6 +147,7 @@ export class BehaviorComponent {
         newPos.y += speed * deltaTime;
         newPos.x += Math.cos(spiralAngle) * spiralRadius * deltaTime;
         break;
+      }
 
       case 'aggressive_chase':
         // この場合は基本的に直進し、積極的行動で調整

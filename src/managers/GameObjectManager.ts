@@ -1,20 +1,20 @@
-import { GameObject } from '../entities/GameObject';
+import { Aurora } from '../entities/Aurora';
+import { Boss } from '../entities/Boss';
+import { BossBullet } from '../entities/BossBullet';
 import { Bullet } from '../entities/Bullet';
+import { Comet } from '../entities/Comet';
 import { Enemy } from '../entities/Enemy';
 import { Explosion } from '../entities/Explosion';
-import { PowerUp } from '../entities/PowerUp';
-import { BossBullet } from '../entities/BossBullet';
-import { Boss } from '../entities/Boss';
-import { Star } from '../entities/Star';
-import { Planet } from '../entities/Planet';
-import { Nebula } from '../entities/Nebula';
-import { Aurora } from '../entities/Aurora';
-import { Comet } from '../entities/Comet';
+import { GameObject } from '../entities/GameObject';
 import { MeteorShower } from '../entities/MeteorShower';
+import { Nebula } from '../entities/Nebula';
+import { Planet } from '../entities/Planet';
+import { PowerUp } from '../entities/PowerUp';
 import { SpaceDust } from '../entities/SpaceDust';
-import { IPlayer } from '../interfaces/IPlayer';
+import { Star } from '../entities/Star';
 import { EventEmitter } from '../events/EventEmitter';
 import { EventMap } from '../events/EventType';
+import { IPlayer } from '../interfaces/IPlayer';
 import { ObjectPool, PoolManager } from '../utils/ObjectPool';
 import {
   ParticlePoolManager,

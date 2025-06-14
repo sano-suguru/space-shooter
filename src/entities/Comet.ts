@@ -1,5 +1,5 @@
-import { IRandomProvider } from '../providers';
 import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
+import { IRandomProvider } from '../providers';
 
 export class Comet {
   private x!: number;
@@ -20,7 +20,7 @@ export class Comet {
   constructor(randomProvider: IRandomProvider, config?: GameConfig) {
     this.randomProvider = randomProvider;
     // 設定注入対応（後方互換性を保持）
-    this.config = config || createGameConfig();
+    this.config = config ?? createGameConfig();
 
     this.spawnInterval = this.randomProvider.random() * 5000 + 2000; // 2-7秒間隔（短縮）
     this.spawnTimer = 0;

@@ -1,16 +1,17 @@
-import { Star } from '../entities/Star';
-import { Planet } from '../entities/Planet';
-import { Nebula } from '../entities/Nebula';
+import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
 import { Aurora } from '../entities/Aurora';
 import { Comet } from '../entities/Comet';
 import { MeteorShower } from '../entities/MeteorShower';
+import { Nebula } from '../entities/Nebula';
+import { Planet } from '../entities/Planet';
 import { SpaceDust } from '../entities/SpaceDust';
+import { Star } from '../entities/Star';
 import {
   PerformanceMonitor,
   PerformanceMetrics,
 } from '../utils/PerformanceMonitor';
+
 import { LODManager, LODLevel } from './LODManager';
-import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
 
 /**
  * 背景レンダリング最適化クラス

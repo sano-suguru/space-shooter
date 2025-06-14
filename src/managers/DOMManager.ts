@@ -33,7 +33,7 @@ export class DOMManager implements IDOMManager {
   }
 
   public getTextContent(element: HTMLElement): string {
-    return element.textContent || '';
+    return element.textContent ?? '';
   }
 
   // CSS クラス操作
@@ -98,7 +98,7 @@ export class DOMManager implements IDOMManager {
   }
 
   public createCanvas(): HTMLCanvasElement {
-    return document.createElement('canvas') as HTMLCanvasElement;
+    return document.createElement('canvas');
   }
 
   // リソース管理

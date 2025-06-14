@@ -32,7 +32,7 @@ export const GameModeSelector: React.FC<GameModeSelectorProps> = ({
   const getIndividualModeStats = (
     modeId: string
   ): { gamesPlayed: number; highScore: number } => {
-    const gameModeStats = playerProfile.gameModeStats || {
+    const gameModeStats = playerProfile.gameModeStats ?? {
       gamesPlayedByMode: {},
       highScoresByMode: {},
     };
@@ -67,7 +67,7 @@ export const GameModeSelector: React.FC<GameModeSelectorProps> = ({
     try {
       onModeSelect(mode);
       showNotification('success', `${mode.name}を選択しました！`);
-    } catch (error) {
+    } catch {
       showNotification('error', 'モード変更に失敗しました');
     }
   };
@@ -78,7 +78,7 @@ export const GameModeSelector: React.FC<GameModeSelectorProps> = ({
       try {
         onModeUnlock(mode);
         showNotification('unlock', `${mode.name}が利用可能になりました！`);
-      } catch (error) {
+      } catch {
         showNotification('error', 'モード解除に失敗しました');
       }
     }

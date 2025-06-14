@@ -1,12 +1,13 @@
-import { Enemy } from './Enemy';
-import { BossBullet } from './BossBullet';
-import { DynamicEnemyConfig } from '../systems/types/EnemyGeneration';
-import { AppearanceComponent } from '../systems/enemy-generation/components/AppearanceComponent';
-import { BehaviorComponent } from '../systems/enemy-generation/components/BehaviorComponent';
-import { AttackAbilityComponent } from '../systems/enemy-generation/components/AttackAbilityComponent';
 import { IGameEngine } from '../interfaces/IGameEngine';
-import { Vector2D } from '../types';
 import { RealRandomProvider } from '../providers/RealRandomProvider';
+import { AppearanceComponent } from '../systems/enemy-generation/components/AppearanceComponent';
+import { AttackAbilityComponent } from '../systems/enemy-generation/components/AttackAbilityComponent';
+import { BehaviorComponent } from '../systems/enemy-generation/components/BehaviorComponent';
+import { DynamicEnemyConfig } from '../systems/types/EnemyGeneration';
+import { Vector2D } from '../types';
+
+import { BossBullet } from './BossBullet';
+import { Enemy } from './Enemy';
 
 export class DynamicEnemy extends Enemy {
   private dynamicConfig: DynamicEnemyConfig;
@@ -41,8 +42,8 @@ export class DynamicEnemy extends Enemy {
    */
   private applyDynamicConfiguration(): void {
     // 能力値を上書き
-    this.setHealth(this.dynamicConfig.stats.health);
-    this.setSpeed(this.dynamicConfig.stats.speed);
+    this.setHealth();
+    this.setSpeed();
 
     // サイズを調整
     this.width *= this.dynamicConfig.appearance.size;
@@ -278,7 +279,7 @@ export class DynamicEnemy extends Enemy {
    * エリート敵かどうかを判定
    */
   public isElite(): boolean {
-    return this.dynamicConfig.isElite || false;
+    return this.dynamicConfig.isElite ?? false;
   }
 
   /**
@@ -398,11 +399,11 @@ export class DynamicEnemy extends Enemy {
   }
 
   // 既存のEnemyクラスのメソッドで必要に応じてオーバーライド
-  private setHealth(_health: number): void {
+  private setHealth(): void {
     // 実際の実装では、Enemyクラスの体力設定メソッドを呼び出し
   }
 
-  private setSpeed(_speed: number): void {
+  private setSpeed(): void {
     // 実際の実装では、Enemyクラスの速度設定メソッドを呼び出し
   }
 

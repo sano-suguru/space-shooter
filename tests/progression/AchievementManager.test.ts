@@ -7,11 +7,11 @@
 
 import { AchievementManager } from '../../src/progression/managers/AchievementManager';
 import { PersistenceManager } from '../../src/progression/managers/PersistenceManager';
-import type { PlayerProfile } from '../../src/progression/types/PlayerProfile';
 import type {
   Achievement,
   GameSession,
 } from '../../src/progression/types/Achievement';
+import type { PlayerProfile } from '../../src/progression/types/PlayerProfile';
 
 // LocalStorage のモック
 const mockLocalStorage = (() => {

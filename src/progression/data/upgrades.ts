@@ -1,5 +1,5 @@
-import { UpgradeConfig, UpgradeCategoryInfo } from '../types/Upgrade';
 import { PlayerProfile } from '../types/PlayerProfile';
+import { UpgradeConfig, UpgradeCategoryInfo } from '../types/Upgrade';
 
 /**
  * 全アップグレード設定データ

@@ -1,13 +1,13 @@
-import { BackgroundRenderer } from '../../src/rendering/BackgroundRenderer';
-import { PerformanceMonitor } from '../../src/utils/PerformanceMonitor';
-import { LODManager } from '../../src/rendering/LODManager';
-import { ParticlePoolManager } from '../../src/utils/ParticlePoolManager';
-import { GameObjectFactory } from '../../src/factories/GameObjectFactory';
-import { MockRandomProvider } from '../../src/providers';
 import {
   createTestConfig,
   GameConfig,
 } from '../../src/config/GameConfigFactory';
+import { GameObjectFactory } from '../../src/factories/GameObjectFactory';
+import { MockRandomProvider } from '../../src/providers';
+import { BackgroundRenderer } from '../../src/rendering/BackgroundRenderer';
+import { LODManager } from '../../src/rendering/LODManager';
+import { ParticlePoolManager } from '../../src/utils/ParticlePoolManager';
+import { PerformanceMonitor } from '../../src/utils/PerformanceMonitor';
 
 /**
  * 背景描画パフォーマンス改善の効果測定テスト

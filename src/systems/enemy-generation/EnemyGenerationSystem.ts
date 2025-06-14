@@ -1,14 +1,15 @@
+import { EventEmitter } from '../../events/EventEmitter';
+import { EventMap } from '../../events/EventType';
+import { IRandomProvider } from '../../providers/IRandomProvider';
+import { RealRandomProvider } from '../../providers/RealRandomProvider';
+import { EnemyType, Vector2D } from '../../types';
 import {
   EnemyGenerationRequest,
   DynamicEnemyConfig,
   DifficultyFactors,
 } from '../types/EnemyGeneration';
+
 import { EnemyGeneratorFactory } from './EnemyGeneratorFactory';
-import { IRandomProvider } from '../../providers/IRandomProvider';
-import { RealRandomProvider } from '../../providers/RealRandomProvider';
-import { EnemyType, Vector2D } from '../../types';
-import { EventEmitter } from '../../events/EventEmitter';
-import { EventMap } from '../../events/EventType';
 
 export class EnemyGenerationSystem {
   private factory: EnemyGeneratorFactory;

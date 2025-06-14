@@ -1,11 +1,11 @@
+import { DynamicEnemy } from '../../src/entities/DynamicEnemy';
+import { Enemy } from '../../src/entities/Enemy';
+import { EventEmitter } from '../../src/events/EventEmitter';
+import { EventMap } from '../../src/events/EventType';
 import { GameObjectFactory } from '../../src/factories/GameObjectFactory';
 import { WaveManager } from '../../src/managers/WaveManager';
 import { ProgressManager } from '../../src/progression/managers/ProgressManager';
-import { EventEmitter } from '../../src/events/EventEmitter';
-import { EventMap } from '../../src/events/EventType';
 import { RealRandomProvider } from '../../src/providers/RealRandomProvider';
-import { DynamicEnemy } from '../../src/entities/DynamicEnemy';
-import { Enemy } from '../../src/entities/Enemy';
 
 // モックゲームクラス
 class MockGame {

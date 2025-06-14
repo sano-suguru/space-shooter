@@ -1,5 +1,5 @@
-import { IRandomProvider } from '../providers';
 import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
+import { IRandomProvider } from '../providers';
 
 interface MeteorParticle {
   x: number;
@@ -27,7 +27,7 @@ export class MeteorShower {
   constructor(randomProvider: IRandomProvider, config?: GameConfig) {
     this.randomProvider = randomProvider;
     // 設定注入対応（後方互換性を保持）
-    this.config = config || createGameConfig();
+    this.config = config ?? createGameConfig();
 
     this.meteors = [];
     this.isActive = false;

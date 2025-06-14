@@ -1,9 +1,9 @@
+import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
 import { IRandomProvider } from '../providers';
 import {
   PooledParticle,
   globalParticlePoolManager,
 } from '../utils/ParticlePoolManager';
-import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
 
 interface DustParticle extends PooledParticle {
   baseX: number;
@@ -156,7 +156,7 @@ export class SpaceDust {
   constructor(randomProvider: IRandomProvider, config?: GameConfig) {
     this.randomProvider = randomProvider;
     // 設定注入対応（後方互換性を保持）
-    this.config = config || createGameConfig();
+    this.config = config ?? createGameConfig();
 
     this.particles = [];
     this.cloudCenter = { x: 0, y: 0 };

@@ -1,9 +1,9 @@
+import { IDOMManager } from '../interfaces/IDOMManager';
 import {
   IMessageManager,
   MessageSettings,
   MessagePriority,
 } from '../interfaces/IMessageManager';
-import { IDOMManager } from '../interfaces/IDOMManager';
 import { ITimeProvider } from '../providers/ITimeProvider';
 
 /**

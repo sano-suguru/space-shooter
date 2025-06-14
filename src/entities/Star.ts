@@ -1,5 +1,5 @@
-import { IRandomProvider } from '../providers';
 import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
+import { IRandomProvider } from '../providers';
 
 type StarType =
   | 'main-sequence'
@@ -36,7 +36,7 @@ export class Star {
   constructor(randomProvider: IRandomProvider, config?: GameConfig) {
     this.randomProvider = randomProvider;
     // 設定注入対応（後方互換性を保持）
-    this.config = config || createGameConfig();
+    this.config = config ?? createGameConfig();
 
     this.x = this.randomProvider.random() * this.config.canvas.width;
     this.y = this.randomProvider.random() * this.config.canvas.height;
@@ -72,7 +72,7 @@ export class Star {
     const baseSize = this.randomProvider.random() * 2 + 1;
 
     switch (type) {
-      case 'main-sequence':
+      case 'main-sequence': {
         const tempClass = this.randomProvider.random();
         if (tempClass < 0.3) {
           // O, B類星 - 青白い
@@ -111,6 +111,7 @@ export class Star {
             twinkleIntensity: 0.9,
           };
         }
+      }
 
       case 'giant':
         return {
@@ -177,7 +178,7 @@ export class Star {
     }
 
     this.twinkleOffset += this.twinkleSpeed;
-    this.pulsePhase += this.properties.pulseSpeed || 0.01;
+    this.pulsePhase += this.properties.pulseSpeed ?? 0.01;
 
     if (this.secondaryPhase !== undefined) {
       this.secondaryPhase += 0.03; // バイナリ星の軌道運動

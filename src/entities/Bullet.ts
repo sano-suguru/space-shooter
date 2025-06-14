@@ -1,5 +1,6 @@
-import { GameObject } from './GameObject';
 import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
+
+import { GameObject } from './GameObject';
 
 interface TrailPoint {
   x: number;
@@ -22,7 +23,7 @@ export class Bullet extends GameObject {
 
   constructor(x: number = 0, y: number = 0, config?: GameConfig) {
     // 後方互換性のため、configが未指定の場合はデフォルト設定を使用
-    const gameConfig = config || createGameConfig();
+    const gameConfig = config ?? createGameConfig();
 
     super(x, y, gameConfig.bullet.width, gameConfig.bullet.height);
 

@@ -1,6 +1,6 @@
 export default {
   preset: 'ts-jest',
-  testEnvironment: 'node',
+  testEnvironment: 'jsdom',
   roots: ['<rootDir>/src', '<rootDir>/tests'],
   testMatch: [
     '**/__tests__/**/*.+(ts|tsx|js)',
@@ -22,5 +22,8 @@ export default {
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
   testTimeout: 10000,
-  setupFiles: ['<rootDir>/tests/canvas.setup.ts']
+  setupFiles: ['<rootDir>/tests/canvas.setup.ts'],
+  testEnvironmentOptions: {
+    customExportConditions: ['node', 'node-addons']
+  }
 };

@@ -1,12 +1,5 @@
 import { EventEmitter } from '../../events/EventEmitter';
 import { EventMap } from '../../events/EventType';
-import { PlayerProfile } from '../types/PlayerProfile';
-import {
-  UpgradeConfig,
-  UpgradeEffect,
-  EquippedUpgrade,
-  UpgradePurchaseResult,
-} from '../types/Upgrade';
 import {
   UPGRADE_CONFIGS,
   getUpgradeConfig,
@@ -15,6 +8,13 @@ import {
   calculateUpgradeCost,
   isUpgradeUnlocked,
 } from '../data/upgrades';
+import { PlayerProfile } from '../types/PlayerProfile';
+import {
+  UpgradeConfig,
+  UpgradeEffect,
+  EquippedUpgrade,
+  UpgradePurchaseResult,
+} from '../types/Upgrade';
 
 /**
  * アップグレードシステムを管理するマネージャークラス

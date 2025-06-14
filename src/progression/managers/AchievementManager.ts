@@ -5,15 +5,6 @@
  * ProgressManagerと連携してプレイヤー進捗を管理
  */
 
-import type { PlayerProfile } from '../types/PlayerProfile.js';
-import type {
-  Achievement,
-  GameSession,
-  AchievementUnlockResult,
-  AchievementStats,
-  CategoryInfo,
-  ProgressInfo,
-} from '../types/Achievement.js';
 import {
   ACHIEVEMENTS,
   getAchievementById,
@@ -22,6 +13,15 @@ import {
   getVisibleAchievements,
   getHiddenAchievements,
 } from '../data/achievements';
+import type {
+  Achievement,
+  GameSession,
+  AchievementUnlockResult,
+  AchievementStats,
+  CategoryInfo,
+  ProgressInfo,
+} from '../types/Achievement.js';
+import type { PlayerProfile } from '../types/PlayerProfile.js';
 
 /**
  * アチーブメント管理クラス
@@ -177,7 +177,7 @@ export class AchievementManager {
    */
   getAchievementProgress(achievementId: string): ProgressInfo | null {
     const achievement = getAchievementById(achievementId);
-    if (!achievement || !achievement.progressTracker) {
+    if (!achievement?.progressTracker) {
       return null;
     }
 

@@ -1,13 +1,13 @@
+import {
+  createTestConfig,
+  GameConfig,
+} from '../../src/config/GameConfigFactory';
 import { Player } from '../../src/entities/Player';
 import { EventEmitter } from '../../src/events/EventEmitter';
 import { EventMap } from '../../src/events/EventType';
 import { IGame } from '../../src/interfaces/IGame';
 import { MockInputManager } from '../../src/managers/MockInputManager';
 import { MockRandomProvider } from '../../src/providers/MockRandomProvider';
-import {
-  createTestConfig,
-  GameConfig,
-} from '../../src/config/GameConfigFactory';
 import { PowerUpEffectService } from '../../src/services/PowerUpEffectService';
 import '../canvas.setup';
 

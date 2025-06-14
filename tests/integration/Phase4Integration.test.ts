@@ -1,20 +1,20 @@
-import { Game } from '../../src/core/Game';
-import { WaveManager } from '../../src/managers/WaveManager';
-import { BackgroundRenderer } from '../../src/rendering/BackgroundRenderer';
-import { PlayerRenderer } from '../../src/rendering/PlayerRenderer';
-import { EventEmitter } from '../../src/events/EventEmitter';
-import { EventMap } from '../../src/events/EventType';
-import { ScoreManager } from '../../src/managers/ScoreManager';
-import { Player } from '../../src/entities/Player';
-import { GameObjectFactory } from '../../src/factories/GameObjectFactory';
-import { GameStateManager } from '../../src/managers/GameStateManager';
-import { MockInputManager } from '../../src/managers/MockInputManager';
-import { MockRandomProvider } from '../../src/providers/MockRandomProvider';
-import { MockMessageManager } from '../../src/managers/MockMessageManager';
 import {
   createGameConfig,
   createTestConfig,
 } from '../../src/config/GameConfigFactory';
+import { Game } from '../../src/core/Game';
+import { Player } from '../../src/entities/Player';
+import { EventEmitter } from '../../src/events/EventEmitter';
+import { EventMap } from '../../src/events/EventType';
+import { GameObjectFactory } from '../../src/factories/GameObjectFactory';
+import { GameStateManager } from '../../src/managers/GameStateManager';
+import { MockInputManager } from '../../src/managers/MockInputManager';
+import { MockMessageManager } from '../../src/managers/MockMessageManager';
+import { ScoreManager } from '../../src/managers/ScoreManager';
+import { WaveManager } from '../../src/managers/WaveManager';
+import { MockRandomProvider } from '../../src/providers/MockRandomProvider';
+import { BackgroundRenderer } from '../../src/rendering/BackgroundRenderer';
+import { PlayerRenderer } from '../../src/rendering/PlayerRenderer';
 import { PowerUpEffectService } from '../../src/services/PowerUpEffectService';
 
 // Canvas setup

@@ -1,8 +1,8 @@
-import { ProgressManager } from '../../src/progression/managers/ProgressManager';
-import { PersistenceManager } from '../../src/progression/managers/PersistenceManager';
-import { ScoreManager } from '../../src/managers/ScoreManager';
 import { EventEmitter } from '../../src/events/EventEmitter';
 import { EventMap } from '../../src/events/EventType';
+import { ScoreManager } from '../../src/managers/ScoreManager';
+import { PersistenceManager } from '../../src/progression/managers/PersistenceManager';
+import { ProgressManager } from '../../src/progression/managers/ProgressManager';
 import { PlayerProfile } from '../../src/progression/types/PlayerProfile';
 
 // LocalStorageのモック

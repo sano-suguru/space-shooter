@@ -5,6 +5,7 @@ import '@testing-library/jest-dom';
 
 // Extend Jest matchers with custom game-specific matchers
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace jest {
     interface Matchers<R> {
       toBeWithinRange(floor: number, ceiling: number): R;
@@ -78,7 +79,6 @@ afterEach(() => {
 
   // 全てのタイマーをクリア
   jest.clearAllTimers();
-  jest.useRealTimers();
 
   // アクティブなタイマーの数をログ出力
   const activeTimeouts = (globalThis as any)._activeTimeouts;
@@ -117,5 +117,13 @@ jest.setTimeout(10000);
 // テスト開始前のログ
 beforeEach(() => {
   console.log('🧪 Starting test...');
-  jest.useFakeTimers();
+  // タイマーの設定は各テストファイルで必要に応じて行う
+});
+
+// テスト終了後にタイマーをリセット
+afterEach(() => {
+  // タイマーが使用されている場合のみリセット
+  if (jest.isMockFunction(setTimeout)) {
+    jest.useRealTimers();
+  }
 });

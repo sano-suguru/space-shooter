@@ -1,15 +1,15 @@
-import { GameObjectFactory } from './factories/GameObjectFactory';
 import { Game } from './core/Game';
-import { GameStateManager } from './managers/GameStateManager';
-import { ScoreManager } from './managers/ScoreManager';
-import { UIManager } from './managers/UIManager';
-import { ReactLazyUIManager } from './managers/ReactLazyUIManager';
 import { Player } from './entities/Player';
 import { EventEmitter } from './events/EventEmitter';
-import { getElementOrThrow } from './utils/DOMUtils';
-import { RealRandomProvider, RealTimeProvider } from './providers';
+import { GameObjectFactory } from './factories/GameObjectFactory';
 import { InputManager, DOMManager, MessageManager } from './managers';
+import { GameStateManager } from './managers/GameStateManager';
+import { ReactLazyUIManager } from './managers/ReactLazyUIManager';
+import { ScoreManager } from './managers/ScoreManager';
+import { UIManager } from './managers/UIManager';
 import { ProgressManager } from './progression/managers/ProgressManager';
+import { RealRandomProvider, RealTimeProvider } from './providers';
+import { getElementOrThrow } from './utils/DOMUtils';
 
 function initGame(): void {
   const canvas = getElementOrThrow<HTMLCanvasElement>('gameCanvas');

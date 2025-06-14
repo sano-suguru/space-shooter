@@ -1,15 +1,15 @@
-import { GameObject } from '../entities/GameObject';
-import { Player } from '../entities/Player';
 import { Boss } from '../entities/Boss';
 import { Bullet } from '../entities/Bullet';
 import { Enemy } from '../entities/Enemy';
+import { GameObject } from '../entities/GameObject';
+import { Player } from '../entities/Player';
 import { PowerUp } from '../entities/PowerUp';
-import { IPlayer } from '../interfaces/IPlayer';
 import { EventEmitter } from '../events/EventEmitter';
 import { EventMap } from '../events/EventType';
+import { IPlayer } from '../interfaces/IPlayer';
 import { GameObjectManager } from '../managers/GameObjectManager';
-import { CollisionOptimizer } from '../utils/SpatialHash';
 import { checkCollision } from '../utils/CollisionUtils';
+import { CollisionOptimizer } from '../utils/SpatialHash';
 
 /**
  * 衝突判定システム - SpatialHash最適化版

@@ -1,8 +1,9 @@
-import { PowerUpType } from '../types';
-import { GameObject } from './GameObject';
-import { IPlayer } from '../interfaces/IPlayer';
 import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
+import { IPlayer } from '../interfaces/IPlayer';
 import { PowerUpEffectService } from '../services/PowerUpEffectService';
+import { PowerUpType } from '../types';
+
+import { GameObject } from './GameObject';
 
 export class PowerUp extends GameObject {
   private type: PowerUpType;
@@ -23,7 +24,7 @@ export class PowerUp extends GameObject {
     effectService?: PowerUpEffectService
   ) {
     // 後方互換性のため、configが未指定の場合はデフォルト設定を使用
-    const gameConfig = config || createGameConfig();
+    const gameConfig = config ?? createGameConfig();
 
     super(x, y, gameConfig.powerup.width, gameConfig.powerup.height);
 

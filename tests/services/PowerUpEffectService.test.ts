@@ -1,9 +1,9 @@
-import { PowerUpEffectService } from '../../src/services/PowerUpEffectService';
 import {
   createTestConfig,
   GameConfig,
 } from '../../src/config/GameConfigFactory';
 import { Player } from '../../src/entities/Player';
+import { PowerUpEffectService } from '../../src/services/PowerUpEffectService';
 import { PowerUpType } from '../../src/types';
 
 // Player のモック

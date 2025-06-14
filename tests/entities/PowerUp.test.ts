@@ -1,9 +1,9 @@
-import { PowerUp } from '../../src/entities/PowerUp';
-import { PowerUpType } from '../../src/types';
 import {
   createTestConfig,
   GameConfig,
 } from '../../src/config/GameConfigFactory';
+import { PowerUp } from '../../src/entities/PowerUp';
+import { PowerUpType } from '../../src/types';
 
 describe('PowerUp', () => {
   let powerUp: PowerUp;

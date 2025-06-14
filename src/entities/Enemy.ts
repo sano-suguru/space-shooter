@@ -1,7 +1,8 @@
+import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
 import { IGameEngine } from '../interfaces/IGameEngine';
 import { EnemyType, MovementPattern, Vector2D } from '../types';
+
 import { GameObject } from './GameObject';
-import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
 
 export class Enemy extends GameObject {
   private health: number;
@@ -19,7 +20,7 @@ export class Enemy extends GameObject {
     config?: GameConfig
   ) {
     // 後方互換性のため、configが未指定の場合はデフォルト設定を使用
-    const gameConfig = config || createGameConfig();
+    const gameConfig = config ?? createGameConfig();
 
     const enemyTypeConfig = gameConfig.enemy.types[enemyType];
     if (!enemyTypeConfig) {

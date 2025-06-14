@@ -5,13 +5,6 @@
 import { EventEmitter } from '../../events/EventEmitter.js';
 import { EventMap } from '../../events/EventType.js';
 import {
-  GameMode,
-  GameModeModifiers,
-  GameModeStats,
-  GameModeUnlockStatus,
-} from '../types/GameMode.js';
-import { PlayerProfile } from '../types/PlayerProfile.js';
-import {
   GAME_MODES,
   getGameModeById,
   getUnlockedGameModes,
@@ -21,6 +14,13 @@ import {
   getDefaultGameMode,
   DEFAULT_GAME_MODE_CONFIG,
 } from '../data/gameModes';
+import {
+  GameMode,
+  GameModeModifiers,
+  GameModeStats,
+  GameModeUnlockStatus,
+} from '../types/GameMode.js';
+import { PlayerProfile } from '../types/PlayerProfile.js';
 
 /**
  * Manages game modes, their unlock status, and related statistics
@@ -196,7 +196,7 @@ export class GameModeManager {
    */
   applyModifiers<T extends Record<string, number>>(baseValues: T): T {
     const modifiers = this.currentGameMode.modifiers;
-    const result = { ...baseValues } as T;
+    const result = { ...baseValues };
 
     // Apply specific modifier mappings using type-safe property access
     if ('enemySpeed' in result && typeof result['enemySpeed'] === 'number') {

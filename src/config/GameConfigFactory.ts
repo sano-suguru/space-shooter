@@ -180,7 +180,7 @@ export function createGameConfig(
     },
   };
 
-  const mergedConfig = deepMerge(defaultConfig, overrides || {});
+  const mergedConfig = deepMerge(defaultConfig, overrides ?? {});
   return validateConfig(mergedConfig);
 }
 
@@ -201,7 +201,7 @@ export function createTestConfig(
     },
   };
 
-  return createGameConfig(deepMerge(testDefaults, testOverrides || {}));
+  return createGameConfig(deepMerge(testDefaults, testOverrides ?? {}));
 }
 
 function deepMerge<T>(base: T, override: DeepPartial<T>): T {
@@ -214,7 +214,7 @@ function deepMerge<T>(base: T, override: DeepPartial<T>): T {
         override[key] !== null &&
         !Array.isArray(override[key])
       ) {
-        result[key] = deepMerge(result[key] || {}, override[key] as any);
+        result[key] = deepMerge(result[key] ?? {}, override[key] as any);
       } else {
         result[key] = override[key];
       }

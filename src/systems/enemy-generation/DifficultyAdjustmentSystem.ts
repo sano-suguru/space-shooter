@@ -1,8 +1,8 @@
+import { IRandomProvider } from '../../providers/IRandomProvider';
 import {
   DifficultyFactors,
   DifficultyModifiers,
 } from '../types/EnemyGeneration';
-import { IRandomProvider } from '../../providers/IRandomProvider';
 
 export class DifficultyAdjustmentSystem {
   private randomProvider: IRandomProvider;

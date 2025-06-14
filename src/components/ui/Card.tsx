@@ -83,7 +83,7 @@ export const Card: React.FC<CardProps> = ({
       medium: { boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)' },
       high: { boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)' },
     };
-    return shadows[level || 'medium'];
+    return shadows[level ?? 'medium'];
   };
 
   const baseStyles: React.CSSProperties = {
@@ -180,6 +180,7 @@ export const Card: React.FC<CardProps> = ({
       )}
 
       {/* ヘッダー */}
+      {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing */}
       {(title || headerIcon) && (
         <div style={headerStyles}>
           {headerIcon && (

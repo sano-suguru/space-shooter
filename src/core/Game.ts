@@ -1,27 +1,28 @@
+import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
 import { Boss } from '../entities/Boss';
 import { BossBullet } from '../entities/BossBullet';
 import { Bullet } from '../entities/Bullet';
 import { Enemy } from '../entities/Enemy';
 import { Player } from '../entities/Player';
 import { PowerUp } from '../entities/PowerUp';
-import { IGame } from '../interfaces/IGame';
 import { EventEmitter } from '../events/EventEmitter';
 import { EventMap } from '../events/EventType';
 import { GameObjectFactory } from '../factories/GameObjectFactory';
+import { IGame } from '../interfaces/IGame';
+import { IInputManager } from '../interfaces/IInputManager';
+import { IMessageManager } from '../interfaces/IMessageManager';
 import { GameObjectManager } from '../managers/GameObjectManager';
 import { GameStateManager } from '../managers/GameStateManager';
 import { ScoreManager } from '../managers/ScoreManager';
 import { WaveManager } from '../managers/WaveManager';
-import { EnemyType } from '../types';
-import { CollisionSystem } from '../systems/CollisionSystem';
-import { GameEngine } from './GameEngine';
+import { IRandomProvider } from '../providers/IRandomProvider';
 import { BackgroundRenderer } from '../rendering/BackgroundRenderer';
 import { GameRenderer } from '../rendering/GameRenderer';
-import { IInputManager } from '../interfaces/IInputManager';
-import { IRandomProvider } from '../providers/IRandomProvider';
-import { IMessageManager } from '../interfaces/IMessageManager';
-import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
 import { PowerUpEffectService } from '../services/PowerUpEffectService';
+import { CollisionSystem } from '../systems/CollisionSystem';
+import { EnemyType } from '../types';
+
+import { GameEngine } from './GameEngine';
 
 export class Game implements IGame {
   private ctx: CanvasRenderingContext2D;
@@ -169,18 +170,22 @@ export class Game implements IGame {
   }
 
   private handleKeyDown = (e: KeyboardEvent): void => {
-    this.player.setKeyState(e.key, true);
+    // キー状態の管理はInputManagerが直接処理
+    // setKeyStateメソッドは非推奨のため削除
+    void e; // ESLintエラー回避
   };
 
   private handleKeyUp = (e: KeyboardEvent): void => {
-    this.player.setKeyState(e.key, false);
+    // キー状態の管理はInputManagerが直接処理
+    // setKeyStateメソッドは非推奨のため削除
+    void e; // ESLintエラー回避
   };
 
   private handleEnemyDestroyed = (enemy: Enemy): void => {
     this.scoreManager.addScore(enemy.getScore());
   };
 
-  private handlePlayerShot = (_bullet: Bullet): void => {
+  private handlePlayerShot = (): void => {
     // GameObjectManagerは内部でイベントを処理
   };
 
@@ -193,7 +198,7 @@ export class Game implements IGame {
 
   private handleBossDamaged = (): void => {
     const boss = this.gameObjectManager.getBoss();
-    if (boss && boss.takeDamage()) {
+    if (boss?.takeDamage()) {
       this.eventEmitter.emit('bossDefeated');
     }
   };
@@ -261,7 +266,7 @@ export class Game implements IGame {
   }
 
   private spawnBoss(): void {
-    const boss = new Boss(this, this.config, this.powerUpEffectService);
+    const boss = new Boss(this, this.config);
     this.gameObjectManager.setBoss(boss);
     this.eventEmitter.emit('bossSpawned');
     this.showMessage('ボスが出現しました！', 3000, 'important');
@@ -293,7 +298,7 @@ export class Game implements IGame {
       // 動的敵生成を使用（フォールバック機能付き）
       const difficultyFactors = {
         playerLevel: this.level,
-        currentWave: this.waveManager?.getCurrentWave() || 1,
+        currentWave: this.waveManager?.getCurrentWave() ?? 1,
         baseMultiplier: 1.0,
         levelScaling: 0.1,
         waveScaling: 0.05,

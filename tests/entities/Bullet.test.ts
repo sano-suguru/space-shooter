@@ -1,5 +1,5 @@
-import { Bullet } from '../../src/entities/Bullet';
 import { createGameConfig } from '../../src/config/GameConfigFactory';
+import { Bullet } from '../../src/entities/Bullet';
 import '../canvas.setup';
 
 describe('Bullet', () => {

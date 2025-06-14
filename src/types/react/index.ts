@@ -3,10 +3,11 @@
  */
 
 import React from 'react';
-import { UpgradeConfig } from '../../progression/types/Upgrade';
+
 import { Achievement } from '../../progression/types/Achievement';
 import { GameMode } from '../../progression/types/GameMode';
 import { PlayerProfile } from '../../progression/types/PlayerProfile';
+import { UpgradeConfig } from '../../progression/types/Upgrade';
 
 // ====================
 // 基本React Props型

@@ -2,11 +2,12 @@ import { Bullet } from '../entities/Bullet';
 import { Enemy } from '../entities/Enemy';
 import { PowerUp } from '../entities/PowerUp';
 import { GameStateKey } from '../managers/GameStateManager';
-import { WaveConfig } from '../types';
-import { GameCommandMap } from './GameCommands';
 import type { Achievement } from '../progression/types/Achievement';
 import type { GameMode } from '../progression/types/GameMode';
 import type { DynamicEnemyConfig } from '../systems/types/EnemyGeneration';
+import { WaveConfig } from '../types';
+
+import { GameCommandMap } from './GameCommands';
 
 // Event type constants
 export const EventType = {

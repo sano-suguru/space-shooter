@@ -4,11 +4,12 @@
 
 import React from 'react';
 import { createRoot, Root } from 'react-dom/client';
+
+import { SafeProgressDisplay } from '../components/ui/lazy/LazyComponents';
 import { EventEmitter } from '../events/EventEmitter';
 import { EventMap } from '../events/EventType';
 import { ProgressManager } from '../progression/managers/ProgressManager';
 import { getElementOrThrow } from '../utils/DOMUtils';
-import { SafeProgressDisplay } from '../components/ui/lazy/LazyComponents';
 
 /**
  * シンプルなReact統合UIマネージャー

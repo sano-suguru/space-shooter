@@ -1,15 +1,16 @@
+import { ENEMY_BASE_TEMPLATES } from '../../data/EnemyTemplates';
+import { IRandomProvider } from '../../providers/IRandomProvider';
+import { EnemyType } from '../../types';
 import {
   DynamicEnemyConfig,
   EnemyGenerationRequest,
 } from '../types/EnemyGeneration';
+
 import { AppearanceComponent } from './components/AppearanceComponent';
-import { StatsComponent } from './components/StatsComponent';
-import { BehaviorComponent } from './components/BehaviorComponent';
 import { AttackAbilityComponent } from './components/AttackAbilityComponent';
+import { BehaviorComponent } from './components/BehaviorComponent';
+import { StatsComponent } from './components/StatsComponent';
 import { DifficultyAdjustmentSystem } from './DifficultyAdjustmentSystem';
-import { ENEMY_BASE_TEMPLATES } from '../../data/EnemyTemplates';
-import { IRandomProvider } from '../../providers/IRandomProvider';
-import { EnemyType } from '../../types';
 
 export class EnemyGeneratorFactory {
   private appearanceComponent: AppearanceComponent;

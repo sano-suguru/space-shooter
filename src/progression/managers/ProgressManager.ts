@@ -1,9 +1,10 @@
-import { ScoreManager } from '../../managers/ScoreManager';
 import { EventEmitter } from '../../events/EventEmitter';
 import { EventMap } from '../../events/EventType';
-import { PlayerProfile, GameSession } from '../types/PlayerProfile';
-import { PersistenceManager } from './PersistenceManager';
+import { ScoreManager } from '../../managers/ScoreManager';
 import { DifficultyFactors } from '../../systems/types/EnemyGeneration';
+import { PlayerProfile, GameSession } from '../types/PlayerProfile';
+
+import { PersistenceManager } from './PersistenceManager';
 
 /**
  * シンプルなプログレッションシステム管理クラス

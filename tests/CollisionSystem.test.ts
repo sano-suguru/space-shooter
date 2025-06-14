@@ -1,15 +1,15 @@
-import { CollisionSystem } from '../src/systems/CollisionSystem';
-import { Player } from '../src/entities/Player';
-import { Enemy } from '../src/entities/Enemy';
-import { Bullet } from '../src/entities/Bullet';
+import { createTestConfig, GameConfig } from '../src/config/GameConfigFactory';
 import { Boss } from '../src/entities/Boss';
+import { Bullet } from '../src/entities/Bullet';
+import { Enemy } from '../src/entities/Enemy';
+import { Player } from '../src/entities/Player';
 import { PowerUp } from '../src/entities/PowerUp';
-import { GameObjectManager } from '../src/managers/GameObjectManager';
 import { EventEmitter } from '../src/events/EventEmitter';
 import { EventMap } from '../src/events/EventType';
 import { MockInputManager } from '../src/managers';
+import { GameObjectManager } from '../src/managers/GameObjectManager';
 import { MockRandomProvider } from '../src/providers';
-import { createTestConfig, GameConfig } from '../src/config/GameConfigFactory';
+import { CollisionSystem } from '../src/systems/CollisionSystem';
 
 describe('CollisionSystem', () => {
   let collisionSystem: CollisionSystem;

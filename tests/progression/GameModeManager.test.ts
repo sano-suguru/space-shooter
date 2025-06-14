@@ -1,6 +1,6 @@
-import { GameModeManager } from '../../src/progression/managers/GameModeManager';
 import { EventEmitter } from '../../src/events/EventEmitter';
 import { EventMap } from '../../src/events/EventType';
+import { GameModeManager } from '../../src/progression/managers/GameModeManager';
 import { PlayerProfile } from '../../src/progression/types/PlayerProfile';
 
 // モックのLocalStorage実装
@@ -29,10 +29,15 @@ const mockLocalStorage: {
 // グローバルのlocalStorageをモック
 Object.defineProperty(window, 'localStorage', {
   value: mockLocalStorage,
+  writable: true,
 });
 
 // Node.js環境用のglobal設定
-(globalThis as any).localStorage = mockLocalStorage;
+Object.defineProperty(globalThis, 'localStorage', {
+  value: mockLocalStorage,
+  writable: true,
+  configurable: true,
+});
 
 describe('GameModeManager', () => {
   let gameMode: GameModeManager;

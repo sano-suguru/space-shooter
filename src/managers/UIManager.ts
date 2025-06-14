@@ -1,6 +1,6 @@
+import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
 import { EventEmitter } from '../events/EventEmitter';
 import { EventMap } from '../events/EventType';
-import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
 
 export class UIManager {
   private config: GameConfig;
@@ -15,7 +15,7 @@ export class UIManager {
     config?: GameConfig
   ) {
     // 設定注入対応（後方互換性を保持）
-    this.config = config || createGameConfig();
+    this.config = config ?? createGameConfig();
     this.setupEventListeners();
   }
 

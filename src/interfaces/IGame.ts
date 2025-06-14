@@ -1,5 +1,5 @@
-import { Bullet } from '../entities/Bullet';
 import { BossBullet } from '../entities/BossBullet';
+import { Bullet } from '../entities/Bullet';
 import { Enemy } from '../entities/Enemy';
 
 /**

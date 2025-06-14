@@ -1,3 +1,8 @@
+import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
+import { Game } from '../core/Game';
+import { WaveConfiguration } from '../data/WaveConfiguration';
+import { DynamicEnemy } from '../entities/DynamicEnemy';
+import { Enemy } from '../entities/Enemy';
 import { EventEmitter } from '../events/EventEmitter';
 import { EventMap } from '../events/EventType';
 import { GameObjectFactory } from '../factories/GameObjectFactory';
@@ -8,11 +13,6 @@ import {
   WaveEnemyConfig,
   EnemyType,
 } from '../types';
-import { Game } from '../core/Game';
-import { WaveConfiguration } from '../data/WaveConfiguration';
-import { Enemy } from '../entities/Enemy';
-import { DynamicEnemy } from '../entities/DynamicEnemy';
-import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
 
 export class WaveManager {
   private currentWave: number = 0;
@@ -114,8 +114,8 @@ export class WaveManager {
       const positions = this.generateFormation(
         enemyGroup.formation,
         enemyGroup.count,
-        enemyGroup.offsetX || 0,
-        enemyGroup.offsetY || 0
+        enemyGroup.offsetX ?? 0,
+        enemyGroup.offsetY ?? 0
       );
 
       positions.forEach((position, index) => {
@@ -151,8 +151,8 @@ export class WaveManager {
       const positions = this.generateFormation(
         enemyGroup.formation,
         enemyGroup.count,
-        enemyGroup.offsetX || 0,
-        enemyGroup.offsetY || 0
+        enemyGroup.offsetX ?? 0,
+        enemyGroup.offsetY ?? 0
       );
 
       enemyTypeData.push({
@@ -208,7 +208,7 @@ export class WaveManager {
         }
         break;
 
-      case 'vformation':
+      case 'vformation': {
         const halfCount = Math.floor(count / 2);
         for (let i = 0; i < count; i++) {
           const distanceFromCenter = Math.abs(i - halfCount);
@@ -218,6 +218,7 @@ export class WaveManager {
           });
         }
         break;
+      }
 
       case 'circle':
         for (let i = 0; i < count; i++) {
@@ -322,9 +323,7 @@ export class WaveManager {
 
     // 現在のウェーブ設定を取得（動的ウェーブの場合は最低値を使用）
     let completedWave = WaveConfiguration.getWaveConfig(this.currentWave);
-    if (!completedWave) {
-      completedWave = { bonusScore: 100, nextWaveDelay: 2000 } as WaveConfig;
-    }
+    completedWave ??= { bonusScore: 100, nextWaveDelay: 2000 } as WaveConfig;
 
     // ウェーブクリアボーナス
     const bonusScore =

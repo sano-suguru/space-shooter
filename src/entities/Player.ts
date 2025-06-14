@@ -1,15 +1,16 @@
-import { PowerUpType, Vector2D } from '../types';
+import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
 import { EventEmitter } from '../events/EventEmitter';
+import { EventMap } from '../events/EventType';
+import { IGame } from '../interfaces/IGame';
+import { IInputManager } from '../interfaces/IInputManager';
+import { IPlayer } from '../interfaces/IPlayer';
+import { IRandomProvider } from '../providers/IRandomProvider';
+import { PlayerRenderer } from '../rendering/PlayerRenderer';
+import { PowerUpEffectService } from '../services/PowerUpEffectService';
+import { PowerUpType, Vector2D } from '../types';
+
 import { Bullet } from './Bullet';
 import { GameObject } from './GameObject';
-import { EventMap } from '../events/EventType';
-import { IInputManager } from '../interfaces/IInputManager';
-import { IRandomProvider } from '../providers/IRandomProvider';
-import { IGame } from '../interfaces/IGame';
-import { IPlayer } from '../interfaces/IPlayer';
-import { PlayerRenderer } from '../rendering/PlayerRenderer';
-import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
-import { PowerUpEffectService } from '../services/PowerUpEffectService';
 
 export class Player extends GameObject implements IPlayer {
   private velocity: Vector2D = { x: 0, y: 0 };
@@ -40,7 +41,7 @@ export class Player extends GameObject implements IPlayer {
     powerUpEffectService?: PowerUpEffectService
   ) {
     // 後方互換性のため、設定が提供されない場合はデフォルト設定を使用
-    const gameConfig = config || Player.createLegacyConfig();
+    const gameConfig = config ?? Player.createLegacyConfig();
 
     super(
       gameConfig.canvas.width / 2 - gameConfig.player.width / 2,
@@ -64,16 +65,18 @@ export class Player extends GameObject implements IPlayer {
     return createGameConfig();
   }
 
-  public setKeyState(_key: string, _isPressed: boolean): void {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public setKeyState(_key: string, _pressed: boolean): void {
     // この方法は非推奨 - InputManagerを直接使用してください
     // 後方互換性のために残しています
+    // 実装は空のまま（InputManagerを直接使用することを推奨）
   }
 
   public update(deltaTime: number): void {
     this.updateMovement();
     this.updateShooting();
     this.updateInvincibility();
-    this.updateEngineAnimation(deltaTime);
+    this.updateEngineAnimation();
     this.updateThrusterParticles(deltaTime);
   }
 
@@ -189,7 +192,7 @@ export class Player extends GameObject implements IPlayer {
     speed?: number,
     color?: string
   ): Bullet | null {
-    const bulletSpeed = speed || this.config.bullet.speed;
+    const bulletSpeed = speed ?? this.config.bullet.speed;
 
     if (this.game) {
       return this.game.createBullet(x, y, bulletSpeed, color);
@@ -210,7 +213,7 @@ export class Player extends GameObject implements IPlayer {
     }
   }
 
-  private updateEngineAnimation(_deltaTime: number): void {
+  private updateEngineAnimation(): void {
     // エンジンアニメーションは削除してシンプル化
   }
 

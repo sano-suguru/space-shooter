@@ -1,10 +1,10 @@
-import { Enemy } from '../../src/entities/Enemy';
-import { IGameEngine } from '../../src/interfaces/IGameEngine';
-import { EnemyType } from '../../src/types';
 import {
   createTestConfig,
   GameConfig,
 } from '../../src/config/GameConfigFactory';
+import { Enemy } from '../../src/entities/Enemy';
+import { IGameEngine } from '../../src/interfaces/IGameEngine';
+import { EnemyType } from '../../src/types';
 import '../canvas.setup';
 
 // MockGameEngineクラス

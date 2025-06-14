@@ -1,7 +1,7 @@
-import { EnemyGenerationSystem } from '../../../src/systems/enemy-generation/EnemyGenerationSystem';
-import { MockRandomProvider } from '../../../src/providers/MockRandomProvider';
 import { EventEmitter } from '../../../src/events/EventEmitter';
 import { EventMap } from '../../../src/events/EventType';
+import { MockRandomProvider } from '../../../src/providers/MockRandomProvider';
+import { EnemyGenerationSystem } from '../../../src/systems/enemy-generation/EnemyGenerationSystem';
 import { EnemyGenerationRequest } from '../../../src/systems/types/EnemyGeneration';
 import { EnemyType } from '../../../src/types';
 

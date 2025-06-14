@@ -1,9 +1,9 @@
+import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
 import { IGameEngine } from '../interfaces/IGameEngine';
 import { Vector2D } from '../types';
+
 import { BossBullet } from './BossBullet';
 import { GameObject } from './GameObject';
-import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
-import { PowerUpEffectService } from '../services/PowerUpEffectService';
 
 export class Boss extends GameObject {
   private health: number;
@@ -45,13 +45,9 @@ export class Boss extends GameObject {
     rotation: number;
   }> = [];
 
-  constructor(
-    game: IGameEngine,
-    config?: GameConfig,
-    _powerUpEffectService?: PowerUpEffectService
-  ) {
+  constructor(game: IGameEngine, config?: GameConfig) {
     // 後方互換性のため、configが未指定の場合はデフォルト設定を使用
-    const gameConfig = config || createGameConfig();
+    const gameConfig = config ?? createGameConfig();
 
     super(
       gameConfig.canvas.width / 2 - gameConfig.boss.width / 2,

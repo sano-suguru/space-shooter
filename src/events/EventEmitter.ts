@@ -15,7 +15,7 @@ export class EventEmitter<
     ...data: Parameters<EventMap[K]>
   ): void {
     if (!this.listeners[event]) return;
-    this.listeners[event]!.forEach(listener => {
+    this.listeners[event].forEach(listener => {
       try {
         listener(...data);
       } catch (error) {

@@ -3,9 +3,9 @@ import { Player } from '../src/entities/Player';
 import { EventEmitter } from '../src/events/EventEmitter';
 import { EventMap } from '../src/events/EventType';
 import { GameObjectFactory } from '../src/factories/GameObjectFactory';
+import { MockInputManager, MockMessageManager } from '../src/managers';
 import { GameStateManager } from '../src/managers/GameStateManager';
 import { ScoreManager } from '../src/managers/ScoreManager';
-import { MockInputManager, MockMessageManager } from '../src/managers';
 import { MockRandomProvider } from '../src/providers';
 
 describe('Game', () => {

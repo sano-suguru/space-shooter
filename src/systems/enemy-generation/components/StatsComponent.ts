@@ -1,15 +1,15 @@
 import {
-  EnemyStats,
-  DifficultyFactors,
-  DifficultyModifiers,
-} from '../../types/EnemyGeneration';
-import {
   ENEMY_BASE_TEMPLATES,
   VARIATION_RANGES,
   ELITE_MODIFIERS,
 } from '../../../data/EnemyTemplates';
-import { EnemyType } from '../../../types';
 import { IRandomProvider } from '../../../providers/IRandomProvider';
+import { EnemyType } from '../../../types';
+import {
+  EnemyStats,
+  DifficultyFactors,
+  DifficultyModifiers,
+} from '../../types/EnemyGeneration';
 
 export class StatsComponent {
   private randomProvider: IRandomProvider;

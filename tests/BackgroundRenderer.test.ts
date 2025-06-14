@@ -1,9 +1,9 @@
-import { BackgroundRenderer } from '../src/rendering/BackgroundRenderer';
-import { Star } from '../src/entities/Star';
-import { Planet } from '../src/entities/Planet';
-import { Nebula } from '../src/entities/Nebula';
 import { Aurora } from '../src/entities/Aurora';
+import { Nebula } from '../src/entities/Nebula';
+import { Planet } from '../src/entities/Planet';
+import { Star } from '../src/entities/Star';
 import { MockRandomProvider } from '../src/providers/MockRandomProvider';
+import { BackgroundRenderer } from '../src/rendering/BackgroundRenderer';
 
 describe('BackgroundRenderer', () => {
   let renderer: BackgroundRenderer;

@@ -1,11 +1,11 @@
-import { AttackAbility, SpecialEffect } from '../../types/EnemyGeneration';
 import {
   ENEMY_BASE_TEMPLATES,
   SPECIAL_ABILITY_CHANCES,
   ATTACK_PATTERNS,
 } from '../../../data/EnemyTemplates';
-import { EnemyType, Vector2D } from '../../../types';
 import { IRandomProvider } from '../../../providers/IRandomProvider';
+import { EnemyType, Vector2D } from '../../../types';
+import { AttackAbility, SpecialEffect } from '../../types/EnemyGeneration';
 
 export class AttackAbilityComponent {
   private randomProvider: IRandomProvider;
@@ -108,7 +108,7 @@ export class AttackAbilityComponent {
         });
         break;
 
-      case 'spread':
+      case 'spread': {
         const spreadConfig = ATTACK_PATTERNS.spread;
         const angleStep =
           spreadConfig.angleSpread / (attackAbility.bulletCount - 1);
@@ -121,8 +121,9 @@ export class AttackAbilityComponent {
           });
         }
         break;
+      }
 
-      case 'burst':
+      case 'burst': {
         const burstConfig = ATTACK_PATTERNS.burst;
         const burstAngleStep =
           burstConfig.burstSpread / (attackAbility.bulletCount - 1);
@@ -137,6 +138,7 @@ export class AttackAbilityComponent {
           });
         }
         break;
+      }
 
       case 'homing':
         directions.push({

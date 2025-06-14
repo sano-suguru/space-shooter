@@ -1,13 +1,13 @@
 import { createGameConfig } from '../../src/config/GameConfigFactory';
-import { RealRandomProvider } from '../../src/providers';
-import { Explosion } from '../../src/entities/Explosion';
-import { Star } from '../../src/entities/Star';
-import { Planet } from '../../src/entities/Planet';
-import { Nebula } from '../../src/entities/Nebula';
 import { Aurora } from '../../src/entities/Aurora';
 import { Comet } from '../../src/entities/Comet';
+import { Explosion } from '../../src/entities/Explosion';
 import { MeteorShower } from '../../src/entities/MeteorShower';
+import { Nebula } from '../../src/entities/Nebula';
+import { Planet } from '../../src/entities/Planet';
 import { SpaceDust } from '../../src/entities/SpaceDust';
+import { Star } from '../../src/entities/Star';
+import { RealRandomProvider } from '../../src/providers';
 
 describe('Phase 5 Integration Tests - 残りのクラス移行と統合テスト', () => {
   let config: ReturnType<typeof createGameConfig>;

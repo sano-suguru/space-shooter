@@ -9,7 +9,6 @@ import { ExperienceBarProps } from '../../types/react/index';
 export const ExperienceBar: React.FC<ExperienceBarProps> = ({
   currentExperience,
   currentLevel,
-  nextLevelXP,
   className = '',
   style,
   testId,

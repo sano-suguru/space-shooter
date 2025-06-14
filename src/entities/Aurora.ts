@@ -1,8 +1,8 @@
+import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
 import {
   PooledParticle,
   globalParticlePoolManager,
 } from '../utils/ParticlePoolManager';
-import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
 
 type AuroraType =
   | 'borealis'
@@ -143,7 +143,7 @@ export class Aurora {
 
   constructor(config?: GameConfig) {
     // 設定注入対応（後方互換性を保持）
-    this.config = config || createGameConfig();
+    this.config = config ?? createGameConfig();
 
     this.auroraType = this.generateAuroraType();
     this.setupColorPalettes();
@@ -317,7 +317,7 @@ export class Aurora {
     this.globalIntensity = 0.6 + Math.sin(this.intensityPhase) * 0.3;
 
     // カーテンの更新
-    this.curtains.forEach((curtain, _index) => {
+    this.curtains.forEach(curtain => {
       curtain.baseOffset += curtain.speed * deltaTime;
       curtain.shimmerPhase += curtain.shimmerSpeed * deltaTime;
     });
@@ -327,7 +327,7 @@ export class Aurora {
 
     // 嵐モードの場合、雷の更新
     if (this.stormMode) {
-      this.updateRays(deltaTime);
+      this.updateRays();
     }
 
     // 色彩シフト（宇宙系オーロラ）
@@ -337,7 +337,7 @@ export class Aurora {
   }
 
   private updateParticles(deltaTime: number): void {
-    this.particles.forEach((particle, _index) => {
+    this.particles.forEach(particle => {
       if (particle.active) {
         particle.update(deltaTime);
 
@@ -363,7 +363,7 @@ export class Aurora {
     });
   }
 
-  private updateRays(_deltaTime: number): void {
+  private updateRays(): void {
     // 雷の強度変化
     this.rays.forEach(ray => {
       ray.intensity = Math.random() * 0.8 + 0.2;

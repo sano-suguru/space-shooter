@@ -1,6 +1,6 @@
-import { PowerUpType } from '../types';
-import { IPlayer } from '../interfaces/IPlayer';
 import { GameConfig } from '../config/GameConfigFactory';
+import { IPlayer } from '../interfaces/IPlayer';
+import { PowerUpType } from '../types';
 
 export class PowerUpEffectService {
   constructor(private config: GameConfig) {}

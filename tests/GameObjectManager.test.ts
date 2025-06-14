@@ -1,15 +1,15 @@
-import { GameObjectManager } from '../src/managers/GameObjectManager';
+import { Aurora } from '../src/entities/Aurora';
+import { Boss } from '../src/entities/Boss';
+import { BossBullet } from '../src/entities/BossBullet';
+import { Bullet } from '../src/entities/Bullet';
+import { Enemy } from '../src/entities/Enemy';
+import { Nebula } from '../src/entities/Nebula';
+import { Planet } from '../src/entities/Planet';
+import { PowerUp } from '../src/entities/PowerUp';
+import { Star } from '../src/entities/Star';
 import { EventEmitter } from '../src/events/EventEmitter';
 import { EventMap } from '../src/events/EventType';
-import { Enemy } from '../src/entities/Enemy';
-import { PowerUp } from '../src/entities/PowerUp';
-import { BossBullet } from '../src/entities/BossBullet';
-import { Boss } from '../src/entities/Boss';
-import { Bullet } from '../src/entities/Bullet';
-import { Star } from '../src/entities/Star';
-import { Planet } from '../src/entities/Planet';
-import { Nebula } from '../src/entities/Nebula';
-import { Aurora } from '../src/entities/Aurora';
+import { GameObjectManager } from '../src/managers/GameObjectManager';
 import { MockRandomProvider } from '../src/providers';
 
 describe('GameObjectManager', () => {

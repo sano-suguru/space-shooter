@@ -1,5 +1,5 @@
-import { Vector2D } from '../types';
 import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
+import { Vector2D } from '../types';
 
 interface Particle {
   x: number;
@@ -39,7 +39,7 @@ export class Explosion {
 
   constructor(config?: GameConfig) {
     // 設定注入対応（後方互換性を保持）
-    this.config = config || createGameConfig();
+    this.config = config ?? createGameConfig();
     this.duration = this.config.explosion.duration;
   }
 
@@ -283,7 +283,7 @@ export class Explosion {
       const safeRadius = Math.max(0.1, particle.radius);
 
       switch (particle.type) {
-        case 'core':
+        case 'core': {
           // コアパーティクル（明るい中心部）
           const coreGradient = ctx.createRadialGradient(
             0,
@@ -296,11 +296,11 @@ export class Explosion {
           coreGradient.addColorStop(0, particle.color);
           coreGradient.addColorStop(
             0.7,
-            particle.color.replace(/[\d\.]+\)/, `${alpha * 0.6})`)
+            particle.color.replace(/[\d.]+\)/, `${alpha * 0.6})`)
           );
           coreGradient.addColorStop(
             1,
-            particle.color.replace(/[\d\.]+\)/, '0)')
+            particle.color.replace(/[\d.]+\)/, '0)')
           );
 
           ctx.fillStyle = coreGradient;
@@ -308,10 +308,11 @@ export class Explosion {
           ctx.arc(0, 0, safeRadius, 0, Math.PI * 2);
           ctx.fill();
           break;
+        }
 
         case 'spark':
           // 火花（線状）
-          ctx.strokeStyle = particle.color.replace(/[\d\.]+\)/, `${alpha})`);
+          ctx.strokeStyle = particle.color.replace(/[\d.]+\)/, `${alpha})`);
           ctx.lineWidth = Math.max(0.1, safeRadius * 0.3);
           ctx.lineCap = 'round';
           ctx.beginPath();
@@ -323,13 +324,13 @@ export class Explosion {
         case 'smoke':
           // 煙（半透明の円）
           alpha *= 0.4;
-          ctx.fillStyle = particle.color.replace(/[\d\.]+\)/, `${alpha})`);
+          ctx.fillStyle = particle.color.replace(/[\d.]+\)/, `${alpha})`);
           ctx.beginPath();
           ctx.arc(0, 0, safeRadius, 0, Math.PI * 2);
           ctx.fill();
           break;
 
-        case 'ember':
+        case 'ember': {
           // 燃えかす（小さな明るい点）
           const emberGradient = ctx.createRadialGradient(
             0,
@@ -342,11 +343,11 @@ export class Explosion {
           emberGradient.addColorStop(0, `rgba(255, 100, 0, ${alpha})`);
           emberGradient.addColorStop(
             0.5,
-            particle.color.replace(/[\d\.]+\)/, `${alpha * 0.7})`)
+            particle.color.replace(/[\d.]+\)/, `${alpha * 0.7})`)
           );
           emberGradient.addColorStop(
             1,
-            particle.color.replace(/[\d\.]+\)/, '0)')
+            particle.color.replace(/[\d.]+\)/, '0)')
           );
 
           ctx.fillStyle = emberGradient;
@@ -354,6 +355,7 @@ export class Explosion {
           ctx.arc(0, 0, safeRadius, 0, Math.PI * 2);
           ctx.fill();
           break;
+        }
       }
 
       ctx.restore();

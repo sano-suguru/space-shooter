@@ -1,25 +1,25 @@
-import { IGameEngine } from '../interfaces/IGameEngine';
+import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
 import { Aurora } from '../entities/Aurora';
-import { Enemy } from '../entities/Enemy';
+import { Comet } from '../entities/Comet';
 import { DynamicEnemy } from '../entities/DynamicEnemy';
+import { Enemy } from '../entities/Enemy';
+import { MeteorShower } from '../entities/MeteorShower';
 import { Nebula } from '../entities/Nebula';
 import { Planet } from '../entities/Planet';
 import { PowerUp } from '../entities/PowerUp';
-import { Star } from '../entities/Star';
-import { Comet } from '../entities/Comet';
-import { MeteorShower } from '../entities/MeteorShower';
 import { SpaceDust } from '../entities/SpaceDust';
-import { EnemyType, Vector2D } from '../types';
-import { randomRange } from '../utils/RandomUtils';
+import { Star } from '../entities/Star';
+import { EventEmitter } from '../events/EventEmitter';
+import { EventMap } from '../events/EventType';
+import { IGameEngine } from '../interfaces/IGameEngine';
 import { IRandomProvider } from '../providers';
 import { EnemyGenerationSystem } from '../systems/enemy-generation/EnemyGenerationSystem';
 import {
   EnemyGenerationRequest,
   DifficultyFactors,
 } from '../systems/types/EnemyGeneration';
-import { EventEmitter } from '../events/EventEmitter';
-import { EventMap } from '../events/EventType';
-import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
+import { EnemyType, Vector2D } from '../types';
+import { randomRange } from '../utils/RandomUtils';
 
 export class GameObjectFactory {
   private randomProvider: IRandomProvider;
@@ -34,7 +34,7 @@ export class GameObjectFactory {
   ) {
     this.randomProvider = randomProvider;
     // 設定注入対応（後方互換性を保持）
-    this.config = config || createGameConfig();
+    this.config = config ?? createGameConfig();
 
     // 動的敵生成システムの初期化（オプション）
     if (eventEmitter) {
@@ -122,7 +122,7 @@ export class GameObjectFactory {
     }
 
     // 動的敵生成リクエストを作成
-    const enemyPosition = position || {
+    const enemyPosition = position ?? {
       x: randomRange(50, this.config.canvas.width - 50),
       y: randomRange(-150, -50),
     };
@@ -130,7 +130,7 @@ export class GameObjectFactory {
     const request: EnemyGenerationRequest = {
       baseType: type,
       position: enemyPosition,
-      difficultyFactors: difficultyFactors || {
+      difficultyFactors: difficultyFactors ?? {
         playerLevel: 1,
         currentWave: 1,
         baseMultiplier: 1.0,
@@ -335,7 +335,7 @@ export class GameObjectFactory {
       console.error('Error creating dynamic enemy:', error);
 
       // フォールバック：従来の敵生成
-      const fallbackPosition = position || {
+      const fallbackPosition = position ?? {
         x: randomRange(50, this.config.canvas.width - 50),
         y: randomRange(-150, -50),
       };

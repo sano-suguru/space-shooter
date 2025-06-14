@@ -1,5 +1,6 @@
 import { Player } from '../entities/Player';
 import { GameObjectManager } from '../managers/GameObjectManager';
+
 import { BackgroundRenderer } from './BackgroundRenderer';
 
 /**

@@ -1,5 +1,6 @@
-import { GameObject } from './GameObject';
 import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
+
+import { GameObject } from './GameObject';
 
 export class BossBullet extends GameObject {
   private speedX: number;
@@ -14,7 +15,7 @@ export class BossBullet extends GameObject {
     config?: GameConfig
   ) {
     // 設定注入対応（後方互換性を保持）
-    const gameConfig = config || createGameConfig();
+    const gameConfig = config ?? createGameConfig();
     super(x, y, gameConfig.bullet.width, gameConfig.bullet.height);
 
     this.config = gameConfig;

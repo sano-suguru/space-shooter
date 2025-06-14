@@ -1,10 +1,10 @@
-import { AppearanceConfig } from '../../types/EnemyGeneration';
 import {
   COLOR_PALETTES,
   BASE_SHAPES,
   VARIATION_RANGES,
 } from '../../../data/EnemyTemplates';
 import { IRandomProvider } from '../../../providers/IRandomProvider';
+import { AppearanceConfig } from '../../types/EnemyGeneration';
 
 export class AppearanceComponent {
   private randomProvider: IRandomProvider;

@@ -13,7 +13,6 @@ import { QuickStats } from './QuickStats';
 export const ProgressDisplay: React.FC<ProgressDisplayProps> = ({
   isVisible,
   playerProfile,
-  onNotificationShow,
   className = '',
   style,
   testId,

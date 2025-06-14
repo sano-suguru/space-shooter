@@ -1,9 +1,9 @@
-import { Boss } from '../../src/entities/Boss';
-import { BossBullet } from '../../src/entities/BossBullet';
 import {
   createTestConfig,
   GameConfig,
 } from '../../src/config/GameConfigFactory';
+import { Boss } from '../../src/entities/Boss';
+import { BossBullet } from '../../src/entities/BossBullet';
 
 // MockGameEngineの定義
 class MockGameEngine {

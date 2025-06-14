@@ -1,8 +1,8 @@
-import { UpgradeManager } from '../../src/progression/managers/UpgradeManager';
 import { EventEmitter } from '../../src/events/EventEmitter';
 import { EventMap } from '../../src/events/EventType';
-import { PlayerProfile } from '../../src/progression/types/PlayerProfile';
 import { UPGRADE_CONFIGS } from '../../src/progression/data/upgrades';
+import { UpgradeManager } from '../../src/progression/managers/UpgradeManager';
+import { PlayerProfile } from '../../src/progression/types/PlayerProfile';
 
 describe('UpgradeManager', () => {
   let upgradeManager: UpgradeManager;
