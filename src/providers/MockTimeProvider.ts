@@ -80,7 +80,14 @@ export class MockTimeProvider implements ITimeProvider {
    * 現在時刻に達したタイマーを実行
    */
   private processTimers(): void {
-    const toExecute: Array<{ id: number; timer: any }> = [];
+    type TimerData = {
+      callback: () => void;
+      triggerTime: number;
+      interval?: boolean;
+      intervalTime?: number;
+    };
+
+    const toExecute: Array<{ id: number; timer: TimerData }> = [];
 
     for (const [id, timer] of this.timers.entries()) {
       if (timer.triggerTime <= this.currentTime) {

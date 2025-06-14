@@ -27,6 +27,152 @@ export interface CardProps extends BaseComponentProps {
 }
 
 /**
+ * サイズスタイルを取得
+ */
+const getSizeStyles = (size: ComponentSize): React.CSSProperties => {
+  const sizes = {
+    small: {
+      padding: '12px',
+      borderRadius: '6px',
+    },
+    medium: {
+      padding: '16px',
+      borderRadius: '8px',
+    },
+    large: {
+      padding: '24px',
+      borderRadius: '12px',
+    },
+    xlarge: {
+      padding: '32px',
+      borderRadius: '16px',
+    },
+  };
+  return sizes[size];
+};
+
+/**
+ * 影スタイルを取得
+ */
+const getShadowStyles = (
+  level: CardProps['shadowLevel']
+): React.CSSProperties => {
+  const shadows = {
+    none: { boxShadow: 'none' },
+    low: { boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)' },
+    medium: { boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)' },
+    high: { boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)' },
+  };
+  return shadows[level ?? 'medium'];
+};
+
+/**
+ * カードスタイルを構築
+ */
+const buildCardStyles = (
+  size: ComponentSize,
+  shadowLevel: CardProps['shadowLevel'],
+  bordered: boolean,
+  clickable: boolean,
+  customStyle?: React.CSSProperties
+): React.CSSProperties => {
+  const baseStyles: React.CSSProperties = {
+    backgroundColor: 'rgba(30, 30, 60, 0.9)',
+    backdropFilter: 'blur(10px)',
+    border: bordered ? '1px solid rgba(97, 218, 251, 0.3)' : 'none',
+    color: '#fff',
+    cursor: clickable ? 'pointer' : 'default',
+    transition: 'all 0.3s ease-in-out',
+    position: 'relative',
+    overflow: 'hidden',
+    ...getSizeStyles(size),
+    ...getShadowStyles(shadowLevel),
+  };
+
+  return {
+    ...baseStyles,
+    ...customStyle,
+  };
+};
+
+/**
+ * マウスイベントハンドラーを作成
+ */
+const createCardMouseHandlers = (
+  hoverable: boolean,
+  clickable: boolean,
+  cardStyles: React.CSSProperties,
+  hoverStyles: React.CSSProperties
+) => ({
+  onMouseEnter: (e: React.MouseEvent<HTMLDivElement>) => {
+    if (hoverable || clickable) {
+      Object.assign(e.currentTarget.style, hoverStyles);
+      const glowElement = e.currentTarget.querySelector(
+        '.card-glow'
+      ) as HTMLElement;
+      if (glowElement) {
+        glowElement.style.transform = 'translateX(100%)';
+      }
+    }
+  },
+  onMouseLeave: (e: React.MouseEvent<HTMLDivElement>) => {
+    if (hoverable || clickable) {
+      Object.assign(e.currentTarget.style, cardStyles);
+      const glowElement = e.currentTarget.querySelector(
+        '.card-glow'
+      ) as HTMLElement;
+      if (glowElement) {
+        glowElement.style.transform = 'translateX(-100%)';
+      }
+    }
+  },
+});
+
+/**
+ * ヘッダーをレンダリング
+ */
+const renderHeader = (
+  title?: string,
+  headerIcon?: string
+): React.ReactElement | null => {
+  if (!title && !headerIcon) return null;
+
+  const headerStyles: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    marginBottom: '16px',
+    paddingBottom: '12px',
+    borderBottom: '1px solid rgba(97, 218, 251, 0.2)',
+    fontSize: '18px',
+    fontWeight: 'bold',
+    color: '#61dafb',
+  };
+
+  return (
+    <div style={headerStyles}>
+      {headerIcon && <span style={{ fontSize: '1.2em' }}>{headerIcon}</span>}
+      {title && <span>{title}</span>}
+    </div>
+  );
+};
+
+/**
+ * フッターをレンダリング
+ */
+const renderFooter = (footer?: React.ReactNode): React.ReactElement | null => {
+  if (!footer) return null;
+
+  const footerStyles: React.CSSProperties = {
+    marginTop: '16px',
+    paddingTop: '12px',
+    borderTop: '1px solid rgba(97, 218, 251, 0.2)',
+  };
+
+  return <div style={footerStyles}>{footer}</div>;
+};
+
+/**
  * ゲーム風スタイルのCardコンポーネント
  * Space Shooterゲームのデザインに最適化
  */
@@ -52,57 +198,13 @@ export const Card: React.FC<CardProps> = ({
     }
   };
 
-  const getSizeStyles = (size: ComponentSize): React.CSSProperties => {
-    const sizes = {
-      small: {
-        padding: '12px',
-        borderRadius: '6px',
-      },
-      medium: {
-        padding: '16px',
-        borderRadius: '8px',
-      },
-      large: {
-        padding: '24px',
-        borderRadius: '12px',
-      },
-      xlarge: {
-        padding: '32px',
-        borderRadius: '16px',
-      },
-    };
-    return sizes[size];
-  };
-
-  const getShadowStyles = (
-    level: CardProps['shadowLevel']
-  ): React.CSSProperties => {
-    const shadows = {
-      none: { boxShadow: 'none' },
-      low: { boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)' },
-      medium: { boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)' },
-      high: { boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)' },
-    };
-    return shadows[level ?? 'medium'];
-  };
-
-  const baseStyles: React.CSSProperties = {
-    backgroundColor: 'rgba(30, 30, 60, 0.9)',
-    backdropFilter: 'blur(10px)',
-    border: bordered ? '1px solid rgba(97, 218, 251, 0.3)' : 'none',
-    color: '#fff',
-    cursor: clickable ? 'pointer' : 'default',
-    transition: 'all 0.3s ease-in-out',
-    position: 'relative',
-    overflow: 'hidden',
-    ...getSizeStyles(size),
-    ...getShadowStyles(shadowLevel),
-  };
-
-  const cardStyles: React.CSSProperties = {
-    ...baseStyles,
-    ...style,
-  };
+  const cardStyles = buildCardStyles(
+    size,
+    shadowLevel,
+    bordered,
+    clickable,
+    style
+  );
 
   const hoverStyles: React.CSSProperties = {
     transform: 'translateY(-4px)',
@@ -111,23 +213,12 @@ export const Card: React.FC<CardProps> = ({
     borderColor: 'rgba(97, 218, 251, 0.6)',
   };
 
-  const headerStyles: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    marginBottom: '16px',
-    paddingBottom: '12px',
-    borderBottom: '1px solid rgba(97, 218, 251, 0.2)',
-    fontSize: '18px',
-    fontWeight: 'bold',
-    color: '#61dafb',
-  };
-
-  const footerStyles: React.CSSProperties = {
-    marginTop: '16px',
-    paddingTop: '12px',
-    borderTop: '1px solid rgba(97, 218, 251, 0.2)',
-  };
+  const mouseHandlers = createCardMouseHandlers(
+    hoverable,
+    clickable,
+    cardStyles,
+    hoverStyles
+  );
 
   const glowEffectStyles: React.CSSProperties = {
     position: 'absolute',
@@ -148,30 +239,7 @@ export const Card: React.FC<CardProps> = ({
       style={cardStyles}
       onClick={handleClick}
       data-testid={testId}
-      onMouseEnter={e => {
-        if (hoverable || clickable) {
-          Object.assign(e.currentTarget.style, hoverStyles);
-          // グロー効果
-          const glowElement = e.currentTarget.querySelector(
-            '.card-glow'
-          ) as HTMLElement;
-          if (glowElement) {
-            glowElement.style.transform = 'translateX(100%)';
-          }
-        }
-      }}
-      onMouseLeave={e => {
-        if (hoverable || clickable) {
-          Object.assign(e.currentTarget.style, cardStyles);
-          // グロー効果リセット
-          const glowElement = e.currentTarget.querySelector(
-            '.card-glow'
-          ) as HTMLElement;
-          if (glowElement) {
-            glowElement.style.transform = 'translateX(-100%)';
-          }
-        }
-      }}
+      {...mouseHandlers}
       {...props}
     >
       {/* グロー効果 */}
@@ -180,21 +248,13 @@ export const Card: React.FC<CardProps> = ({
       )}
 
       {/* ヘッダー */}
-      {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing */}
-      {(title || headerIcon) && (
-        <div style={headerStyles}>
-          {headerIcon && (
-            <span style={{ fontSize: '1.2em' }}>{headerIcon}</span>
-          )}
-          {title && <span>{title}</span>}
-        </div>
-      )}
+      {renderHeader(title, headerIcon)}
 
       {/* メインコンテンツ */}
       <div className='card-content'>{children}</div>
 
       {/* フッター */}
-      {footer && <div style={footerStyles}>{footer}</div>}
+      {renderFooter(footer)}
     </div>
   );
 };

@@ -202,7 +202,7 @@ export class ParticlePoolManager {
    * 特定プールの統計情報を取得
    */
   public getPoolStats(poolName: string): PoolStats | null {
-    return this.poolStats.get(poolName) || null;
+    return this.poolStats.get(poolName) ?? null;
   }
 
   /**

@@ -205,18 +205,23 @@ export function createTestConfig(
 }
 
 function deepMerge<T>(base: T, override: DeepPartial<T>): T {
-  const result = { ...base } as any;
+  const result = { ...base };
 
   for (const key in override) {
     if (override[key] !== undefined) {
+      const overrideValue = override[key];
       if (
-        typeof override[key] === 'object' &&
-        override[key] !== null &&
-        !Array.isArray(override[key])
+        typeof overrideValue === 'object' &&
+        overrideValue !== null &&
+        !Array.isArray(overrideValue)
       ) {
-        result[key] = deepMerge(result[key] ?? {}, override[key] as any);
+        const baseValue = (result as Record<string, unknown>)[key as string];
+        (result as Record<string, unknown>)[key as string] = deepMerge(
+          baseValue ?? {},
+          overrideValue as DeepPartial<unknown>
+        );
       } else {
-        result[key] = override[key];
+        (result as Record<string, unknown>)[key as string] = overrideValue;
       }
     }
   }

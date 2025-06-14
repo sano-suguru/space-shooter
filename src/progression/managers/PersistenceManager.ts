@@ -194,7 +194,7 @@ export class PersistenceManager {
       localStorage.setItem(testKey, 'test');
       localStorage.removeItem(testKey);
       return true;
-    } catch (error) {
+    } catch (_error) {
       return false;
     }
   }

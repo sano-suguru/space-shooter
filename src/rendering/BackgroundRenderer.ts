@@ -536,7 +536,7 @@ export class BackgroundRenderer {
    */
   public getDetailedPerformanceStats(): {
     performanceMetrics: PerformanceMetrics;
-    lodStats: any;
+    lodStats: { [key: string]: unknown };
     cacheUtilization: {
       background: boolean;
       nebula: boolean;

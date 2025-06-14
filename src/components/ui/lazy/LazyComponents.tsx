@@ -69,7 +69,7 @@ export const withLazyLoading = <P extends object>(
   loadingMessage?: string,
   ErrorFallback?: React.ComponentType<{ error: Error }>
 ) => {
-  return React.forwardRef<any, P>((props, ref) => (
+  return React.forwardRef<HTMLElement, P>((props, ref) => (
     <LazyComponentErrorBoundary fallback={ErrorFallback}>
       <Suspense fallback={<LazyLoadingSpinner message={loadingMessage} />}>
         <LazyComponent {...props} ref={ref} />

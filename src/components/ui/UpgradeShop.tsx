@@ -136,7 +136,9 @@ export const UpgradeShop: React.FC<UpgradeShopProps> = ({
                   upgrade={upgrade}
                   currentLevel={currentLevel}
                   playerProfile={playerProfile}
-                  onPurchase={handlePurchase}
+                  onPurchase={(upgradeId: string) => {
+                    handlePurchase(upgradeId).catch(console.error);
+                  }}
                   disabled={purchaseInProgress === upgrade.id}
                   className='shop-upgrade-item'
                 />

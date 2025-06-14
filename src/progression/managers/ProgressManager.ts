@@ -20,7 +20,7 @@ export class ProgressManager {
     scoreManager?: ScoreManager
   ) {
     this.eventEmitter = eventEmitter;
-    this.scoreManager = scoreManager || new ScoreManager(eventEmitter);
+    this.scoreManager = scoreManager ?? new ScoreManager(eventEmitter);
     this.profile = PersistenceManager.loadProfile();
     this.currentSession = this.initializeSession();
     this.setupEventListeners();

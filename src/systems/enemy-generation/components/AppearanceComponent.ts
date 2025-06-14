@@ -19,35 +19,54 @@ export class AppearanceComponent {
   public generateRandomAppearance(
     baseConfig?: Partial<AppearanceConfig>
   ): AppearanceConfig {
-    const config: AppearanceConfig = {
+    const colors = this.generateColors(baseConfig);
+    const properties = this.generateProperties(baseConfig);
+
+    return {
+      ...colors,
+      ...properties,
+    };
+  }
+
+  /**
+   * 色設定を生成
+   */
+  private generateColors(baseConfig?: Partial<AppearanceConfig>) {
+    return {
       baseShape:
-        baseConfig?.baseShape || this.randomProvider.randomChoice(BASE_SHAPES),
+        baseConfig?.baseShape ?? this.randomProvider.randomChoice(BASE_SHAPES),
       primaryColor:
-        baseConfig?.primaryColor ||
+        baseConfig?.primaryColor ??
         this.randomProvider.randomChoice(COLOR_PALETTES.BASIC),
       secondaryColor:
-        baseConfig?.secondaryColor ||
+        baseConfig?.secondaryColor ??
         this.randomProvider.randomChoice(COLOR_PALETTES.SECONDARY),
       accentColor:
-        baseConfig?.accentColor ||
+        baseConfig?.accentColor ??
         this.randomProvider.randomChoice(COLOR_PALETTES.ACCENT),
+    };
+  }
+
+  /**
+   * プロパティを生成
+   */
+  private generateProperties(baseConfig?: Partial<AppearanceConfig>) {
+    return {
       size: this.generateVariation(
-        baseConfig?.size || 1.0,
+        baseConfig?.size ?? 1.0,
         VARIATION_RANGES.appearance.size
       ),
       glowIntensity: this.generateVariation(
-        baseConfig?.glowIntensity || 0.7,
+        baseConfig?.glowIntensity ?? 0.7,
         VARIATION_RANGES.appearance.glowIntensity
       ),
       animationSpeed: this.generateVariation(
-        baseConfig?.animationSpeed || 1.0,
+        baseConfig?.animationSpeed ?? 1.0,
         VARIATION_RANGES.appearance.animationSpeed
       ),
       trailEffect:
         baseConfig?.trailEffect ?? this.randomProvider.randomChance(0.3),
     };
-
-    return config;
   }
 
   /**
@@ -313,7 +332,7 @@ export class AppearanceComponent {
       '#42a5f5': '#2196f3', // ブルー -> より鮮やかなブルー
     };
 
-    return colorMap[color] || color;
+    return colorMap[color] ?? color;
   }
 
   /**

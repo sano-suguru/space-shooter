@@ -24,7 +24,7 @@ export class EnemyGenerationSystem {
     randomProvider?: IRandomProvider
   ) {
     this.eventEmitter = eventEmitter;
-    this.randomProvider = randomProvider || new RealRandomProvider();
+    this.randomProvider = randomProvider ?? new RealRandomProvider();
     this.factory = new EnemyGeneratorFactory(this.randomProvider);
   }
 
@@ -101,7 +101,7 @@ export class EnemyGenerationSystem {
 
     enemyTypes.forEach(({ type, count, positions }) => {
       for (let i = 0; i < count; i++) {
-        const position = positions?.[i] || this.generateRandomPosition();
+        const position = positions?.[i] ?? this.generateRandomPosition();
 
         const request: EnemyGenerationRequest = {
           baseType: type,

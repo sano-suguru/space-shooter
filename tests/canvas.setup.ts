@@ -269,12 +269,12 @@ Object.defineProperty(window, 'performance', {
 });
 
 // RequestAnimationFrame mock
-const mockRequestAnimationFrame = jest.fn((callback: any) => {
-  const id = setTimeout(callback, 16);
+const mockRequestAnimationFrame = jest.fn((callback: FrameRequestCallback) => {
+  const id = setTimeout(() => callback(Date.now()), 16);
   console.log(`🎬 Global requestAnimationFrame called, assigned ID: ${id}`);
   // アクティブなフレームIDを記録
   (globalThis as any)._activeGlobalAnimationFrames =
-    (globalThis as any)._activeGlobalAnimationFrames || new Set();
+    (globalThis as any)._activeGlobalAnimationFrames ?? new Set();
   (globalThis as any)._activeGlobalAnimationFrames.add(id);
   return id;
 });

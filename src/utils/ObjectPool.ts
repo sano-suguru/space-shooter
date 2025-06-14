@@ -28,7 +28,7 @@ export class ObjectPool<T> {
    * プールからオブジェクトを取得
    */
   get(): T {
-    const obj = this.pool.pop() || this.createFn();
+    const obj = this.pool.pop() ?? this.createFn();
     return obj;
   }
 

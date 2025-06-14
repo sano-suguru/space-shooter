@@ -1,4 +1,5 @@
 export class EventEmitter<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   EventMap extends Record<string, (...args: any[]) => void>,
 > {
   private listeners: Partial<{ [K in keyof EventMap]: EventMap[K][] }> = {};

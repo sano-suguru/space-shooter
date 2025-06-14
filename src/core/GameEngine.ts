@@ -95,9 +95,7 @@ export class GameEngine {
    * ゲームループを開始
    */
   private startGameLoop(): void {
-    if (this.gameLoopId === null) {
-      this.gameLoopId = requestAnimationFrame(this.gameLoop);
-    }
+    this.gameLoopId ??= requestAnimationFrame(this.gameLoop);
   }
 
   /**

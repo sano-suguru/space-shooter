@@ -48,6 +48,8 @@ export default [
         clearTimeout: 'readonly',
         setInterval: 'readonly',
         clearInterval: 'readonly',
+        localStorage: 'readonly',
+        getComputedStyle: 'readonly',
       },
     },
     plugins: {
@@ -68,7 +70,14 @@ export default [
       ...reactHooks.configs.recommended.rules,
       
       // カスタムルール
-      '@typescript-eslint/no-unused-vars': 'error',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
       '@typescript-eslint/explicit-function-return-type': 'warn',
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/prefer-nullish-coalescing': 'error',
@@ -103,7 +112,7 @@ export default [
       ],
       
       // コード品質
-      'no-console': 'warn',
+      'no-console': 'off', // デバッグ用のconsole文を許可
       'complexity': ['error', 15],
       'max-lines-per-function': ['warn', 80],
       
@@ -132,7 +141,7 @@ export default [
   
   // テストファイル用設定
   {
-    files: ['**/*.test.{ts,tsx}', '**/__tests__/**/*.{ts,tsx}', 'tests/**/*.{ts,tsx}'],
+    files: ['**/*.test.{ts,tsx}', '**/__tests__/**/*.{ts,tsx}', 'tests/**/*.{ts,tsx}', 'src/managers/MockDOMManager.ts'],
     languageOptions: {
       globals: {
         jest: 'readonly',

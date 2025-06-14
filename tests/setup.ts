@@ -33,13 +33,18 @@ expect.extend({
     }
   },
 
-  toHaveValidGameObject(received: any) {
+  toHaveValidGameObject(received: unknown) {
     const hasRequiredProperties =
       received &&
-      typeof received.x === 'number' &&
-      typeof received.y === 'number' &&
-      typeof received.update === 'function' &&
-      typeof received.draw === 'function';
+      typeof received === 'object' &&
+      'x' in received &&
+      'y' in received &&
+      'update' in received &&
+      'draw' in received &&
+      typeof (received as Record<string, unknown>).x === 'number' &&
+      typeof (received as Record<string, unknown>).y === 'number' &&
+      typeof (received as Record<string, unknown>).update === 'function' &&
+      typeof (received as Record<string, unknown>).draw === 'function';
 
     if (hasRequiredProperties) {
       return {
@@ -81,32 +86,35 @@ afterEach(() => {
   jest.clearAllTimers();
 
   // アクティブなタイマーの数をログ出力
-  const activeTimeouts = (globalThis as any)._activeTimeouts;
+  const activeTimeouts = (globalThis as Record<string, unknown>)
+    ._activeTimeouts as Set<number> | undefined;
   if (activeTimeouts && activeTimeouts.size > 0) {
     console.warn(
       `⚠️  ${activeTimeouts.size} active timeouts detected after test`
     );
-    activeTimeouts.forEach((timerId: any) => clearTimeout(timerId));
+    activeTimeouts.forEach((timerId: number) => clearTimeout(timerId));
     activeTimeouts.clear();
   }
 
   // アクティブなアニメーションフレームをクリーンアップ
-  const activeFrames = (globalThis as any)._activeAnimationFrames;
+  const activeFrames = (globalThis as Record<string, unknown>)
+    ._activeAnimationFrames as Set<number> | undefined;
   if (activeFrames && activeFrames.size > 0) {
     console.warn(
       `⚠️  ${activeFrames.size} active animation frames detected after test`
     );
-    activeFrames.forEach((frameId: any) => cancelAnimationFrame(frameId));
+    activeFrames.forEach((frameId: number) => cancelAnimationFrame(frameId));
     activeFrames.clear();
   }
 
   // グローバルなアニメーションフレームをクリーンアップ
-  const activeGlobalFrames = (globalThis as any)._activeGlobalAnimationFrames;
+  const activeGlobalFrames = (globalThis as Record<string, unknown>)
+    ._activeGlobalAnimationFrames as Set<number> | undefined;
   if (activeGlobalFrames && activeGlobalFrames.size > 0) {
     console.warn(
       `⚠️  ${activeGlobalFrames.size} active global animation frames detected after test`
     );
-    activeGlobalFrames.forEach((frameId: any) => clearTimeout(frameId));
+    activeGlobalFrames.forEach((frameId: number) => clearTimeout(frameId));
     activeGlobalFrames.clear();
   }
 });

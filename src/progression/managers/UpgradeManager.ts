@@ -145,7 +145,7 @@ export class UpgradeManager {
       if (typeof value === 'number') {
         const typedKey = key as keyof UpgradeEffect;
         const currentValue =
-          this.getEffectValueSafely(typedKey) ||
+          this.getEffectValueSafely(typedKey) ??
           (key.endsWith('Multiplier') ? 1 : 0);
 
         if (key.endsWith('Multiplier')) {

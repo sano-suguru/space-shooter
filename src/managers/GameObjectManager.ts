@@ -18,6 +18,7 @@ import { IPlayer } from '../interfaces/IPlayer';
 import { ObjectPool, PoolManager } from '../utils/ObjectPool';
 import {
   ParticlePoolManager,
+  ParticlePoolStats,
   globalParticlePoolManager,
 } from '../utils/ParticlePoolManager';
 
@@ -390,7 +391,7 @@ export class GameObjectManager {
    */
   public getAllPoolStats(): {
     objectPools: { [key: string]: number };
-    particlePools: any;
+    particlePools: ParticlePoolStats;
     backgroundEntities: {
       nebulas: number;
       auroras: number;

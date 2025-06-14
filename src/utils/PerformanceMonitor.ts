@@ -471,6 +471,9 @@ export class PerformanceMonitor {
    * 型ガード関数：performanceオブジェクトがmemoryプロパティを持つかチェック
    */
   private hasMemoryInfo(perf: Performance): perf is PerformanceWithMemory {
-    return 'memory' in perf && typeof (perf as any).memory === 'object';
+    return (
+      'memory' in perf &&
+      typeof (perf as PerformanceWithMemory).memory === 'object'
+    );
   }
 }

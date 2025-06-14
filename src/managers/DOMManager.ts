@@ -51,7 +51,7 @@ export class DOMManager implements IDOMManager {
 
   // スタイル操作
   public setStyle(element: HTMLElement, property: string, value: string): void {
-    (element.style as any)[property] = value;
+    (element.style as unknown as Record<string, string>)[property] = value;
   }
 
   public getStyle(element: HTMLElement, property: string): string {

@@ -223,7 +223,7 @@ export class EnemyGeneratorFactory {
    */
   private generateFlockInfo(
     request: EnemyGenerationRequest,
-    behavior: { flockingTendency: number; [key: string]: any }
+    behavior: { flockingTendency: number }
   ): { flockId?: string; leaderId?: string } {
     if (behavior.flockingTendency < 0.3) {
       return {}; // 群れ傾向が低い場合は単独行動
@@ -256,17 +256,15 @@ export class EnemyGeneratorFactory {
     let leader = flockMembers.find(enemy => enemy.isElite);
 
     // エリート敵がいない場合は最も強い敵をリーダーに
-    if (!leader) {
-      leader = flockMembers.reduce((strongest, current) => {
-        const strongestPower = this.statsComponent.calculateOverallPower(
-          strongest.stats
-        );
-        const currentPower = this.statsComponent.calculateOverallPower(
-          current.stats
-        );
-        return currentPower > strongestPower ? current : strongest;
-      });
-    }
+    leader ??= flockMembers.reduce((strongest, current) => {
+      const strongestPower = this.statsComponent.calculateOverallPower(
+        strongest.stats
+      );
+      const currentPower = this.statsComponent.calculateOverallPower(
+        current.stats
+      );
+      return currentPower > strongestPower ? current : strongest;
+    });
 
     // リーダーの行動を調整
     leader.behavior = this.behaviorComponent.generateLeaderBehavior(
@@ -368,7 +366,7 @@ export class EnemyGeneratorFactory {
     return {
       basicInfo: {
         type: enemy.baseType,
-        isElite: enemy.isElite || false,
+        isElite: enemy.isElite ?? false,
         position: enemy.position,
       },
       appearance: `${enemy.appearance.baseShape} (${enemy.appearance.primaryColor})`,
@@ -383,7 +381,7 @@ export class EnemyGeneratorFactory {
         leaderId: enemy.leaderId,
         isLeader: !!enemy.flockId && !enemy.leaderId,
       },
-      environmentalEffects: enemy.environmentalEffects?.length || 0,
+      environmentalEffects: enemy.environmentalEffects?.length ?? 0,
     };
   }
 }

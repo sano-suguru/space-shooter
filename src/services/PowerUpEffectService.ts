@@ -17,7 +17,7 @@ export class PowerUpEffectService {
         player.activateShield();
         break;
       default:
-        console.warn(`Unknown power-up type: ${type}`);
+        console.warn(`Unknown power-up type: ${String(type)}`);
     }
   }
 
@@ -34,7 +34,7 @@ export class PowerUpEffectService {
         // 将来的にdeactivateShieldメソッドが追加された場合はここで呼び出す
         break;
       default:
-        console.warn(`Unknown power-up type: ${type}`);
+        console.warn(`Unknown power-up type: ${String(type)}`);
     }
   }
 

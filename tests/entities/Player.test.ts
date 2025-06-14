@@ -78,7 +78,7 @@ describe('Player', () => {
         const timerId = delay as any;
         // タイマーIDを記録してクリーンアップできるようにする
         (globalThis as any)._activeTimeouts =
-          (globalThis as any)._activeTimeouts || new Set();
+          (globalThis as any)._activeTimeouts ?? new Set();
         (globalThis as any)._activeTimeouts.add(timerId);
         return timerId;
       });

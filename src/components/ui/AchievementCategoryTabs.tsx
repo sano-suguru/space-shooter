@@ -1,6 +1,9 @@
 import React from 'react';
 
-import { AchievementCategoryTabsProps } from '../../types/react';
+import {
+  AchievementCategoryTabsProps,
+  AchievementCategory,
+} from '../../types/react';
 
 /**
  * アチーブメントカテゴリータブコンポーネント
@@ -14,7 +17,7 @@ export const AchievementCategoryTabs: React.FC<
   className = '',
   ...props
 }) => {
-  const handleCategoryClick = (categoryId: any) => {
+  const handleCategoryClick = (categoryId: AchievementCategory) => {
     onCategoryChange(categoryId);
   };
 

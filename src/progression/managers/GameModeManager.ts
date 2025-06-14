@@ -39,7 +39,7 @@ export class GameModeManager {
 
     // Initialize with default or last selected game mode
     const lastSelectedMode = this.getLastSelectedGameMode();
-    this.currentGameMode = lastSelectedMode || getDefaultGameMode();
+    this.currentGameMode = lastSelectedMode ?? getDefaultGameMode();
 
     // Ensure the selected mode is unlocked, fallback to default if not
     if (!this.isCurrentModeUnlocked()) {
@@ -167,12 +167,10 @@ export class GameModeManager {
     const modeId = this.currentGameMode.id;
 
     // Update games played count
-    if (!this.playerProfile.gameModeStats) {
-      this.playerProfile.gameModeStats = {
-        gamesPlayedByMode: {},
-        highScoresByMode: {},
-      };
-    }
+    this.playerProfile.gameModeStats ??= {
+      gamesPlayedByMode: {},
+      highScoresByMode: {},
+    };
 
     if (!this.playerProfile.gameModeStats.gamesPlayedByMode[modeId]) {
       this.playerProfile.gameModeStats.gamesPlayedByMode[modeId] = 0;
@@ -292,14 +290,14 @@ export class GameModeManager {
    * Get games played by mode
    */
   private getGamesPlayedByMode(): { [modeId: string]: number } {
-    return this.playerProfile.gameModeStats?.gamesPlayedByMode || {};
+    return this.playerProfile.gameModeStats?.gamesPlayedByMode ?? {};
   }
 
   /**
    * Get high scores by mode
    */
   private getHighScoresByMode(): { [modeId: string]: number } {
-    return this.playerProfile.gameModeStats?.highScoresByMode || {};
+    return this.playerProfile.gameModeStats?.highScoresByMode ?? {};
   }
 
   /**
@@ -319,7 +317,7 @@ export class GameModeManager {
   private getLastSelectedGameMode(): GameMode | null {
     try {
       const lastModeId = localStorage.getItem('lastSelectedGameMode');
-      return lastModeId ? getGameModeById(lastModeId) || null : null;
+      return lastModeId ? (getGameModeById(lastModeId) ?? null) : null;
     } catch (error) {
       console.warn('Failed to load last selected game mode:', error);
       return null;

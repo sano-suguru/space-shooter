@@ -36,7 +36,7 @@ export class ReactLazyUIManager {
   private initializeButtons(): void {
     try {
       this.progressDisplayBtn = getElementOrThrow('progress-display-btn');
-    } catch (error) {
+    } catch (_error) {
       console.warn('Progress display button not found, UI will be limited');
     }
   }
@@ -49,7 +49,7 @@ export class ReactLazyUIManager {
       const container = getElementOrThrow('progress-display-container');
       const root = createRoot(container);
       this.roots.set('progress-display-container', root);
-    } catch (error) {
+    } catch (_error) {
       console.warn('Progress display container not found');
     }
   }

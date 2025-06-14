@@ -30,7 +30,7 @@ describe('GameEngine', () => {
       console.log(`🎬 requestAnimationFrame called, assigned ID: ${id}`);
       // アクティブなフレームIDを記録
       (globalThis as any)._activeAnimationFrames =
-        (globalThis as any)._activeAnimationFrames || new Set();
+        (globalThis as any)._activeAnimationFrames ?? new Set();
       (globalThis as any)._activeAnimationFrames.add(id);
       return id;
     });
