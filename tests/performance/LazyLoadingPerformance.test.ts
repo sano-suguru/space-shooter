@@ -179,8 +179,18 @@ export class LazyLoadingPerformanceTest {
     totalJSHeapSize: number;
     jsHeapSizeLimit: number;
   } {
-    if (typeof window !== 'undefined' && (window as any).performance?.memory) {
-      const memory = (window as any).performance.memory;
+    interface MemoryInfo {
+      usedJSHeapSize: number;
+      totalJSHeapSize: number;
+      jsHeapSizeLimit: number;
+    }
+
+    const windowWithMemory = window as unknown as {
+      performance?: { memory?: MemoryInfo };
+    };
+
+    if (typeof window !== 'undefined' && windowWithMemory.performance?.memory) {
+      const memory = windowWithMemory.performance.memory;
 
       console.log('🧠 メモリ使用量:');
       console.log(

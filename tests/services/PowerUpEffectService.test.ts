@@ -30,6 +30,7 @@ describe('PowerUpEffectService', () => {
     it('should apply rapid fire effect', () => {
       service.applyEffect(mockPlayer, 'RAPID_FIRE');
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockPlayer.setFireRate).toHaveBeenCalledWith(
         testConfig.player.fireRate / 2
       );
@@ -38,12 +39,14 @@ describe('PowerUpEffectService', () => {
     it('should apply triple shot effect', () => {
       service.applyEffect(mockPlayer, 'TRIPLE_SHOT');
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockPlayer.setBulletType).toHaveBeenCalledWith('triple');
     });
 
     it('should apply shield effect', () => {
       service.applyEffect(mockPlayer, 'SHIELD');
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockPlayer.activateShield).toHaveBeenCalled();
     });
 
@@ -61,6 +64,7 @@ describe('PowerUpEffectService', () => {
     it('should remove rapid fire effect', () => {
       service.removeEffect(mockPlayer, 'RAPID_FIRE');
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockPlayer.setFireRate).toHaveBeenCalledWith(
         testConfig.player.fireRate
       );
@@ -69,6 +73,7 @@ describe('PowerUpEffectService', () => {
     it('should remove triple shot effect', () => {
       service.removeEffect(mockPlayer, 'TRIPLE_SHOT');
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockPlayer.setBulletType).toHaveBeenCalledWith('single');
     });
 
@@ -115,6 +120,7 @@ describe('PowerUpEffectService', () => {
 
       // 新しい設定が適用されることを確認
       service.applyEffect(mockPlayer, 'RAPID_FIRE');
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockPlayer.setFireRate).toHaveBeenCalledWith(150); // 300 / 2
 
       const duration = service.getEffectDuration('RAPID_FIRE');
@@ -132,6 +138,7 @@ describe('PowerUpEffectService', () => {
       const prodService = new PowerUpEffectService(prodConfig);
 
       prodService.applyEffect(mockPlayer, 'RAPID_FIRE');
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockPlayer.setFireRate).toHaveBeenCalledWith(100); // 200 / 2
 
       const duration = prodService.getEffectDuration('RAPID_FIRE');
@@ -146,9 +153,11 @@ describe('PowerUpEffectService', () => {
       const customService = new PowerUpEffectService(customConfig);
 
       customService.applyEffect(mockPlayer, 'RAPID_FIRE');
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockPlayer.setFireRate).toHaveBeenCalledWith(40); // 80 / 2
 
       customService.removeEffect(mockPlayer, 'RAPID_FIRE');
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockPlayer.setFireRate).toHaveBeenLastCalledWith(80);
     });
   });

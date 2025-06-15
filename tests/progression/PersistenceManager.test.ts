@@ -23,7 +23,9 @@ Object.defineProperty(window, 'localStorage', {
 });
 
 // Node.js環境用のglobal設定
-(globalThis as any).localStorage = localStorageMock;
+(
+  globalThis as unknown as { localStorage: typeof localStorageMock }
+).localStorage = localStorageMock;
 
 describe('PersistenceManager', () => {
   beforeEach(() => {

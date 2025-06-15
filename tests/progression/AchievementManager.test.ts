@@ -421,6 +421,7 @@ describe('AchievementManager', () => {
 
       expect(mockOnProfileUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           completedAchievements: expect.arrayContaining(['first_steps']),
         })
       );

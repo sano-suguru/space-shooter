@@ -234,7 +234,9 @@ describe('GameEngine', () => {
 
       // 2回目実行（16.67ms後 = 60FPS）
       gameLoopCallback!(1016.67);
-      const secondCall = mockUpdateCallback.mock.calls[1];
+      const secondCall = mockUpdateCallback.mock.calls[1] as
+        | [number]
+        | undefined;
       expect(secondCall?.[0]).toBeCloseTo(0.01667, 4);
       expect(gameEngine.getDeltaTime()).toBeCloseTo(0.01667, 4);
     });
@@ -545,7 +547,9 @@ describe('GameEngine', () => {
       gameLoopCallback!(1000); // 初回（deltaTime = 0）
       gameLoopCallback!(1008.33); // 2回目（8.33ms後 = 120FPS相当）
 
-      const highFpsCall = mockUpdateCallback.mock.calls[1];
+      const highFpsCall = mockUpdateCallback.mock.calls[1] as
+        | [number]
+        | undefined;
       expect(highFpsCall?.[0]).toBeCloseTo(0.00833, 4);
       expect(gameEngine.getDeltaTime()).toBeCloseTo(0.00833, 4);
 
@@ -567,7 +571,10 @@ describe('GameEngine', () => {
       gameLoopCallback!(1050); // 2回目（50ms後）
 
       // 50msは1/30秒（約33.33ms）の上限に制限される
-      expect(mockUpdateCallback.mock.calls[1]?.[0]).toBeCloseTo(1 / 30, 4);
+      const lowFpsCall = mockUpdateCallback.mock.calls[1] as
+        | [number]
+        | undefined;
+      expect(lowFpsCall?.[0]).toBeCloseTo(1 / 30, 4);
       expect(gameEngine.getDeltaTime()).toBeCloseTo(1 / 30, 4);
 
       const debugInfo = gameEngine.getDebugInfo();

@@ -27,7 +27,9 @@ Object.defineProperty(window, 'localStorage', {
 });
 
 // Node.js環境用のglobal設定
-(globalThis as any).localStorage = localStorageMock;
+(
+  globalThis as unknown as { localStorage: typeof localStorageMock }
+).localStorage = localStorageMock;
 
 describe('ProgressManager', () => {
   let progressManager: ProgressManager;
@@ -239,7 +241,10 @@ describe('ProgressManager', () => {
   describe('イベント統合', () => {
     it('基本ゲームイベントが統計に反映される', () => {
       // 敵撃破イベント
-      eventEmitter.emit('enemyDestroyed', {} as any);
+      eventEmitter.emit(
+        'enemyDestroyed',
+        {} as Parameters<EventMap['enemyDestroyed']>[0]
+      );
       expect(progressManager.getProfile().stats.enemiesDestroyed).toBe(1);
 
       // ボス撃破イベント
@@ -247,7 +252,10 @@ describe('ProgressManager', () => {
       expect(progressManager.getProfile().stats.bossesDefeated).toBe(1);
 
       // パワーアップ収集イベント
-      eventEmitter.emit('powerUpCollected', {} as any);
+      eventEmitter.emit(
+        'powerUpCollected',
+        {} as Parameters<EventMap['powerUpCollected']>[0]
+      );
       expect(progressManager.getProfile().stats.powerupsCollected).toBe(1);
     });
   });

@@ -158,6 +158,7 @@ describe('GameModeManager', () => {
 
       gameMode.selectGameMode('hardcore');
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(eventEmitter.emit).toHaveBeenCalledWith(
         'gameModeChanged',
         expect.objectContaining({ id: 'hardcore' }),
@@ -244,6 +245,7 @@ describe('GameModeManager', () => {
 
       gameMode.updatePlayerProfile(advancedProfile);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(eventEmitter.emit).toHaveBeenCalledWith(
         'gameModeUnlocked',
         expect.objectContaining({ id: 'hardcore' })
@@ -303,6 +305,7 @@ describe('GameModeManager', () => {
       gameMode.recordGameCompletion(500);
       gameMode.recordGameCompletion(1000);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(eventEmitter.emit).toHaveBeenCalledWith(
         'gameModeHighScore',
         expect.objectContaining({ id: 'normal' }),

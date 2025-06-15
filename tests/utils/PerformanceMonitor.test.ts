@@ -122,8 +122,11 @@ describe('PerformanceMonitor', () => {
 
     it('メモリ情報が利用できない場合でもエラーにならない', () => {
       // performance.memoryを削除
-      const originalMemory = (performance as any).memory;
-      delete (performance as any).memory;
+      const performanceWithMemory = performance as Performance & {
+        memory?: unknown;
+      };
+      const originalMemory = performanceWithMemory.memory;
+      delete performanceWithMemory.memory;
 
       expect(() => {
         performanceMonitor.updateMemoryUsage();
@@ -131,7 +134,7 @@ describe('PerformanceMonitor', () => {
 
       // 元に戻す
       if (originalMemory) {
-        (performance as any).memory = originalMemory;
+        performanceWithMemory.memory = originalMemory;
       }
     });
   });

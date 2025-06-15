@@ -301,12 +301,18 @@ describe('BackgroundRenderer', () => {
       expect(consoleSpy).toHaveBeenCalledWith(
         'Background Renderer Performance:',
         expect.objectContaining({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           'Average Render Time': expect.stringContaining('ms'),
-          'Sample Count': expect.any(Number) as number,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          'Sample Count': expect.any(Number),
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           'Cache Status': expect.objectContaining({
-            background: expect.any(Boolean) as boolean,
-            nebula: expect.any(Boolean) as boolean,
-            planet: expect.any(Boolean) as boolean,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            background: expect.any(Boolean),
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            nebula: expect.any(Boolean),
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            planet: expect.any(Boolean),
           }),
         })
       );

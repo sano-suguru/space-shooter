@@ -142,8 +142,11 @@ describe('Explosion', () => {
 
       // パーティクルが生成されることを描画で確認
       expect(() => explosion.draw(mockContext)).not.toThrow();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockContext.beginPath).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockContext.arc).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockContext.fill).toHaveBeenCalled();
     });
 
@@ -151,6 +154,7 @@ describe('Explosion', () => {
       // 小さいサイズ
       explosion.initialize({ x: 0, y: 0 }, 0.5);
       explosion.draw(mockContext);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockContext.arc).toHaveBeenCalled();
 
       jest.clearAllMocks();
@@ -158,9 +162,11 @@ describe('Explosion', () => {
       // 大きいサイズ
       explosion.initialize({ x: 0, y: 0 }, 2.0);
       explosion.draw(mockContext);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockContext.arc).toHaveBeenCalled();
 
       // 両方でパーティクルが描画される
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockContext.fill).toHaveBeenCalled();
     });
 
@@ -179,6 +185,7 @@ describe('Explosion', () => {
       explosion.initialize({ x: 100, y: 100 });
       explosion.draw(mockContext);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockContext.arc).toHaveBeenCalled();
 
       jest.restoreAllMocks();
@@ -218,6 +225,7 @@ describe('Explosion', () => {
       explosion.draw(mockContext);
 
       // パーティクルが描画されている（減衰していても）
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockContext.arc).toHaveBeenCalled();
     });
 
@@ -252,8 +260,11 @@ describe('Explosion', () => {
     test('基本描画が正常に実行される', () => {
       expect(() => explosion.draw(mockContext)).not.toThrow();
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockContext.beginPath).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockContext.arc).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockContext.fill).toHaveBeenCalled();
     });
 
@@ -261,8 +272,11 @@ describe('Explosion', () => {
       explosion.draw(mockContext);
 
       // パーティクル本体の描画
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockContext.beginPath).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockContext.arc).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockContext.fill).toHaveBeenCalled();
     });
 
@@ -301,10 +315,13 @@ describe('Explosion', () => {
       explosion.draw(mockContext);
 
       // パーティクルの描画が実行される
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockContext.arc).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockContext.fill).toHaveBeenCalled();
 
       // グロー効果も含めて複数回描画される
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockContext.beginPath).toHaveBeenCalled();
     });
   });
@@ -427,7 +444,9 @@ describe('Explosion', () => {
   describe('エラーハンドリング', () => {
     test('null contextで描画してもエラーが発生する', () => {
       explosion.initialize({ x: 0, y: 0 });
-      expect(() => explosion.draw(null as any)).toThrow();
+      expect(() =>
+        explosion.draw(null as unknown as CanvasRenderingContext2D)
+      ).toThrow();
     });
 
     test('未初期化状態での描画', () => {
