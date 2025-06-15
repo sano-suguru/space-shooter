@@ -144,9 +144,7 @@ export class Player extends GameObject implements IPlayer {
   }
 
   private updateShooting(): void {
-    if (this.inputManager.isKeyPressed(' ')) {
-      this.shoot();
-    }
+    this.shoot();
   }
 
   public shoot(): void {
