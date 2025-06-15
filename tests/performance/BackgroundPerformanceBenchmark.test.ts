@@ -65,7 +65,7 @@ describe('BackgroundPerformanceBenchmark', () => {
     particlePoolManager.dispose();
   });
 
-  function createTestEntities() {
+  function createTestEntities(): void {
     // 標準的な背景エンティティ
     stars = Array.from({ length: 50 }, () => gameObjectFactory.createStar());
     planets = Array.from({ length: 3 }, () => gameObjectFactory.createPlanet());
@@ -83,7 +83,7 @@ describe('BackgroundPerformanceBenchmark', () => {
   }
 
   describe('Phase 1: 基本パフォーマンス改善効果測定', () => {
-    test('従来描画 vs 最適化描画のパフォーマンス比較', async () => {
+    test('従来描画 vs 最適化描画のパフォーマンス比較', () => {
       const iterations = 100;
 
       // 従来描画のベンチマーク
@@ -166,7 +166,7 @@ describe('BackgroundPerformanceBenchmark', () => {
   });
 
   describe('Phase 2: 高度なパフォーマンス改善効果測定', () => {
-    test('LOD対応描画のパフォーマンス効果', async () => {
+    test('LOD対応描画のパフォーマンス効果', () => {
       const iterations = 50;
       const deltaTime = 16.67; // 60FPS相当
 
@@ -224,9 +224,15 @@ describe('BackgroundPerformanceBenchmark', () => {
 
     test('パーティクルプール管理の効果測定', () => {
       // 背景エンティティの更新（プール使用）
-      nebulas.forEach(nebula => nebula.update(16.67));
-      auroras.forEach(aurora => aurora.update(16.67));
-      spaceDusts.forEach(dust => dust.update(16.67));
+      nebulas.forEach(nebula =>
+        (nebula as { update(deltaTime: number): void }).update(16.67)
+      );
+      auroras.forEach(aurora =>
+        (aurora as { update(deltaTime: number): void }).update(16.67)
+      );
+      spaceDusts.forEach(dust =>
+        (dust as { update(deltaTime: number): void }).update(16.67)
+      );
 
       const updatedStats = particlePoolManager.getStats();
 
@@ -439,9 +445,15 @@ describe('BackgroundPerformanceBenchmark', () => {
 
         // 更新・描画
         for (let i = 0; i < 10; i++) {
-          testNebulas.forEach(nebula => (nebula as { update(deltaTime: number): void }).update(16.67));
-          testAuroras.forEach(aurora => (aurora as { update(deltaTime: number): void }).update(16.67));
-          testSpaceDusts.forEach(dust => (dust as { update(deltaTime: number): void }).update(16.67));
+          testNebulas.forEach(nebula =>
+            (nebula as { update(deltaTime: number): void }).update(16.67)
+          );
+          testAuroras.forEach(aurora =>
+            (aurora as { update(deltaTime: number): void }).update(16.67)
+          );
+          testSpaceDusts.forEach(dust =>
+            (dust as { update(deltaTime: number): void }).update(16.67)
+          );
 
           backgroundRenderer.drawOptimizedBackgroundWithLOD(
             mockCtx,
@@ -457,9 +469,15 @@ describe('BackgroundPerformanceBenchmark', () => {
         }
 
         // リソース解放
-        testNebulas.forEach(nebula => (nebula as { dispose?(): void }).dispose?.());
-        testAuroras.forEach(aurora => (aurora as { dispose?(): void }).dispose?.());
-        testSpaceDusts.forEach(dust => (dust as { dispose?(): void }).dispose?.());
+        testNebulas.forEach(nebula =>
+          (nebula as { dispose?(): void }).dispose?.()
+        );
+        testAuroras.forEach(aurora =>
+          (aurora as { dispose?(): void }).dispose?.()
+        );
+        testSpaceDusts.forEach(dust =>
+          (dust as { dispose?(): void }).dispose?.()
+        );
       }
 
       const finalPoolStats = particlePoolManager.getStats();
@@ -481,21 +499,37 @@ describe('BackgroundPerformanceBenchmark', () => {
   });
 
   describe('デグレッション検証', () => {
+    // ヘルパー関数: Canvas作成
+    function createTestCanvas(): {
+      canvas: HTMLCanvasElement;
+      ctx: CanvasRenderingContext2D;
+    } {
+      const canvas = document.createElement('canvas');
+      canvas.width = testConfig.canvas.width;
+      canvas.height = testConfig.canvas.height;
+      const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+      return { canvas, ctx };
+    }
+
+    // ヘルパー関数: 描画実行確認
+    function verifyDrawingExecution(ctx: CanvasRenderingContext2D): boolean {
+      const mockCtx = ctx as unknown as {
+        fillRect: jest.Mock;
+        arc: jest.Mock;
+        beginPath: jest.Mock;
+      };
+
+      return (
+        mockCtx.fillRect?.mock?.calls?.length > 0 ||
+        mockCtx.arc?.mock?.calls?.length > 0 ||
+        mockCtx.beginPath?.mock?.calls?.length > 0
+      );
+    }
+
     test('描画品質の維持確認', () => {
       // 各描画方式で同じシーンを描画
-      const traditionalCanvas = document.createElement('canvas');
-      traditionalCanvas.width = testConfig.canvas.width;
-      traditionalCanvas.height = testConfig.canvas.height;
-      const traditionalCtx = traditionalCanvas.getContext(
-        '2d'
-      ) as CanvasRenderingContext2D;
-
-      const optimizedCanvas = document.createElement('canvas');
-      optimizedCanvas.width = testConfig.canvas.width;
-      optimizedCanvas.height = testConfig.canvas.height;
-      const optimizedCtx = optimizedCanvas.getContext(
-        '2d'
-      ) as CanvasRenderingContext2D;
+      const { ctx: traditionalCtx } = createTestCanvas();
+      const { ctx: optimizedCtx } = createTestCanvas();
 
       // 描画実行
       backgroundRenderer.drawTraditionalBackground(
@@ -513,27 +547,9 @@ describe('BackgroundPerformanceBenchmark', () => {
         auroras as never
       );
 
-      // 描画が実行されたことを確認（Canvas APIが呼ばれたかをチェック）
-      // fillRectまたは他の描画メソッドが呼ばれていることを確認
-      const traditionalMockCtx = traditionalCtx as unknown as {
-        fillRect: jest.Mock;
-        arc: jest.Mock;
-        beginPath: jest.Mock;
-      };
-      const optimizedMockCtx = optimizedCtx as unknown as {
-        fillRect: jest.Mock;
-        arc: jest.Mock;
-        beginPath: jest.Mock;
-      };
-
-      const traditionalDrawCalled =
-        traditionalMockCtx.fillRect?.mock?.calls?.length > 0 ||
-        traditionalMockCtx.arc?.mock?.calls?.length > 0 ||
-        traditionalMockCtx.beginPath?.mock?.calls?.length > 0;
-      const optimizedDrawCalled =
-        optimizedMockCtx.fillRect?.mock?.calls?.length > 0 ||
-        optimizedMockCtx.arc?.mock?.calls?.length > 0 ||
-        optimizedMockCtx.beginPath?.mock?.calls?.length > 0;
+      // 描画が実行されたことを確認
+      const traditionalDrawCalled = verifyDrawingExecution(traditionalCtx);
+      const optimizedDrawCalled = verifyDrawingExecution(optimizedCtx);
 
       expect(traditionalDrawCalled).toBe(true);
       expect(optimizedDrawCalled).toBe(true);
@@ -542,16 +558,26 @@ describe('BackgroundPerformanceBenchmark', () => {
     });
 
     test('アニメーション継続性確認', () => {
-      const initialPositions = stars.map(star => ({ ...(star as { getPosition(): { x: number; y: number } }).getPosition() }));
+      const initialPositions = stars.map(star => ({
+        ...(star as { getPosition(): { x: number; y: number } }).getPosition(),
+      }));
 
       // 複数フレーム更新
       for (let i = 0; i < 10; i++) {
-        stars.forEach(star => (star as { update(deltaTime: number): void }).update(16.67));
-        nebulas.forEach(nebula => (nebula as { update(deltaTime: number): void }).update(16.67));
-        auroras.forEach(aurora => (aurora as { update(deltaTime: number): void }).update(16.67));
+        stars.forEach(star =>
+          (star as { update(deltaTime: number): void }).update(16.67)
+        );
+        nebulas.forEach(nebula =>
+          (nebula as { update(deltaTime: number): void }).update(16.67)
+        );
+        auroras.forEach(aurora =>
+          (aurora as { update(deltaTime: number): void }).update(16.67)
+        );
       }
 
-      const updatedPositions = stars.map(star => ({ ...(star as { getPosition(): { x: number; y: number } }).getPosition() }));
+      const updatedPositions = stars.map(star => ({
+        ...(star as { getPosition(): { x: number; y: number } }).getPosition(),
+      }));
 
       // アニメーションが動作していることを確認（一部の星は動いているはず）
       const hasMovement = initialPositions.some((initial, index) => {

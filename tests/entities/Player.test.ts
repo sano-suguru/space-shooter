@@ -118,7 +118,7 @@ describe('Player', () => {
       const global = globalThis as unknown as Record<string, unknown>;
       if (global._activeTimeouts && timerId !== undefined) {
         (global._activeTimeouts as Set<ReturnType<typeof setTimeout>>).delete(
-          timerId as ReturnType<typeof setTimeout>
+          timerId
         );
       }
     });

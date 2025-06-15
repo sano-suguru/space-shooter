@@ -7,7 +7,7 @@ import { PowerUpEffectService } from '../../src/services/PowerUpEffectService';
 import { PowerUpType } from '../../src/types';
 
 // Player のモック
-const createMockPlayer = () => {
+const createMockPlayer = (): Player => {
   return {
     setFireRate: jest.fn(),
     setBulletType: jest.fn(),

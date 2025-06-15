@@ -7,6 +7,7 @@ import {
   EnemyGenerationRequest,
   DynamicEnemyConfig,
   DifficultyFactors,
+  EnvironmentalEffect,
 } from '../types/EnemyGeneration';
 
 import { EnemyGeneratorFactory } from './EnemyGeneratorFactory';
@@ -211,23 +212,38 @@ export class EnemyGenerationSystem {
    */
   private getEnvironmentalContext(position: Vector2D): {
     nearbyObjects: string[];
-    activeEffects: string[];
+    activeEffects: EnvironmentalEffect[];
   } {
     // 実際の実装では、背景オブジェクトとの距離を計算
     // ここでは簡略化
     const nearbyObjects: string[] = [];
+    const activeEffects: EnvironmentalEffect[] = [];
 
     // 位置に基づいて近くのオブジェクトを判定（簡略化）
     if (position.x < 150) {
       nearbyObjects.push('nebula');
+      // 星雲エリアでは速度ブーストを追加
+      activeEffects.push({
+        triggerZone: 'nebula',
+        effectType: 'speed_boost',
+        intensity: 0.2,
+        duration: 5000,
+      });
     }
     if (position.x > 250) {
       nearbyObjects.push('planet');
+      // 惑星エリアではシールド再生を追加
+      activeEffects.push({
+        triggerZone: 'planet',
+        effectType: 'shield_regen',
+        intensity: 0.1,
+        duration: 3000,
+      });
     }
 
     return {
       nearbyObjects,
-      activeEffects: [],
+      activeEffects,
     };
   }
 

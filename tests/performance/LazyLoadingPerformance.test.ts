@@ -124,12 +124,12 @@ export class LazyLoadingPerformanceTest {
   /**
    * バンドルサイズの影響を評価
    */
-  async measureBundleImpact(): Promise<{
+  measureBundleImpact(): {
     mainBundle: number;
     lazyChunks: number;
     totalSize: number;
     compressionRatio: number;
-  }> {
+  } {
     // ビルド結果から取得（実際の値）
     const bundleData = {
       mainBundle: 268.72, // kB
@@ -221,7 +221,7 @@ export class LazyLoadingPerformanceTest {
         await this.measureProgressiveLoadingPerformance();
 
       // 2. バンドルサイズ影響分析
-      const bundleResults = await this.measureBundleImpact();
+      const bundleResults = this.measureBundleImpact();
 
       // 3. メモリ使用量測定
       const memoryResults = this.measureMemoryUsage();
