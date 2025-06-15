@@ -61,7 +61,21 @@ export class InputManager implements IInputManager {
 
     // ゲーム関連キーのデフォルト動作を防ぐ
     if (
-      ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(key)
+      [
+        'ArrowUp',
+        'ArrowDown',
+        'ArrowLeft',
+        'ArrowRight',
+        ' ',
+        'w',
+        'a',
+        's',
+        'd',
+        'W',
+        'A',
+        'S',
+        'D',
+      ].includes(key)
     ) {
       event.preventDefault();
     }

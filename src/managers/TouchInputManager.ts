@@ -234,8 +234,25 @@ export class TouchInputManager implements IInputManager {
         );
         touchPoint.isJoystick = true;
 
+        // ゲーム開始のためにスペースキーをシミュレート
+        this.simulateKeyDown(' ');
+        setTimeout(() => this.simulateKeyUp(' '), 100);
+
         // 触覚フィードバック
         this.vibrate(10);
+      } else {
+        // キャンバス内のタッチでもゲーム開始をサポート
+        const isInCanvasArea =
+          touch.clientX >= canvasRect.left &&
+          touch.clientX <= canvasRect.right &&
+          touch.clientY >= canvasRect.top &&
+          touch.clientY <= canvasRect.bottom;
+
+        if (isInCanvasArea) {
+          // ゲーム開始のためにスペースキーをシミュレート
+          this.simulateKeyDown(' ');
+          setTimeout(() => this.simulateKeyUp(' '), 100);
+        }
       }
 
       this.touchState.set(touch.identifier, touchPoint);

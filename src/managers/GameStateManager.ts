@@ -15,7 +15,9 @@ class StartingState implements GameState {
   enter(game: Game): void {
     console.log('Entering Starting state');
     game.resetGame();
-    game.showMessage('Press SPACE to start the game');
+    game.showMessage(
+      'Press SPACE or any movement key (Arrow keys/WASD) to start the game'
+    );
   }
 
   update(_game: Game): void {
@@ -28,9 +30,29 @@ class StartingState implements GameState {
   }
 
   handleInput(game: Game, input: string): void {
-    if (input === ' ') {
+    if (input === ' ' || this.isMovementKey(input)) {
       game.getStateManager().setState('PLAYING', game);
     }
+  }
+
+  /**
+   * 移動キー（矢印キーまたはWASDキー）かどうかをチェック
+   */
+  private isMovementKey(key: string): boolean {
+    return [
+      'ArrowUp',
+      'ArrowDown',
+      'ArrowLeft',
+      'ArrowRight',
+      'w',
+      'W',
+      'a',
+      'A',
+      's',
+      'S',
+      'd',
+      'D',
+    ].includes(key);
   }
 }
 

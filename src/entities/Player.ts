@@ -93,31 +93,87 @@ export class Player extends GameObject implements IPlayer {
     const { acceleration, deceleration, maxSpeed } = this.config.player;
 
     // X軸移動
-    if (this.inputManager.isKeyPressed('ArrowLeft')) {
+    if (this.isLeftKeyPressed()) {
       this.velocity.x = Math.max(this.velocity.x - acceleration, -maxSpeed);
-    } else if (this.inputManager.isKeyPressed('ArrowRight')) {
+    } else if (this.isRightKeyPressed()) {
       this.velocity.x = Math.min(this.velocity.x + acceleration, maxSpeed);
     } else {
-      // X軸の減速
-      if (this.velocity.x > 0) {
-        this.velocity.x = Math.max(0, this.velocity.x - deceleration);
-      } else if (this.velocity.x < 0) {
-        this.velocity.x = Math.min(0, this.velocity.x + deceleration);
-      }
+      this.applyXDeceleration(deceleration);
     }
 
     // Y軸移動
-    if (this.inputManager.isKeyPressed('ArrowUp')) {
+    if (this.isUpKeyPressed()) {
       this.velocity.y = Math.max(this.velocity.y - acceleration, -maxSpeed);
-    } else if (this.inputManager.isKeyPressed('ArrowDown')) {
+    } else if (this.isDownKeyPressed()) {
       this.velocity.y = Math.min(this.velocity.y + acceleration, maxSpeed);
     } else {
-      // Y軸の減速
-      if (this.velocity.y > 0) {
-        this.velocity.y = Math.max(0, this.velocity.y - deceleration);
-      } else if (this.velocity.y < 0) {
-        this.velocity.y = Math.min(0, this.velocity.y + deceleration);
-      }
+      this.applyYDeceleration(deceleration);
+    }
+  }
+
+  /**
+   * 左移動キーが押されているかチェック（矢印キーまたはWASDキー）
+   */
+  private isLeftKeyPressed(): boolean {
+    return (
+      this.inputManager.isKeyPressed('ArrowLeft') ||
+      this.inputManager.isKeyPressed('a') ||
+      this.inputManager.isKeyPressed('A')
+    );
+  }
+
+  /**
+   * 右移動キーが押されているかチェック（矢印キーまたはWASDキー）
+   */
+  private isRightKeyPressed(): boolean {
+    return (
+      this.inputManager.isKeyPressed('ArrowRight') ||
+      this.inputManager.isKeyPressed('d') ||
+      this.inputManager.isKeyPressed('D')
+    );
+  }
+
+  /**
+   * 上移動キーが押されているかチェック（矢印キーまたはWASDキー）
+   */
+  private isUpKeyPressed(): boolean {
+    return (
+      this.inputManager.isKeyPressed('ArrowUp') ||
+      this.inputManager.isKeyPressed('w') ||
+      this.inputManager.isKeyPressed('W')
+    );
+  }
+
+  /**
+   * 下移動キーが押されているかチェック（矢印キーまたはWASDキー）
+   */
+  private isDownKeyPressed(): boolean {
+    return (
+      this.inputManager.isKeyPressed('ArrowDown') ||
+      this.inputManager.isKeyPressed('s') ||
+      this.inputManager.isKeyPressed('S')
+    );
+  }
+
+  /**
+   * X軸の減速を適用
+   */
+  private applyXDeceleration(deceleration: number): void {
+    if (this.velocity.x > 0) {
+      this.velocity.x = Math.max(0, this.velocity.x - deceleration);
+    } else if (this.velocity.x < 0) {
+      this.velocity.x = Math.min(0, this.velocity.x + deceleration);
+    }
+  }
+
+  /**
+   * Y軸の減速を適用
+   */
+  private applyYDeceleration(deceleration: number): void {
+    if (this.velocity.y > 0) {
+      this.velocity.y = Math.max(0, this.velocity.y - deceleration);
+    } else if (this.velocity.y < 0) {
+      this.velocity.y = Math.min(0, this.velocity.y + deceleration);
     }
   }
 
