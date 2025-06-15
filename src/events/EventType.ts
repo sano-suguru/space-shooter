@@ -75,5 +75,12 @@ export type EventMap = Readonly<{
   ) => void;
   flockDestroyed: (flockId: string) => void;
   enemyGenerationSystemReset: () => void;
+
+  // モバイルタッチイベント
+  mobileShootStart: () => void;
+  mobileShootEnd: () => void;
+  mobileSpecialStart: () => void;
+  mobileSpecialEnd: () => void;
+  mobileJoystickMove: (movement: { x: number; y: number }) => void;
 }> &
   GameCommandMap;

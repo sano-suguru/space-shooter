@@ -1,6 +1,7 @@
 // InputManager関連のエクスポート
 export type { IInputManager } from '../interfaces/IInputManager';
 export { InputManager } from './InputManager';
+export { TouchInputManager } from './TouchInputManager';
 export { MockInputManager } from './MockInputManager';
 
 // DOMManager関連のエクスポート

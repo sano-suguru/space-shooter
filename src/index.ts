@@ -2,13 +2,15 @@ import { Game } from './core/Game';
 import { Player } from './entities/Player';
 import { EventEmitter } from './events/EventEmitter';
 import { GameObjectFactory } from './factories/GameObjectFactory';
-import { InputManager, DOMManager, MessageManager } from './managers';
+import { DOMManager, MessageManager } from './managers';
 import { GameStateManager } from './managers/GameStateManager';
 import { ReactLazyUIManager } from './managers/ReactLazyUIManager';
 import { ScoreManager } from './managers/ScoreManager';
 import { UIManager } from './managers/UIManager';
+import { MobileUIIntegration } from './mobile/MobileUIManager';
 import { ProgressManager } from './progression/managers/ProgressManager';
 import { RealRandomProvider, RealTimeProvider } from './providers';
+import { DeviceDetector } from './utils/DeviceDetector';
 import { getElementOrThrow } from './utils/DOMUtils';
 
 function initGame(): void {
@@ -16,7 +18,10 @@ function initGame(): void {
   const eventEmitter = new EventEmitter();
   const randomProvider = new RealRandomProvider();
   const timeProvider = new RealTimeProvider();
-  const inputManager = new InputManager(canvas);
+
+  // デバイスに応じた適切なInputManagerを選択
+  const inputManager = DeviceDetector.getInputManager(canvas);
+
   const domManager = new DOMManager();
   const messageManager = new MessageManager(domManager, timeProvider);
   const player = new Player(eventEmitter, inputManager, randomProvider);
@@ -50,6 +55,15 @@ function initGame(): void {
   console.log('🚀 ReactLazyUIManager initialized with code splitting');
   console.log('Active UI Manager:', reactLazyUIManager.getActiveUI());
 
+  // モバイルUI統合システムを初期化
+  const mobileUIIntegration = new MobileUIIntegration(eventEmitter, canvas);
+  mobileUIIntegration.initialize();
+
+  // デバイス情報をログ出力
+  const deviceInfo = DeviceDetector.getDeviceInfo();
+  console.log('🔧 Device Info:', deviceInfo);
+  console.log('📱 Input Manager Type:', inputManager.constructor.name);
+
   const game = new Game(
     canvas,
     eventEmitter,
@@ -61,6 +75,15 @@ function initGame(): void {
     randomProvider,
     messageManager
   );
+
+  // ゲーム終了時のクリーンアップ処理を追加
+  const originalDispose = game.dispose?.bind(game);
+  game.dispose = (): void => {
+    mobileUIIntegration.dispose();
+    if (originalDispose) {
+      originalDispose();
+    }
+  };
 
   game.start();
 }

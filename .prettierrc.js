@@ -7,6 +7,6 @@ export default {
   endOfLine: 'lf',
   arrowParens: 'avoid',
   bracketSpacing: true,
-  jsxBracketSameLine: false,
+  bracketSameLine: false,
   jsxSingleQuote: true,
 };

@@ -144,10 +144,12 @@ export class Player extends GameObject implements IPlayer {
   }
 
   private updateShooting(): void {
-    this.shoot();
+    if (this.inputManager.isKeyPressed(' ')) {
+      this.shoot();
+    }
   }
 
-  private shoot(): void {
+  public shoot(): void {
     const currentTime = Date.now();
     if (currentTime - this.lastFireTime >= this.fireRate) {
       const centerX = this.x + this.width / 2 - this.config.bullet.width / 2;
@@ -395,5 +397,41 @@ export class Player extends GameObject implements IPlayer {
    */
   public setPowerUpEffectService(service: PowerUpEffectService): void {
     this.powerUpEffectService = service;
+  }
+
+  /**
+   * 速度を直接設定（モバイル用）
+   */
+  public setVelocity(x: number, y: number): void {
+    this.velocity.x = Math.max(
+      -this.config.player.maxSpeed,
+      Math.min(this.config.player.maxSpeed, x)
+    );
+    this.velocity.y = Math.max(
+      -this.config.player.maxSpeed,
+      Math.min(this.config.player.maxSpeed, y)
+    );
+  }
+
+  /**
+   * 特殊攻撃を発動（モバイル用）
+   */
+  public activateSpecialAttack(): void {
+    // 特殊攻撃として一時的にトリプルショットを発動
+    const originalBulletType = this.bulletType;
+    this.bulletType = 'triple';
+    this.shoot();
+
+    // 少し遅延してから元に戻す
+    setTimeout(() => {
+      this.bulletType = originalBulletType;
+    }, 100);
+  }
+
+  /**
+   * 現在の速度を取得
+   */
+  public getVelocity(): Vector2D {
+    return { ...this.velocity };
   }
 }
