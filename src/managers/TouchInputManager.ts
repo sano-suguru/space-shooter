@@ -15,138 +15,17 @@ interface TouchPoint {
 }
 
 /**
- * 仮想ジョイスティッククラス
- */
-class VirtualJoystick {
-  private centerX: number;
-  private centerY: number;
-  private knobX: number;
-  private knobY: number;
-  private readonly maxDistance: number = 50;
-  private element!: HTMLElement;
-  private knobElement!: HTMLElement;
-
-  constructor(x: number, y: number) {
-    this.centerX = x;
-    this.centerY = y;
-    this.knobX = x;
-    this.knobY = y;
-    this.createElement();
-  }
-
-  private createElement(): void {
-    // ジョイスティック本体
-    this.element = document.createElement('div');
-    this.element.className = 'virtual-joystick';
-    this.element.style.cssText = `
-      position: absolute;
-      width: 120px;
-      height: 120px;
-      background: radial-gradient(circle, rgba(0,255,170,0.3), rgba(0,255,170,0.1));
-      border: 2px solid rgba(0,255,170,0.6);
-      border-radius: 50%;
-      backdrop-filter: blur(5px);
-      pointer-events: none;
-      z-index: 1000;
-      transform: translate(-50%, -50%);
-      left: ${this.centerX}px;
-      top: ${this.centerY}px;
-    `;
-
-    // ジョイスティックノブ
-    this.knobElement = document.createElement('div');
-    this.knobElement.className = 'joystick-knob';
-    this.knobElement.style.cssText = `
-      position: absolute;
-      width: 40px;
-      height: 40px;
-      background: rgba(0,255,170,0.8);
-      border-radius: 50%;
-      box-shadow: 0 0 15px rgba(0,255,170,0.5);
-      transform: translate(-50%, -50%);
-      left: 50%;
-      top: 50%;
-      transition: all 0.1s ease;
-    `;
-
-    this.element.appendChild(this.knobElement);
-    document.body.appendChild(this.element);
-  }
-
-  public updateKnobPosition(x: number, y: number): Vector2D {
-    const deltaX = x - this.centerX;
-    const deltaY = y - this.centerY;
-    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-
-    if (distance <= this.maxDistance) {
-      this.knobX = x;
-      this.knobY = y;
-    } else {
-      // 最大距離で制限
-      const angle = Math.atan2(deltaY, deltaX);
-      this.knobX = this.centerX + Math.cos(angle) * this.maxDistance;
-      this.knobY = this.centerY + Math.sin(angle) * this.maxDistance;
-    }
-
-    // ノブの位置を更新
-    const knobOffsetX = this.knobX - this.centerX;
-    const knobOffsetY = this.knobY - this.centerY;
-    this.knobElement.style.left = `${50 + (knobOffsetX / 60) * 50}%`;
-    this.knobElement.style.top = `${50 + (knobOffsetY / 60) * 50}%`;
-
-    return this.getMovementVector();
-  }
-
-  private getMovementVector(): Vector2D {
-    const deltaX = this.knobX - this.centerX;
-    const deltaY = this.knobY - this.centerY;
-    return {
-      x: deltaX / this.maxDistance, // -1 to 1
-      y: deltaY / this.maxDistance, // -1 to 1
-    };
-  }
-
-  public getPosition(): Vector2D {
-    return { x: this.centerX, y: this.centerY };
-  }
-
-  public destroy(): void {
-    if (this.element?.parentNode) {
-      this.element.parentNode.removeChild(this.element);
-    }
-  }
-
-  public reset(x: number, y: number): void {
-    this.centerX = x;
-    this.centerY = y;
-    this.knobX = x;
-    this.knobY = y;
-    this.element.style.left = `${x}px`;
-    this.element.style.top = `${y}px`;
-    this.knobElement.style.left = '50%';
-    this.knobElement.style.top = '50%';
-  }
-
-  public hide(): void {
-    this.element.style.display = 'none';
-  }
-
-  public show(): void {
-    this.element.style.display = 'block';
-  }
-}
-
-/**
  * タッチ入力管理クラス
  * IInputManagerインターフェースを実装し、タッチイベントをキーボード・マウスイベントに変換
+ * React版のVirtualJoystickコンポーネントと連携
  */
 export class TouchInputManager implements IInputManager {
   private touchState = new Map<number, TouchPoint>();
-  private virtualJoystick: VirtualJoystick | null = null;
   private currentMovement: Vector2D = { x: 0, y: 0 };
   private simulatedKeys = new Set<string>();
   private simulatedMouseButtons = new Set<number>();
   private mousePosition: Vector2D = { x: 0, y: 0 };
+  private isJoystickActive = false;
 
   // イベントコールバック
   private keyDownCallbacks: ((key: string) => void)[] = [];
@@ -222,37 +101,21 @@ export class TouchInputManager implements IInputManager {
         isJoystick: false,
       };
 
-      // 画面下部エリア（Canvas外）でのタッチをジョイスティックとして扱う
+      // キャンバス内のタッチでゲーム開始をサポート
       const canvasRect = this.canvas.getBoundingClientRect();
-      const isInControllerArea = touch.clientY > canvasRect.bottom;
+      const isInCanvasArea =
+        touch.clientX >= canvasRect.left &&
+        touch.clientX <= canvasRect.right &&
+        touch.clientY >= canvasRect.top &&
+        touch.clientY <= canvasRect.bottom;
 
-      if (isInControllerArea && !this.virtualJoystick) {
-        // 仮想ジョイスティックを作成
-        this.virtualJoystick = new VirtualJoystick(
-          touch.clientX,
-          touch.clientY
-        );
-        touchPoint.isJoystick = true;
-
+      if (isInCanvasArea) {
         // ゲーム開始のためにスペースキーをシミュレート
         this.simulateKeyDown(' ');
         setTimeout(() => this.simulateKeyUp(' '), 100);
 
         // 触覚フィードバック
         this.vibrate(10);
-      } else {
-        // キャンバス内のタッチでもゲーム開始をサポート
-        const isInCanvasArea =
-          touch.clientX >= canvasRect.left &&
-          touch.clientX <= canvasRect.right &&
-          touch.clientY >= canvasRect.top &&
-          touch.clientY <= canvasRect.bottom;
-
-        if (isInCanvasArea) {
-          // ゲーム開始のためにスペースキーをシミュレート
-          this.simulateKeyDown(' ');
-          setTimeout(() => this.simulateKeyUp(' '), 100);
-        }
       }
 
       this.touchState.set(touch.identifier, touchPoint);
@@ -271,14 +134,8 @@ export class TouchInputManager implements IInputManager {
       touchPoint.currentX = touch.clientX;
       touchPoint.currentY = touch.clientY;
 
-      if (touchPoint.isJoystick && this.virtualJoystick) {
-        // ジョイスティックの移動ベクトルを更新
-        const movement = this.virtualJoystick.updateKnobPosition(
-          touch.clientX,
-          touch.clientY
-        );
-        this.updateMovement(movement);
-      }
+      // React版のVirtualJoystickからの移動情報は
+      // MobileUIManagerを通じてイベントとして受信される
     }
   }
 
@@ -289,10 +146,8 @@ export class TouchInputManager implements IInputManager {
       const touch = event.changedTouches[i];
       const touchPoint = this.touchState.get(touch.identifier);
 
-      if (touchPoint?.isJoystick && this.virtualJoystick) {
-        // ジョイスティックを削除
-        this.virtualJoystick.destroy();
-        this.virtualJoystick = null;
+      if (touchPoint?.isJoystick) {
+        this.isJoystickActive = false;
         this.updateMovement({ x: 0, y: 0 });
 
         // 触覚フィードバック
@@ -306,6 +161,32 @@ export class TouchInputManager implements IInputManager {
   private handleTouchCancel(event: TouchEvent): void {
     // touchendと同じ処理
     this.handleTouchEnd(event);
+  }
+
+  /**
+   * React版VirtualJoystickからの移動情報を受信
+   */
+  public handleJoystickMovement(movement: Vector2D): void {
+    this.isJoystickActive = true;
+    this.updateMovement(movement);
+  }
+
+  /**
+   * React版VirtualJoystickの開始を処理
+   */
+  public handleJoystickStart(): void {
+    this.isJoystickActive = true;
+    // ゲーム開始のためにスペースキーをシミュレート
+    this.simulateKeyDown(' ');
+    setTimeout(() => this.simulateKeyUp(' '), 100);
+  }
+
+  /**
+   * React版VirtualJoystickの終了を処理
+   */
+  public handleJoystickEnd(): void {
+    this.isJoystickActive = false;
+    this.updateMovement({ x: 0, y: 0 });
   }
 
   private updateMovement(movement: Vector2D): void {
@@ -323,13 +204,15 @@ export class TouchInputManager implements IInputManager {
     // キー状態の更新
     this.updateKeyStates(prevMovement, this.currentMovement);
 
-    // マウス位置の更新（ジョイスティック位置）
-    if (this.virtualJoystick) {
-      this.mousePosition = this.virtualJoystick.getPosition();
-      this.mouseMoveCallbacks.forEach(callback =>
-        callback(this.mousePosition.x, this.mousePosition.y)
-      );
-    }
+    // マウス位置の更新（画面中央を基準）
+    this.mousePosition = {
+      x: this.canvas.width / 2 + this.currentMovement.x * 100,
+      y: this.canvas.height / 2 + this.currentMovement.y * 100,
+    };
+
+    this.mouseMoveCallbacks.forEach(callback =>
+      callback(this.mousePosition.x, this.mousePosition.y)
+    );
   }
 
   private updateKeyStates(
@@ -430,12 +313,6 @@ export class TouchInputManager implements IInputManager {
     document.removeEventListener('touchmove', this.boundHandlers.touchMove);
     document.removeEventListener('touchend', this.boundHandlers.touchEnd);
     document.removeEventListener('touchcancel', this.boundHandlers.touchCancel);
-
-    // 仮想ジョイスティックを削除
-    if (this.virtualJoystick) {
-      this.virtualJoystick.destroy();
-      this.virtualJoystick = null;
-    }
 
     // 内部状態をクリア
     this.touchState.clear();

@@ -66,72 +66,17 @@ export class UIManager {
   private initializeMobileUI(): void {
     if (!this.isMobile) return;
 
-    this.createMobileControlsContainer();
-    this.createTouchActionButtons();
+    // React版のMobileUIManagerが存在する場合は重複作成を避ける
+    const existingMobileUI = document.getElementById('mobile-ui-container');
+    if (existingMobileUI) {
+      console.log(
+        'React版MobileUIManagerが既に存在するため、重複作成をスキップします'
+      );
+      return;
+    }
+
+    // フォールバック用の基本的なモバイルUI調整のみ実行
     this.adjustUIForMobile();
-  }
-
-  /**
-   * モバイルコントロールコンテナ作成
-   */
-  private createMobileControlsContainer(): void {
-    this.mobileControlsContainer = document.createElement('div');
-    this.mobileControlsContainer.className = 'mobile-controls';
-    this.mobileControlsContainer.id = 'mobile-controls';
-    document.body.appendChild(this.mobileControlsContainer);
-
-    // 仮想ジョイスティック用コンテナ
-    this.virtualJoystickContainer = document.createElement('div');
-    this.virtualJoystickContainer.className = 'virtual-joystick-container';
-    this.virtualJoystickContainer.id = 'virtual-joystick-container';
-    this.mobileControlsContainer.appendChild(this.virtualJoystickContainer);
-  }
-
-  /**
-   * タッチアクションボタン作成
-   */
-  private createTouchActionButtons(): void {
-    this.touchActionButtons = document.createElement('div');
-    this.touchActionButtons.className = 'touch-action-buttons';
-    this.touchActionButtons.id = 'touch-action-buttons';
-
-    // 射撃ボタン
-    const shootButton = document.createElement('button');
-    shootButton.className = 'touch-action-btn shoot';
-    shootButton.innerHTML = '🔥';
-    shootButton.setAttribute('aria-label', '射撃');
-    shootButton.addEventListener(
-      'touchstart',
-      this.handleShootStart.bind(this),
-      {
-        passive: false,
-      }
-    );
-    shootButton.addEventListener('touchend', this.handleShootEnd.bind(this), {
-      passive: false,
-    });
-
-    // 特殊攻撃ボタン
-    const specialButton = document.createElement('button');
-    specialButton.className = 'touch-action-btn special';
-    specialButton.innerHTML = '⚡';
-    specialButton.setAttribute('aria-label', '特殊攻撃');
-    specialButton.addEventListener(
-      'touchstart',
-      this.handleSpecialStart.bind(this),
-      { passive: false }
-    );
-    specialButton.addEventListener(
-      'touchend',
-      this.handleSpecialEnd.bind(this),
-      {
-        passive: false,
-      }
-    );
-
-    this.touchActionButtons.appendChild(shootButton);
-    this.touchActionButtons.appendChild(specialButton);
-    document.body.appendChild(this.touchActionButtons);
   }
 
   /**
@@ -198,23 +143,21 @@ export class UIManager {
   }
 
   /**
-   * 仮想ジョイスティックコンテナを取得
+   * 仮想ジョイスティックコンテナを取得（レガシー対応）
    */
   public getVirtualJoystickContainer(): HTMLElement | null {
-    return this.virtualJoystickContainer;
+    // React版MobileUIManagerを使用するため、nullを返す
+    return null;
   }
 
   /**
-   * モバイルコントロールの表示/非表示
+   * モバイルコントロールの表示/非表示（レガシー対応）
    */
   public setMobileControlsVisible(visible: boolean): void {
-    if (!this.isMobile || !this.mobileControlsContainer) return;
+    if (!this.isMobile) return;
 
-    if (visible) {
-      this.mobileControlsContainer.classList.add('active');
-    } else {
-      this.mobileControlsContainer.classList.remove('active');
-    }
+    // React版MobileUIManagerが制御するため、ここでは何もしない
+    console.log(`モバイルコントロール表示状態: ${visible ? '表示' : '非表示'}`);
   }
 
   /**

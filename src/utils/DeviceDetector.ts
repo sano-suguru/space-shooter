@@ -15,12 +15,44 @@ export class DeviceDetector {
   }
 
   /**
-   * モバイルデバイスかどうかを判定
+   * モバイルデバイスかどうかを判定（精度向上版）
    */
   public static isMobile(): boolean {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-      navigator.userAgent
+    // より包括的なモバイルデバイス判定
+    const userAgent = navigator.userAgent.toLowerCase();
+    const mobileKeywords = [
+      'android',
+      'webos',
+      'iphone',
+      'ipad',
+      'ipod',
+      'blackberry',
+      'iemobile',
+      'opera mini',
+      'mobile',
+      'tablet',
+      'kindle',
+      'silk',
+      'gt-',
+      'samsung',
+      'nokia',
+      'sony',
+      'htc',
+    ];
+
+    // ユーザーエージェントベースの判定
+    const isMobileUA = mobileKeywords.some(keyword =>
+      userAgent.includes(keyword)
     );
+
+    // タッチデバイス判定との組み合わせ
+    const isTouchDevice = this.isTouchDevice();
+
+    // 画面サイズベースの判定
+    const isSmallScreen = window.innerWidth <= 768 || window.innerHeight <= 768;
+
+    // より正確な判定：タッチデバイスかつ小さい画面、またはモバイルUA
+    return (isTouchDevice && isSmallScreen) || isMobileUA;
   }
 
   /**

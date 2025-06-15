@@ -82,5 +82,7 @@ export type EventMap = Readonly<{
   mobileSpecialStart: () => void;
   mobileSpecialEnd: () => void;
   mobileJoystickMove: (movement: { x: number; y: number }) => void;
+  mobileJoystickStart: () => void;
+  mobileJoystickEnd: () => void;
 }> &
   GameCommandMap;

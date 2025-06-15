@@ -16,12 +16,13 @@ import { GameStateManager } from '../managers/GameStateManager';
 import { ScoreManager } from '../managers/ScoreManager';
 import { TouchInputManager } from '../managers/TouchInputManager';
 import { WaveManager } from '../managers/WaveManager';
+import { MobileUIIntegration } from '../mobile/MobileUIManager';
 import { IRandomProvider } from '../providers/IRandomProvider';
 import { BackgroundRenderer } from '../rendering/BackgroundRenderer';
 import { GameRenderer } from '../rendering/GameRenderer';
 import { PowerUpEffectService } from '../services/PowerUpEffectService';
 import { CollisionSystem } from '../systems/CollisionSystem';
-import { EnemyType } from '../types';
+import { EnemyType, Vector2D } from '../types';
 import { DeviceDetector } from '../utils/DeviceDetector';
 
 import { GameEngine } from './GameEngine';
@@ -41,6 +42,7 @@ export class Game implements IGame {
   private gameRenderer!: GameRenderer;
   private lastDrawTime: number = 0;
   private touchInputManager: TouchInputManager | null = null;
+  private mobileUIIntegration: MobileUIIntegration | null = null;
   private isMobile: boolean;
 
   constructor(
@@ -355,8 +357,50 @@ export class Game implements IGame {
 
   public start(): void {
     this.eventEmitter.emit('gameStarted');
+
+    // モバイルデバイス用の初期化処理
+    if (this.isMobile) {
+      this.initializeMobileGameplay();
+    }
+
     this.gameEngine.start();
     setInterval(this.spawnEnemy, this.config.enemy.spawnInterval);
+  }
+
+  /**
+   * モバイル専用のゲームプレイ初期化
+   */
+  private initializeMobileGameplay(): void {
+    // MobileUIIntegrationを初期化
+    this.mobileUIIntegration = new MobileUIIntegration(
+      this.eventEmitter,
+      this.canvas
+    );
+    this.mobileUIIntegration.initialize();
+
+    // TouchInputManagerとMobileUIManagerの連携設定
+    if (this.touchInputManager) {
+      // ジョイスティック移動イベントの処理
+      this.eventEmitter.on('mobileJoystickMove', (movement: Vector2D) => {
+        this.touchInputManager?.handleJoystickMovement(movement);
+      });
+
+      // ジョイスティック開始イベントの処理
+      this.eventEmitter.on('mobileJoystickStart', () => {
+        this.touchInputManager?.handleJoystickStart();
+      });
+
+      // ジョイスティック終了イベントの処理
+      this.eventEmitter.on('mobileJoystickEnd', () => {
+        this.touchInputManager?.handleJoystickEnd();
+      });
+    }
+
+    // モバイル用のゲーム状態を開始状態に設定
+    this.stateManager.setState('PLAYING', this);
+
+    // モバイル用のUI表示メッセージ
+    this.showMessage('タッチでゲーム開始！', 2000, 'info');
   }
 
   /**
@@ -691,6 +735,10 @@ export class Game implements IGame {
 
     if (this.touchInputManager) {
       this.touchInputManager.dispose();
+    }
+
+    if (this.mobileUIIntegration) {
+      this.mobileUIIntegration.dispose();
     }
 
     if (this.shootInterval) {

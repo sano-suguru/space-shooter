@@ -122,19 +122,33 @@ export const MobileUIManager: React.FC<MobileUIManagerProps> = ({
   };
 
   const handleJoystickStart = (): void => {
-    // ジョイスティック開始時の処理
+    // ジョイスティック開始イベントを発火
+    eventEmitter.emit('mobileJoystickStart');
   };
 
   const handleJoystickEnd = (): void => {
-    // ジョイスティック終了時の処理
+    // ジョイスティック終了イベントを発火
+    eventEmitter.emit('mobileJoystickEnd');
   };
 
+  // isVisibleがfalseの場合は完全に非表示
   if (!isVisible) {
-    return null;
+    return <div style={{ display: 'none' }} />;
   }
 
   return (
-    <>
+    <div
+      className='mobile-ui-wrapper'
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        zIndex: 1000,
+      }}
+    >
       <VirtualJoystickComponent
         joystickPosition={joystickPosition}
         onMove={handleJoystickMove}
@@ -142,7 +156,7 @@ export const MobileUIManager: React.FC<MobileUIManagerProps> = ({
         onEnd={handleJoystickEnd}
       />
       <TouchActionButtons eventEmitter={eventEmitter} />
-    </>
+    </div>
   );
 };
 
