@@ -1,11 +1,18 @@
 import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
 import { Aurora } from '../entities/Aurora';
+import { Boss } from '../entities/Boss';
+import {
+  AssaultCruiser,
+  ShieldGuardian,
+  StormInterceptor,
+} from '../entities/bosses';
 import { Comet } from '../entities/Comet';
 import { DynamicEnemy } from '../entities/DynamicEnemy';
 import { Enemy } from '../entities/Enemy';
 import { MeteorShower } from '../entities/MeteorShower';
 import { Nebula } from '../entities/Nebula';
 import { Planet } from '../entities/Planet';
+import { Player } from '../entities/Player';
 import { PowerUp } from '../entities/PowerUp';
 import { SpaceDust } from '../entities/SpaceDust';
 import { Star } from '../entities/Star';
@@ -18,7 +25,7 @@ import {
   EnemyGenerationRequest,
   DifficultyFactors,
 } from '../systems/types/EnemyGeneration';
-import { EnemyType, Vector2D } from '../types';
+import { BossType, EnemyType, Vector2D } from '../types';
 import { randomRange } from '../utils/RandomUtils';
 
 export class GameObjectFactory {
@@ -355,5 +362,57 @@ export class GameObjectFactory {
    */
   public getConfig(): GameConfig {
     return this.config;
+  }
+
+  /**
+   * ボスを生成
+   */
+  public createBoss(
+    type: BossType,
+    game: IGameEngine,
+    player?: Player
+  ): Boss | AssaultCruiser | ShieldGuardian | StormInterceptor {
+    switch (type) {
+      case 'BASIC':
+        return new Boss(game, this.config);
+      case 'ASSAULT_CRUISER':
+        return new AssaultCruiser(game, this.config, player);
+      case 'SHIELD_GUARDIAN':
+        return new ShieldGuardian(game, this.config, player);
+      case 'STORM_INTERCEPTOR':
+        return new StormInterceptor(game, this.config, player);
+      default:
+        console.warn(
+          `Unknown boss type: ${type as string}, creating basic boss`
+        );
+        return new Boss(game, this.config);
+    }
+  }
+
+  /**
+   * ウェーブ番号に基づいてボスタイプを決定
+   */
+  public getBossTypeForWave(waveNumber: number): BossType {
+    if (waveNumber >= 22) {
+      return 'STORM_INTERCEPTOR';
+    } else if (waveNumber >= 16) {
+      return 'SHIELD_GUARDIAN';
+    } else if (waveNumber >= 10) {
+      return 'ASSAULT_CRUISER';
+    } else {
+      return 'BASIC';
+    }
+  }
+
+  /**
+   * ウェーブ番号に基づいてボスが出現するかチェック
+   */
+  public shouldSpawnBoss(waveNumber: number): boolean {
+    // ボス出現ウェーブ: 5, 10, 15, 16, 20, 21, 22, 25, 30...
+    if (waveNumber === 5) return true; // 基本ボス
+    if (waveNumber >= 10 && waveNumber <= 15) return waveNumber % 5 === 0; // アサルト・クルーザー
+    if (waveNumber >= 16 && waveNumber <= 21) return waveNumber % 5 === 1; // シールド・ガーディアン
+    if (waveNumber >= 22) return waveNumber % 5 === 2; // ストーム・インターセプター
+    return false;
   }
 }

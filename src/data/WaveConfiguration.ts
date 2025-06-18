@@ -1,4 +1,4 @@
-import { WaveConfig, FormationType } from '../types';
+import { BossType, WaveConfig, FormationType } from '../types';
 
 /**
  * ウェーブ設定データを管理するクラス
@@ -10,36 +10,27 @@ export class WaveConfiguration {
     {
       id: 1,
       name: '偵察隊',
-      enemies: [{ type: 'SMALL', count: 5, formation: 'line', delay: 300 }],
+      enemies: [{ type: 'SMALL', count: 3, formation: 'line', delay: 200 }],
       bonusScore: 50,
-      nextWaveDelay: 2000,
+      nextWaveDelay: 1000,
     },
     // Wave 2: V字フォーメーション
     {
       id: 2,
       name: 'V編隊',
       enemies: [
-        { type: 'SMALL', count: 7, formation: 'vformation', delay: 250 },
+        { type: 'SMALL', count: 4, formation: 'vformation', delay: 200 },
       ],
       bonusScore: 75,
-      nextWaveDelay: 2500,
+      nextWaveDelay: 1000,
     },
-    // Wave 3: 混合フォーメーション
+    // Wave 3: ボス戦のため敵なし（基本ボス出現）
     {
       id: 3,
-      name: '混合部隊',
-      enemies: [
-        { type: 'SMALL', count: 4, formation: 'line', delay: 200 },
-        {
-          type: 'MEDIUM',
-          count: 2,
-          formation: 'circle',
-          delay: 400,
-          offsetY: 80,
-        },
-      ],
+      name: 'ボス戦準備',
+      enemies: [],
       bonusScore: 100,
-      nextWaveDelay: 3000,
+      nextWaveDelay: 1000,
     },
     // Wave 4: ダイヤモンドフォーメーション
     {
@@ -72,6 +63,75 @@ export class WaveConfiguration {
       ],
       bonusScore: 200,
       nextWaveDelay: 4000,
+    },
+    // Wave 6: アサルト・クルーザー戦準備
+    {
+      id: 6,
+      name: 'アサルト・クルーザー戦準備',
+      enemies: [],
+      bonusScore: 150,
+      nextWaveDelay: 1000,
+    },
+    // Wave 7: 強化編隊
+    {
+      id: 7,
+      name: '強化編隊',
+      enemies: [
+        { type: 'MEDIUM', count: 6, formation: 'vformation', delay: 250 },
+        { type: 'LARGE', count: 2, formation: 'line', delay: 400, offsetY: 80 },
+      ],
+      bonusScore: 175,
+      nextWaveDelay: 3000,
+    },
+    // Wave 8: 混合攻撃
+    {
+      id: 8,
+      name: '混合攻撃',
+      enemies: [
+        { type: 'SMALL', count: 10, formation: 'circle', delay: 120 },
+        { type: 'MEDIUM', count: 4, formation: 'diamond', delay: 300, offsetY: 60 },
+      ],
+      bonusScore: 200,
+      nextWaveDelay: 3500,
+    },
+    // Wave 9: シールド・ガーディアン戦準備
+    {
+      id: 9,
+      name: 'シールド・ガーディアン戦準備',
+      enemies: [],
+      bonusScore: 200,
+      nextWaveDelay: 1000,
+    },
+    // Wave 10: 精鋭部隊
+    {
+      id: 10,
+      name: '精鋭部隊',
+      enemies: [
+        { type: 'LARGE', count: 3, formation: 'line', delay: 500 },
+        { type: 'MEDIUM', count: 5, formation: 'arrow', delay: 300, offsetY: 100 },
+      ],
+      bonusScore: 250,
+      nextWaveDelay: 4000,
+    },
+    // Wave 11: 最終防衛線
+    {
+      id: 11,
+      name: '最終防衛線',
+      enemies: [
+        { type: 'SMALL', count: 12, formation: 'vformation', delay: 100 },
+        { type: 'MEDIUM', count: 6, formation: 'diamond', delay: 250, offsetY: 80 },
+        { type: 'LARGE', count: 2, formation: 'circle', delay: 600, offsetY: 140 },
+      ],
+      bonusScore: 300,
+      nextWaveDelay: 4500,
+    },
+    // Wave 12: ストーム・インターセプター戦準備
+    {
+      id: 12,
+      name: 'ストーム・インターセプター戦準備',
+      enemies: [],
+      bonusScore: 250,
+      nextWaveDelay: 1000,
     },
   ];
 
@@ -169,5 +229,83 @@ export class WaveConfiguration {
     };
 
     return customizedWave;
+  }
+
+  /**
+   * ウェーブ番号に基づいてボスが出現するかチェック
+   */
+  public static shouldSpawnBoss(waveNumber: number): boolean {
+    // より早くボスが出現するように調整
+    if (waveNumber === 3) return true; // 基本ボス（Wave 3に変更）
+    if (waveNumber === 6) return true; // アサルト・クルーザー
+    if (waveNumber === 9) return true; // シールド・ガーディアン
+    if (waveNumber === 12) return true; // ストーム・インターセプター
+    if (waveNumber >= 15 && waveNumber % 3 === 0) return true; // 以降は3ウェーブごと
+    return false;
+  }
+
+  /**
+   * ウェーブ番号に基づいてボスタイプを決定
+   */
+  public static getBossTypeForWave(waveNumber: number): BossType {
+    if (waveNumber === 3) {
+      return 'BASIC';
+    } else if (waveNumber === 6) {
+      return 'ASSAULT_CRUISER';
+    } else if (waveNumber === 9) {
+      return 'SHIELD_GUARDIAN';
+    } else if (waveNumber === 12) {
+      return 'STORM_INTERCEPTOR';
+    } else if (waveNumber >= 15) {
+      // 15以降はランダムに選択
+      const bossTypes: BossType[] = [
+        'ASSAULT_CRUISER',
+        'SHIELD_GUARDIAN',
+        'STORM_INTERCEPTOR',
+      ];
+      return bossTypes[waveNumber % 3];
+    } else {
+      return 'BASIC';
+    }
+  }
+
+  /**
+   * ボス出現ウェーブの設定を取得
+   */
+  public static getBossWaveConfig(waveNumber: number): WaveConfig | null {
+    if (!this.shouldSpawnBoss(waveNumber)) {
+      return null;
+    }
+
+    const bossType = this.getBossTypeForWave(waveNumber);
+    let bossName = '';
+    let bonusScore = 500;
+
+    switch (bossType) {
+      case 'BASIC':
+        bossName = '基本ボス';
+        bonusScore = 500;
+        break;
+      case 'ASSAULT_CRUISER':
+        bossName = 'アサルト・クルーザー';
+        bonusScore = 1000;
+        break;
+      case 'SHIELD_GUARDIAN':
+        bossName = 'シールド・ガーディアン';
+        bonusScore = 1500;
+        break;
+      case 'STORM_INTERCEPTOR':
+        bossName = 'ストーム・インターセプター';
+        bonusScore = 2000;
+        break;
+    }
+
+    return {
+      id: waveNumber,
+      name: `${bossName}戦`,
+      enemies: [], // ボス戦では通常の敵は出現しない
+      bonusScore,
+      nextWaveDelay: 5000, // ボス戦後は長めの休憩
+    };
   }
 }

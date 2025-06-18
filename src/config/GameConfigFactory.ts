@@ -59,6 +59,30 @@ const GameConfigSchema = z.object({
     initialHealth: z.number().positive(),
     initialSpeed: z.number().positive(),
     movementSpeed: z.number().positive(),
+    // 新ボス設定
+    assaultCruiser: z
+      .object({
+        health: z.number().positive(),
+        speed: z.number().positive(),
+        attackPower: z.number().positive(),
+      })
+      .optional(),
+    shieldGuardian: z
+      .object({
+        health: z.number().positive(),
+        speed: z.number().positive(),
+        attackPower: z.number().positive(),
+        shieldLayers: z.number().positive(),
+      })
+      .optional(),
+    stormInterceptor: z
+      .object({
+        health: z.number().positive(),
+        speed: z.number().positive(),
+        attackPower: z.number().positive(),
+        cloneCount: z.number().positive(),
+      })
+      .optional(),
   }),
   explosion: z.object({
     duration: z.number().positive(),
@@ -196,6 +220,24 @@ function createBossConfig(): GameConfig['boss'] {
     initialHealth: 50,
     initialSpeed: 50,
     movementSpeed: 50,
+    // 新ボス設定のデフォルト値
+    assaultCruiser: {
+      health: 75,
+      speed: 75, // 1.5倍速
+      attackPower: 150, // 1.5倍攻撃力
+    },
+    shieldGuardian: {
+      health: 100,
+      speed: 40, // 0.8倍速
+      attackPower: 150, // 1.5倍攻撃力
+      shieldLayers: 3,
+    },
+    stormInterceptor: {
+      health: 80,
+      speed: 125, // 2.5倍速
+      attackPower: 180, // 1.8倍攻撃力
+      cloneCount: 3,
+    },
   };
 }
 

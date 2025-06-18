@@ -1,6 +1,7 @@
 import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
 import { Game } from '../core/Game';
 import { WaveConfiguration } from '../data/WaveConfiguration';
+import { Boss } from '../entities/Boss';
 import { DynamicEnemy } from '../entities/DynamicEnemy';
 import { Enemy } from '../entities/Enemy';
 import { EventEmitter } from '../events/EventEmitter';
@@ -25,6 +26,8 @@ export class WaveManager {
   }[] = [];
   private useDynamicEnemies: boolean = false;
   private playerLevel: number = 1;
+  private currentBoss: Boss | null = null;
+  private isBossWave: boolean = false;
 
   constructor(
     private eventEmitter: EventEmitter<EventMap>,
@@ -61,14 +64,22 @@ export class WaveManager {
 
   private setupEventListeners(): void {
     this.eventEmitter.on('enemyDestroyed', this.handleEnemyDestroyed);
+    this.eventEmitter.on('bossDefeated', this.handleBossDestroyed);
   }
 
   private handleEnemyDestroyed = (): void => {
-    if (this.waveActive) {
+    if (this.waveActive && !this.isBossWave) {
       this.enemiesRemaining--;
       if (this.enemiesRemaining <= 0 && this.spawnQueue.length === 0) {
         this.completeWave();
       }
+    }
+  };
+
+  private handleBossDestroyed = (): void => {
+    if (this.waveActive && this.isBossWave) {
+      this.currentBoss = null;
+      this.completeWave();
     }
   };
 
@@ -79,7 +90,24 @@ export class WaveManager {
 
     this.currentWave++;
 
-    // 定義済みウェーブの範囲内かチェック
+    // ボス出現チェック
+    console.log(`[DEBUG] Wave ${this.currentWave}: Checking boss spawn...`);
+    if (WaveConfiguration.shouldSpawnBoss(this.currentWave)) {
+      console.log(`[DEBUG] Wave ${this.currentWave}: Boss should spawn!`);
+      const bossWave = WaveConfiguration.getBossWaveConfig(this.currentWave);
+      if (bossWave) {
+        console.log(`[DEBUG] Wave ${this.currentWave}: Boss wave config found:`, bossWave);
+        this.prepareBossWave(bossWave);
+        this.waveActive = true;
+        return true;
+      } else {
+        console.warn(`[DEBUG] Wave ${this.currentWave}: Boss should spawn but no wave config found!`);
+      }
+    } else {
+      console.log(`[DEBUG] Wave ${this.currentWave}: No boss spawn expected`);
+    }
+
+    // 通常ウェーブの処理
     if (this.currentWave <= WaveConfiguration.getWaveCount()) {
       const wave = WaveConfiguration.getWaveConfig(this.currentWave);
       if (wave) {
@@ -132,6 +160,7 @@ export class WaveManager {
 
     this.eventEmitter.emit('waveStarted', waveConfig);
     this.game.showWaveMessage(`Wave ${waveConfig.id}: ${waveConfig.name}`);
+    console.log(`Wave ${waveConfig.id} started: ${waveConfig.name}`);
   }
 
   /**
@@ -185,6 +214,44 @@ export class WaveManager {
     this.game.showWaveMessage(
       `Wave ${waveConfig.id}: ${waveConfig.name}${dynamicMessage}`
     );
+  }
+
+  /**
+   * ボスウェーブの準備
+   */
+  private prepareBossWave(waveConfig: WaveConfig): void {
+    this.spawnQueue = [];
+    this.enemiesRemaining = 0;
+    this.isBossWave = true;
+
+    // ボスを生成
+    const bossType = WaveConfiguration.getBossTypeForWave(this.currentWave);
+    console.log(`[DEBUG] Creating boss type: ${bossType} for wave ${this.currentWave}`);
+
+    this.currentBoss = this.gameObjectFactory.createBoss(
+      bossType,
+      this.game,
+      undefined // プレイヤー参照は後で設定
+    );
+    console.log(`[DEBUG] Boss created:`, this.currentBoss.constructor.name);
+
+    // ボスをゲームに追加（spawnBossメソッドを使用）
+    this.spawnBossDirectly(this.currentBoss);
+
+    this.eventEmitter.emit('waveStarted', waveConfig);
+    this.game.showWaveMessage(`${waveConfig.name}が出現！`);
+
+    console.log(`[DEBUG] Boss wave ${this.currentWave} started: ${bossType}`);
+  }
+
+  /**
+   * ボスを直接スポーンする
+   */
+  private spawnBossDirectly(boss: Boss): void {
+    // GameクラスのsetBossメソッドを使用してボスを設定
+    this.game.setBoss(boss);
+    this.eventEmitter.emit('bossSpawned');
+    console.log('Boss spawned:', boss);
   }
 
   private generateFormation(
@@ -319,7 +386,14 @@ export class WaveManager {
   }
 
   private completeWave(): void {
+    console.log(`[DEBUG] Wave ${this.currentWave} completed. Boss wave: ${this.isBossWave}`);
     this.waveActive = false;
+    
+    // ボスウェーブフラグをリセット
+    if (this.isBossWave) {
+      this.isBossWave = false;
+      console.log(`[DEBUG] Boss wave flag reset`);
+    }
 
     // 現在のウェーブ設定を取得（動的ウェーブの場合は最低値を使用）
     let completedWave = WaveConfiguration.getWaveConfig(this.currentWave);
@@ -334,10 +408,14 @@ export class WaveManager {
       `Wave ${this.currentWave} Complete! Bonus: ${bonusScore}`
     );
 
+    console.log(`[DEBUG] Next wave delay: ${completedWave.nextWaveDelay}ms`);
     // 次のウェーブまでの遅延
     setTimeout(() => {
       if (this.game.getStateManager().isPlaying()) {
+        console.log(`[DEBUG] Starting next wave after delay`);
         this.startNextWave();
+      } else {
+        console.log(`[DEBUG] Game not playing, skipping next wave`);
       }
     }, completedWave.nextWaveDelay);
   }

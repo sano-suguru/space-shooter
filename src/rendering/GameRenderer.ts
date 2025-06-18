@@ -90,6 +90,20 @@ export class GameRenderer {
       .getExplosions()
       .forEach(explosion => explosion.draw(this.ctx));
 
+    // 新しい弾丸タイプの描画
+    gameObjectManager
+      .getExplosiveBullets()
+      .forEach(bullet => bullet.draw(this.ctx));
+    gameObjectManager
+      .getHomingBullets()
+      .forEach(bullet => bullet.draw(this.ctx));
+    gameObjectManager
+      .getReflectingBullets()
+      .forEach(bullet => bullet.draw(this.ctx));
+    gameObjectManager
+      .getSplitBullets()
+      .forEach(bullet => bullet.draw(this.ctx));
+
     // ボス関連描画
     const boss = gameObjectManager.getBoss();
     if (boss) {

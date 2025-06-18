@@ -2,6 +2,12 @@ import { Aurora } from '../entities/Aurora';
 import { Boss } from '../entities/Boss';
 import { BossBullet } from '../entities/BossBullet';
 import { Bullet } from '../entities/Bullet';
+import {
+  ExplosiveBullet,
+  HomingBullet,
+  ReflectingBullet,
+  SplitBullet,
+} from '../entities/bullets';
 import { Comet } from '../entities/Comet';
 import { Enemy } from '../entities/Enemy';
 import { Explosion } from '../entities/Explosion';
@@ -35,6 +41,12 @@ export class GameObjectManager {
   private bossBullets: BossBullet[] = [];
   private boss: Boss | null = null;
   private player: IPlayer | null = null;
+
+  // 新しい弾丸タイプの配列
+  private explosiveBullets: ExplosiveBullet[] = [];
+  private homingBullets: HomingBullet[] = [];
+  private reflectingBullets: ReflectingBullet[] = [];
+  private splitBullets: SplitBullet[] = [];
 
   // 背景オブジェクト配列
   private stars: Star[] = [];
@@ -112,6 +124,12 @@ export class GameObjectManager {
     this.explosions.forEach(explosion => explosion.update(deltaTime));
     this.bossBullets.forEach(bossBullet => bossBullet.update(deltaTime));
 
+    // 新しい弾丸タイプの更新
+    this.explosiveBullets.forEach(bullet => bullet.update(deltaTime));
+    this.homingBullets.forEach(bullet => bullet.update(deltaTime));
+    this.reflectingBullets.forEach(bullet => bullet.update(deltaTime));
+    this.splitBullets.forEach(bullet => bullet.update(deltaTime));
+
     if (this.boss) {
       this.boss.update(deltaTime);
     }
@@ -159,6 +177,18 @@ export class GameObjectManager {
     this.enemies = this.enemies.filter(enemy => enemy.isOnScreen());
     this.powerups = this.powerups.filter(powerup => powerup.isOnScreen());
     this.bossBullets = this.bossBullets.filter(bullet => bullet.isOnScreen());
+
+    // 新しい弾丸タイプの画面外削除
+    this.explosiveBullets = this.explosiveBullets.filter(bullet =>
+      bullet.isOnScreen()
+    );
+    this.homingBullets = this.homingBullets.filter(bullet =>
+      bullet.isOnScreen()
+    );
+    this.reflectingBullets = this.reflectingBullets.filter(bullet =>
+      bullet.isOnScreen()
+    );
+    this.splitBullets = this.splitBullets.filter(bullet => bullet.isOnScreen());
   };
 
   /**
@@ -253,6 +283,12 @@ export class GameObjectManager {
     this.powerups = [];
     this.bossBullets = [];
     this.boss = null;
+
+    // 新しい弾丸タイプもクリア
+    this.explosiveBullets = [];
+    this.homingBullets = [];
+    this.reflectingBullets = [];
+    this.splitBullets = [];
   }
 
   // ========================================
@@ -339,6 +375,39 @@ export class GameObjectManager {
 
   public addBossBullet(bullet: BossBullet): void {
     this.bossBullets.push(bullet);
+  }
+
+  // 新しい弾丸タイプのゲッター/セッター
+  public getExplosiveBullets(): ExplosiveBullet[] {
+    return this.explosiveBullets;
+  }
+
+  public addExplosiveBullet(bullet: ExplosiveBullet): void {
+    this.explosiveBullets.push(bullet);
+  }
+
+  public getHomingBullets(): HomingBullet[] {
+    return this.homingBullets;
+  }
+
+  public addHomingBullet(bullet: HomingBullet): void {
+    this.homingBullets.push(bullet);
+  }
+
+  public getReflectingBullets(): ReflectingBullet[] {
+    return this.reflectingBullets;
+  }
+
+  public addReflectingBullet(bullet: ReflectingBullet): void {
+    this.reflectingBullets.push(bullet);
+  }
+
+  public getSplitBullets(): SplitBullet[] {
+    return this.splitBullets;
+  }
+
+  public addSplitBullet(bullet: SplitBullet): void {
+    this.splitBullets.push(bullet);
   }
 
   /**
@@ -432,6 +501,10 @@ export class GameObjectManager {
       ...this.enemies,
       ...this.powerups,
       ...this.bossBullets,
+      ...this.explosiveBullets,
+      ...this.homingBullets,
+      ...this.reflectingBullets,
+      ...this.splitBullets,
     ];
 
     if (this.boss) {

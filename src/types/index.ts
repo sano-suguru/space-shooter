@@ -92,6 +92,73 @@ export type Vector2D = {
   y: number;
 };
 
+// 新ボス関連の型定義
+export type BossType =
+  | 'BASIC'
+  | 'ASSAULT_CRUISER'
+  | 'SHIELD_GUARDIAN'
+  | 'STORM_INTERCEPTOR';
+
+export type BossPhase = 1 | 2 | 3;
+
+export type BossMovementPattern = 'horizontal' | 'zigzag' | 'circle' | 'storm';
+
+// 新しい弾丸タイプ
+export type AdvancedBulletType =
+  | 'EXPLOSIVE'
+  | 'HOMING'
+  | 'REFLECTING'
+  | 'SPLIT';
+
+// ボス設定インターface
+export interface BossConfig {
+  type: BossType;
+  waveRange: {
+    min: number;
+    max: number;
+  };
+  stats: {
+    health: number;
+    speed: number;
+    attackPower: number;
+    size: {
+      width: number;
+      height: number;
+    };
+  };
+  phases: BossPhaseConfig[];
+}
+
+export interface BossPhaseConfig {
+  phase: BossPhase;
+  healthThreshold: number; // 体力パーセンテージ
+  attackPattern: string;
+  attackInterval: number;
+  movementPattern: BossMovementPattern;
+  specialAbilities?: string[];
+}
+
+// シールド関連
+export interface ShieldConfig {
+  health: number;
+  maxHealth: number;
+  isActive: boolean;
+  rotation: number;
+  pulsePhase: number;
+}
+
+// 分身関連
+export interface CloneConfig {
+  x: number;
+  y: number;
+  health: number;
+  maxHealth: number;
+  isActive: boolean;
+  movePattern: number;
+  lastFireTime: number;
+  trailEffect: Array<{ x: number; y: number; alpha: number }>;
+}
+
 export interface WaveEnemyConfig {
   type: EnemyType;
   count: number;

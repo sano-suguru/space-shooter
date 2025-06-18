@@ -365,6 +365,9 @@ export class Game implements IGame {
 
     this.gameEngine.start();
     setInterval(this.spawnEnemy, this.config.enemy.spawnInterval);
+
+    // ウェーブシステムを開始
+    this.startWaveSystem();
   }
 
   /**
@@ -427,12 +430,13 @@ export class Game implements IGame {
     }
 
     this.currentScore = this.scoreManager.getScore();
-    if (
-      this.currentScore >= this.bossSpawnScore &&
-      !this.gameObjectManager.getBoss()
-    ) {
-      this.spawnBoss();
-    }
+    // 既存のボス生成処理を無効化（新しいウェーブシステムを使用）
+    // if (
+    //   this.currentScore >= this.bossSpawnScore &&
+    //   !this.gameObjectManager.getBoss()
+    // ) {
+    //   this.spawnBoss();
+    // }
   }
 
   private spawnBoss(): void {
@@ -570,6 +574,20 @@ export class Game implements IGame {
 
   public addBossBullet(bullet: BossBullet): void {
     this.gameObjectManager.addBossBullet(bullet);
+  }
+
+  /**
+   * ボスを設定（WaveManager用）
+   */
+  public setBoss(boss: Boss | null): void {
+    this.gameObjectManager.setBoss(boss);
+  }
+
+  /**
+   * 現在のボスを取得
+   */
+  public getBoss(): Boss | null {
+    return this.gameObjectManager.getBoss();
   }
 
   public resumeGameLoop(): void {
