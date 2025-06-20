@@ -121,7 +121,7 @@ describe('武器システム統合テスト', () => {
   });
 
   test('武器システムを使用した射撃が動作する', () => {
-    const shotEvents: any[] = [];
+    const shotEvents: unknown[] = [];
     eventEmitter.on('playerShot', bullet => {
       shotEvents.push(bullet);
     });

@@ -9,14 +9,15 @@ import { ExperienceBarProps } from '../../types/react/index';
 export const ExperienceBar: React.FC<ExperienceBarProps> = ({
   currentExperience,
   currentLevel,
+  nextLevelXP,
   className = '',
   style,
   testId,
   ...props
 }) => {
-  // 簡易的なレベル計算（1000 XPごとにレベルアップ）
+  // レベル計算（propsから受け取ったnextLevelXPを使用）
   const xpForCurrentLevel = (currentLevel - 1) * 1000;
-  const xpForNextLevel = currentLevel * 1000;
+  const xpForNextLevel = nextLevelXP || currentLevel * 1000;
   const currentLevelXP = currentExperience - xpForCurrentLevel;
   const xpNeededForNext = xpForNextLevel - xpForCurrentLevel;
 

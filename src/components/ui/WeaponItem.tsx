@@ -47,13 +47,13 @@ export const WeaponItem: React.FC<WeaponItemProps> = ({
   const canAfford = playerProfile.coins >= weapon.cost;
   const isUnlocked = weapon.unlockCondition(playerProfile);
 
-  const handlePurchase = () => {
+  const handlePurchase = (): void => {
     if (!disabled && !isOwned && canAfford && isUnlocked) {
       onPurchase(weapon.id);
     }
   };
 
-  const handleEquip = () => {
+  const handleEquip = (): void => {
     if (!disabled && isOwned && !isEquipped) {
       // 空いているスロットを探す（簡単な実装）
       const availableSlot = 0; // 実際にはスロット管理が必要
@@ -61,13 +61,13 @@ export const WeaponItem: React.FC<WeaponItemProps> = ({
     }
   };
 
-  const handleUnequip = () => {
+  const handleUnequip = (): void => {
     if (!disabled && isEquipped) {
       onUnequip(weapon.id);
     }
   };
 
-  const getActionButton = () => {
+  const getActionButton = (): React.ReactElement | null => {
     if (!isUnlocked) {
       return (
         <Button variant='secondary' size='small' disabled>

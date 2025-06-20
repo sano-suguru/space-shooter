@@ -50,7 +50,13 @@ export const WeaponShopSection: React.FC<WeaponShopSectionProps> = ({
   }, [selectedCategory]);
 
   // 武器の状態を取得
-  const getWeaponStatus = (weaponId: string) => {
+  const getWeaponStatus = (
+    weaponId: string
+  ): {
+    isOwned: boolean;
+    isEquipped: boolean;
+    equippedSlot?: number;
+  } => {
     const isOwned = ownedWeapons.includes(weaponId);
     const equippedWeapon = equippedWeapons.find(w => w.weaponId === weaponId);
     const isEquipped = !!equippedWeapon;
@@ -60,7 +66,7 @@ export const WeaponShopSection: React.FC<WeaponShopSectionProps> = ({
   };
 
   // 武器購入ハンドラ
-  const handlePurchase = async (weaponId: string) => {
+  const handlePurchase = async (weaponId: string): Promise<void> => {
     if (purchaseInProgress) return;
 
     setPurchaseInProgress(weaponId);
@@ -72,7 +78,7 @@ export const WeaponShopSection: React.FC<WeaponShopSectionProps> = ({
   };
 
   // 武器装備ハンドラ
-  const handleEquip = async (weaponId: string, slot: number) => {
+  const handleEquip = async (weaponId: string, slot: number): Promise<void> => {
     if (purchaseInProgress) return;
 
     setPurchaseInProgress(weaponId);
@@ -84,7 +90,7 @@ export const WeaponShopSection: React.FC<WeaponShopSectionProps> = ({
   };
 
   // 武器取り外しハンドラ
-  const handleUnequip = async (weaponId: string) => {
+  const handleUnequip = async (weaponId: string): Promise<void> => {
     if (purchaseInProgress) return;
 
     setPurchaseInProgress(weaponId);

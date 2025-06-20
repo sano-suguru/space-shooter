@@ -82,25 +82,25 @@ export const withLazyLoading = <P extends object>(
 
 // React.lazy()を使用したコンポーネント定義
 export const LazyAchievementPanel = React.lazy(() =>
-  import('../AchievementPanel.tsx').then(module => ({
+  import('../AchievementPanel').then(module => ({
     default: module.AchievementPanel,
   }))
 );
 
 export const LazyGameModeSelector = React.lazy(() =>
-  import('../GameModeSelector.tsx').then(module => ({
+  import('../GameModeSelector').then(module => ({
     default: module.GameModeSelector,
   }))
 );
 
 export const LazyProgressDisplay = React.lazy(() =>
-  import('../ProgressDisplay.tsx').then(module => ({
+  import('../ProgressDisplay').then(module => ({
     default: module.ProgressDisplay,
   }))
 );
 
 export const LazyUpgradeShop = React.lazy(() =>
-  import('../UpgradeShop.tsx').then(module => ({
+  import('../UpgradeShop').then(module => ({
     default: module.UpgradeShop,
   }))
 );
@@ -141,16 +141,16 @@ export class ComponentPreloader {
     try {
       switch (componentName) {
         case 'achievement':
-          await import('../AchievementPanel.tsx');
+          await import('../AchievementPanel');
           break;
         case 'gamemode':
-          await import('../GameModeSelector.tsx');
+          await import('../GameModeSelector');
           break;
         case 'progress':
-          await import('../ProgressDisplay.tsx');
+          await import('../ProgressDisplay');
           break;
         case 'upgrade':
-          await import('../UpgradeShop.tsx');
+          await import('../UpgradeShop');
           break;
       }
       this.preloadedComponents.add(componentName);

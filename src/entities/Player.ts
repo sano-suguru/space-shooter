@@ -614,7 +614,7 @@ export class Player extends GameObject implements IPlayer {
   /**
    * 装備中武器一覧取得
    */
-  public getEquippedWeapons() {
+  public getEquippedWeapons(): ReturnType<WeaponManager['getEquippedWeapons']> {
     return this.weaponManager?.getEquippedWeapons() ?? [];
   }
 
@@ -628,7 +628,9 @@ export class Player extends GameObject implements IPlayer {
   /**
    * 利用可能武器一覧取得
    */
-  public getAvailableWeapons() {
+  public getAvailableWeapons(): ReturnType<
+    WeaponManager['getAvailableWeapons']
+  > {
     return this.weaponManager?.getAvailableWeapons() ?? [];
   }
 
