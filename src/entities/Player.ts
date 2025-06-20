@@ -36,6 +36,7 @@ export class Player extends GameObject implements IPlayer {
   private powerUpEffectService?: PowerUpEffectService;
   private weaponManager?: WeaponManager;
   private useWeaponSystem: boolean = false; // 武器システム使用フラグ
+  private activeWeaponSlot: number = 0; // アクティブ武器スロット
 
   constructor(
     private eventEmitter: EventEmitter<EventMap>,
@@ -629,5 +630,19 @@ export class Player extends GameObject implements IPlayer {
    */
   public getAvailableWeapons() {
     return this.weaponManager?.getAvailableWeapons() ?? [];
+  }
+
+  /**
+   * アクティブ武器スロットを設定
+   */
+  public setActiveWeaponSlot(slot: number): void {
+    this.activeWeaponSlot = slot;
+  }
+
+  /**
+   * アクティブ武器スロットを取得
+   */
+  public getActiveWeaponSlot(): number {
+    return this.activeWeaponSlot;
   }
 }

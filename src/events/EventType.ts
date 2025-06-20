@@ -84,5 +84,15 @@ export type EventMap = Readonly<{
   mobileJoystickMove: (movement: { x: number; y: number }) => void;
   mobileJoystickStart: () => void;
   mobileJoystickEnd: () => void;
+
+  // 武器システムイベント
+  weaponSwitched: (data: {
+    weaponId: string;
+    slot: number;
+    weaponName: string;
+  }) => void;
+  weaponPurchased: (data: { weaponId: string; cost: number }) => void;
+  weaponEquipped: (data: { weaponId: string; slot: number }) => void;
+  weaponUnequipped: (data: { weaponId: string; slot: number }) => void;
 }> &
   GameCommandMap;

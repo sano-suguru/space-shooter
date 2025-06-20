@@ -75,7 +75,25 @@ class PlayingState implements GameState {
   handleInput(game: Game, input: string): void {
     if (input === 'Escape') {
       game.getStateManager().setState('PAUSED', game);
+    } else if (this.isWeaponSwitchKey(input)) {
+      // 武器切り替え処理
+      const weaponSlot = this.getWeaponSlotFromKey(input);
+      game.switchWeapon(weaponSlot);
     }
+  }
+
+  /**
+   * 武器切り替えキー（1, 2, 3）かどうかをチェック
+   */
+  private isWeaponSwitchKey(key: string): boolean {
+    return ['1', '2', '3'].includes(key);
+  }
+
+  /**
+   * キーから武器スロット番号を取得
+   */
+  private getWeaponSlotFromKey(key: string): number {
+    return parseInt(key) - 1; // 1-3 → 0-2
   }
 }
 

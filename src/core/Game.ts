@@ -26,6 +26,7 @@ import { PowerUpEffectService } from '../services/PowerUpEffectService';
 import { CollisionSystem } from '../systems/CollisionSystem';
 import { EnemyType, Vector2D } from '../types';
 import { DeviceDetector } from '../utils/DeviceDetector';
+import type { EquippedWeapon } from '../weapons/types/WeaponTypes';
 
 import { GameEngine } from './GameEngine';
 
@@ -820,5 +821,49 @@ export class Game implements IGame {
    */
   public isDebugModeActive(): boolean {
     return this.debugManager?.isActive() ?? false;
+  }
+
+  /**
+   * 武器切り替え処理
+   */
+  public switchWeapon(slot: number): void {
+    const weaponManager = this.player?.getWeaponManager();
+    if (weaponManager) {
+      const equippedWeapons = weaponManager.getEquippedWeapons();
+      const weapon = equippedWeapons.find(w => w.slot === slot);
+      if (weapon) {
+        // 武器切り替えイベントを発火
+        this.eventEmitter.emit('weaponSwitched', {
+          weaponId: weapon.weaponId,
+          slot: slot,
+          weaponName: weapon.config.name,
+        });
+
+        // プレイヤーのアクティブ武器スロットを更新
+        this.player.setActiveWeaponSlot(slot);
+
+        // UI更新のためのメッセージ表示
+        this.showMessage(
+          `${weapon.config.icon} ${weapon.config.name} に切り替えました`,
+          1000,
+          'info'
+        );
+      }
+    }
+  }
+
+  /**
+   * 現在のアクティブ武器スロットを取得
+   */
+  public getActiveWeaponSlot(): number {
+    return this.player?.getActiveWeaponSlot() ?? 0;
+  }
+
+  /**
+   * 装備中の武器一覧を取得
+   */
+  public getEquippedWeapons(): EquippedWeapon[] {
+    const weaponManager = this.player?.getWeaponManager();
+    return weaponManager?.getEquippedWeapons() ?? [];
   }
 }

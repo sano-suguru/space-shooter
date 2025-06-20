@@ -12,6 +12,7 @@ import { ProgressManager } from './progression/managers/ProgressManager';
 import { RealRandomProvider, RealTimeProvider } from './providers';
 import { DeviceDetector } from './utils/DeviceDetector';
 import { getElementOrThrow } from './utils/DOMUtils';
+import { WeaponManager } from './weapons/managers/WeaponManager';
 
 function initGame(): void {
   const canvas = getElementOrThrow<HTMLCanvasElement>('gameCanvas');
@@ -32,6 +33,14 @@ function initGame(): void {
   // プログレッションシステムを初期化（ScoreManagerを渡してコンポジション実現）
   const progressManager = new ProgressManager(eventEmitter, scoreManager);
 
+  // 武器システムを初期化
+  const weaponManager = new WeaponManager(
+    eventEmitter,
+    progressManager.getProfile()
+  );
+  player.setWeaponManager(weaponManager);
+  player.enableWeaponSystem(true);
+
   // 既存UIManagerを初期化
   const levelElement = getElementOrThrow<HTMLElement>('levelValue');
   const healthElement = getElementOrThrow<HTMLElement>('healthValue');
@@ -50,7 +59,8 @@ function initGame(): void {
   // React.lazy()システムを統合したUIManagerを初期化
   const reactLazyUIManager = new ReactLazyUIManager(
     eventEmitter,
-    progressManager
+    progressManager,
+    weaponManager
   );
   console.log('🚀 ReactLazyUIManager initialized with code splitting');
   console.log('Active UI Manager:', reactLazyUIManager.getActiveUI());

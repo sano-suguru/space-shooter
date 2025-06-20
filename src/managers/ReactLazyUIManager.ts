@@ -10,6 +10,7 @@ import { EventEmitter } from '../events/EventEmitter';
 import { EventMap } from '../events/EventType';
 import { ProgressManager } from '../progression/managers/ProgressManager';
 import { getElementOrThrow } from '../utils/DOMUtils';
+import type { WeaponManager } from '../weapons/managers/WeaponManager';
 
 /**
  * シンプルなReact統合UIマネージャー
@@ -22,7 +23,8 @@ export class ReactLazyUIManager {
 
   constructor(
     private eventEmitter: EventEmitter<EventMap>,
-    private progressManager: ProgressManager
+    private progressManager: ProgressManager,
+    private weaponManager?: WeaponManager
   ) {
     this.initializeButtons();
     this.initializeReactRoots();
@@ -177,5 +179,19 @@ export class ReactLazyUIManager {
       root.unmount();
     });
     this.roots.clear();
+  }
+
+  /**
+   * WeaponManagerを設定
+   */
+  public setWeaponManager(weaponManager: WeaponManager): void {
+    this.weaponManager = weaponManager;
+  }
+
+  /**
+   * WeaponManagerを取得
+   */
+  public getWeaponManager(): WeaponManager | undefined {
+    return this.weaponManager;
   }
 }
