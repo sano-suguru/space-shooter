@@ -12,12 +12,12 @@ import { PlayerProfile } from '../../progression/types/PlayerProfile';
 import { Vector2D } from '../../types';
 import { ALL_WEAPON_CONFIGS, getWeaponConfig } from '../data/weaponConfigs';
 import { IWeaponManager } from '../interfaces/IWeapon';
+import { WeaponBulletFactory } from '../services/WeaponBulletFactory';
 import {
   EquippedWeapon,
   WeaponConfig,
   WeaponEquipResult,
   WeaponPurchaseResult,
-  WeaponRarity,
   WeaponStats,
 } from '../types/WeaponTypes';
 
@@ -30,11 +30,13 @@ export class WeaponManager implements IWeaponManager {
   private weaponStats: Map<string, WeaponStats> = new Map();
   private weaponCooldowns: Map<string, number> = new Map();
   private maxEquippedWeapons: number = 3;
+  private bulletFactory: WeaponBulletFactory;
 
   constructor(
     private eventEmitter: EventEmitter<EventMap>,
     private playerProfile: PlayerProfile
   ) {
+    this.bulletFactory = new WeaponBulletFactory();
     // 基本武器を初期装備として追加
     this.initializeBasicWeapon();
   }
@@ -312,18 +314,21 @@ export class WeaponManager implements IWeaponManager {
     const bulletStartX = playerPos.x + player.getWidth() / 2;
     const bulletStartY = playerPos.y;
 
-    const bullets: Bullet[] = [];
+    // WeaponBulletFactoryを使用して弾丸生成
+    const direction = { x: 0, y: -1 }; // 上向き
+    const bullets = this.bulletFactory.createWeaponTypeBullet(
+      weapon.config.type,
+      weapon.config,
+      { x: bulletStartX, y: bulletStartY },
+      direction
+    );
 
-    // 弾丸数に応じて生成
-    for (let i = 0; i < weapon.config.bulletCount; i++) {
-      const bullet = this.createBulletForWeapon(weapon, {
-        x: bulletStartX,
-        y: bulletStartY,
-      });
-      if (bullet) {
-        bullets.push(bullet);
+    // 追尾弾丸の場合、ターゲットを設定
+    bullets.forEach(bullet => {
+      if (weapon.config.specialEffect?.type === 'homing') {
+        this.bulletFactory.setHomingTarget(bullet, player);
       }
-    }
+    });
 
     // 発射時刻更新
     weapon.lastFireTime = currentTime;
@@ -347,15 +352,19 @@ export class WeaponManager implements IWeaponManager {
     weapon: EquippedWeapon,
     position: Vector2D
   ): Bullet | null {
-    // 基本弾丸作成（後で特殊弾丸対応）
-    const bullet = new Bullet(position.x, position.y);
-    bullet.initialize(
-      position.x,
-      position.y,
-      weapon.config.bulletSpeed,
-      weapon.config.rarity === WeaponRarity.LEGENDARY ? '#ff8000' : '#00aaff'
+    // WeaponBulletFactoryを使用して弾丸作成
+    const direction = { x: 0, y: -1 }; // 上向き
+
+    // 武器タイプ別弾丸作成
+    const bullets = this.bulletFactory.createWeaponTypeBullet(
+      weapon.config.type,
+      weapon.config,
+      position,
+      direction
     );
-    return bullet;
+
+    // 最初の弾丸を返す（複数弾丸の場合は別途処理）
+    return bullets.length > 0 ? bullets[0] : null;
   }
 
   /**
@@ -420,6 +429,7 @@ export class WeaponManager implements IWeaponManager {
     this.ownedWeapons.clear();
     this.weaponStats.clear();
     this.weaponCooldowns.clear();
+    this.bulletFactory.cleanup();
     this.initializeBasicWeapon();
   }
 
@@ -435,5 +445,19 @@ export class WeaponManager implements IWeaponManager {
    */
   public onEnemyKilled(weaponId: string): void {
     this.updateWeaponStats(weaponId, 'kill', 1);
+  }
+
+  /**
+   * 弾丸ファクトリー取得
+   */
+  public getBulletFactory(): WeaponBulletFactory {
+    return this.bulletFactory;
+  }
+
+  /**
+   * 弾丸プール統計取得
+   */
+  public getBulletPoolStats(): Record<string, number> {
+    return this.bulletFactory.getPoolStats();
   }
 }

@@ -8,6 +8,7 @@ import { IRandomProvider } from '../providers/IRandomProvider';
 import { PlayerRenderer } from '../rendering/PlayerRenderer';
 import { PowerUpEffectService } from '../services/PowerUpEffectService';
 import { PowerUpType, Vector2D } from '../types';
+import { WeaponManager } from '../weapons/managers/WeaponManager';
 
 import { Bullet } from './Bullet';
 import { GameObject } from './GameObject';
@@ -33,6 +34,8 @@ export class Player extends GameObject implements IPlayer {
   private game?: IGame;
   private config: GameConfig;
   private powerUpEffectService?: PowerUpEffectService;
+  private weaponManager?: WeaponManager;
+  private useWeaponSystem: boolean = false; // 武器システム使用フラグ
 
   constructor(
     private eventEmitter: EventEmitter<EventMap>,
@@ -78,6 +81,11 @@ export class Player extends GameObject implements IPlayer {
     this.updateInvincibility();
     this.updateEngineAnimation();
     this.updateThrusterParticles(deltaTime);
+
+    // 武器システム更新
+    if (this.weaponManager) {
+      this.weaponManager.update(deltaTime);
+    }
   }
 
   private updateMovement(): void {
@@ -201,7 +209,13 @@ export class Player extends GameObject implements IPlayer {
   }
 
   private updateShooting(): void {
-    this.shoot();
+    if (this.useWeaponSystem && this.weaponManager) {
+      // 武器システムを使用した射撃
+      this.shootWithWeapons();
+    } else {
+      // 従来の射撃システム
+      this.shoot();
+    }
   }
 
   public shoot(): void {
@@ -235,6 +249,30 @@ export class Player extends GameObject implements IPlayer {
       }
       this.lastFireTime = currentTime;
     }
+  }
+
+  /**
+   * 武器システムを使用した射撃
+   */
+  public shootWithWeapons(): void {
+    if (!this.weaponManager) return;
+
+    const bullets = this.weaponManager.fireAllWeapons(this);
+    bullets.forEach(bullet => {
+      this.eventEmitter.emit('playerShot', bullet);
+    });
+  }
+
+  /**
+   * 特定の武器で射撃
+   */
+  public shootWithWeapon(weaponId: string): void {
+    if (!this.weaponManager) return;
+
+    const bullets = this.weaponManager.fireWeapon(weaponId, this);
+    bullets.forEach(bullet => {
+      this.eventEmitter.emit('playerShot', bullet);
+    });
   }
 
   /**
@@ -477,15 +515,20 @@ export class Player extends GameObject implements IPlayer {
    * 特殊攻撃を発動（モバイル用）
    */
   public activateSpecialAttack(): void {
-    // 特殊攻撃として一時的にトリプルショットを発動
-    const originalBulletType = this.bulletType;
-    this.bulletType = 'triple';
-    this.shoot();
+    if (this.useWeaponSystem && this.weaponManager) {
+      // 武器システム使用時：全武器で一斉射撃
+      this.shootWithWeapons();
+    } else {
+      // 従来システム：一時的にトリプルショットを発動
+      const originalBulletType = this.bulletType;
+      this.bulletType = 'triple';
+      this.shoot();
 
-    // 少し遅延してから元に戻す
-    setTimeout(() => {
-      this.bulletType = originalBulletType;
-    }, 100);
+      // 少し遅延してから元に戻す
+      setTimeout(() => {
+        this.bulletType = originalBulletType;
+      }, 100);
+    }
   }
 
   /**
@@ -507,5 +550,84 @@ export class Player extends GameObject implements IPlayer {
    */
   public isDebugInvincible(): boolean {
     return this.debugInvincible;
+  }
+
+  /**
+   * 武器管理システムを設定
+   */
+  public setWeaponManager(weaponManager: WeaponManager): void {
+    this.weaponManager = weaponManager;
+  }
+
+  /**
+   * 武器管理システムを取得
+   */
+  public getWeaponManager(): WeaponManager | undefined {
+    return this.weaponManager;
+  }
+
+  /**
+   * 武器システム使用を有効化
+   */
+  public enableWeaponSystem(enable: boolean = true): void {
+    this.useWeaponSystem = enable;
+  }
+
+  /**
+   * 武器システムが有効かどうか
+   */
+  public isWeaponSystemEnabled(): boolean {
+    return this.useWeaponSystem;
+  }
+
+  /**
+   * 武器購入
+   */
+  public async purchaseWeapon(weaponId: string): Promise<boolean> {
+    if (!this.weaponManager) return false;
+
+    const result = await this.weaponManager.purchaseWeapon(weaponId);
+    return result.success;
+  }
+
+  /**
+   * 武器装備
+   */
+  public equipWeapon(weaponId: string, slot: number): boolean {
+    if (!this.weaponManager) return false;
+
+    const result = this.weaponManager.equipWeapon(weaponId, slot);
+    return result.success;
+  }
+
+  /**
+   * 武器取り外し
+   */
+  public unequipWeapon(slot: number): boolean {
+    if (!this.weaponManager) return false;
+
+    const result = this.weaponManager.unequipWeapon(slot);
+    return result.success;
+  }
+
+  /**
+   * 装備中武器一覧取得
+   */
+  public getEquippedWeapons() {
+    return this.weaponManager?.getEquippedWeapons() ?? [];
+  }
+
+  /**
+   * 所有武器一覧取得
+   */
+  public getOwnedWeapons(): string[] {
+    return this.weaponManager?.getOwnedWeapons() ?? [];
+  }
+
+  /**
+   * 利用可能武器一覧取得
+   */
+  public getAvailableWeapons() {
+    return this.weaponManager?.getAvailableWeapons() ?? [];
   }
 }
