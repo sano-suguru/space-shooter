@@ -9,6 +9,7 @@ import { Card } from './Card';
 import { CategoryTabs } from './CategoryTabs';
 import { PlayerStats } from './PlayerStats';
 import { UpgradeItem } from './UpgradeItem';
+import { WeaponShopSection } from './WeaponShopSection';
 
 /**
  * アップグレードショップメインコンポーネント
@@ -22,6 +23,7 @@ export const UpgradeShop: React.FC<UpgradeShopProps> = props => {
     onClose,
     onPurchase,
     onCategoryChange,
+    weaponManager,
     className = '',
     style,
     testId = 'upgrade-shop',
@@ -73,12 +75,38 @@ export const UpgradeShop: React.FC<UpgradeShopProps> = props => {
           categories={categories}
           className='shop-categories'
         />
-        <UpgradeList
-          filteredUpgrades={filteredUpgrades}
-          playerProfile={playerProfile}
-          handlePurchase={handlePurchase}
-          purchaseInProgress={purchaseInProgress}
-        />
+        {currentCategory === 'weapon' && weaponManager ? (
+          <WeaponShopSection
+            playerProfile={playerProfile}
+            availableWeapons={weaponManager.getAvailableWeapons()}
+            ownedWeapons={weaponManager.getOwnedWeapons()}
+            equippedWeapons={weaponManager.getEquippedWeapons()}
+            onPurchase={async (weaponId: string) => {
+              const result = await weaponManager.purchaseWeapon(weaponId);
+              return result.success;
+            }}
+            onEquip={(weaponId: string, slot: number) => {
+              const result = weaponManager.equipWeapon(weaponId, slot);
+              return Promise.resolve(result.success);
+            }}
+            onUnequip={(weaponId: string) => {
+              // weaponIdから対応するslotを見つける
+              const equippedWeapons = weaponManager.getEquippedWeapons();
+              const weapon = equippedWeapons.find(w => w.weaponId === weaponId);
+              if (!weapon) return Promise.resolve(false);
+
+              const result = weaponManager.unequipWeapon(weapon.slot);
+              return Promise.resolve(result.success);
+            }}
+          />
+        ) : (
+          <UpgradeList
+            filteredUpgrades={filteredUpgrades}
+            playerProfile={playerProfile}
+            handlePurchase={handlePurchase}
+            purchaseInProgress={purchaseInProgress}
+          />
+        )}
         <UpgradeShopFooter />
       </Card>
     </div>
