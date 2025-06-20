@@ -66,6 +66,29 @@ export const GAME_MODES: GameMode[] = [
     ],
     rewardMultiplier: 5.0,
   },
+  {
+    id: 'debug',
+    name: 'デバッグモード',
+    description:
+      '開発者向けの動作確認モード。各種テスト機能が利用可能です。自機無敵、ウェーブ選択、敵生成、シナリオ再現などの機能を使用してゲームの動作を詳細に確認できます。',
+    unlockCondition: () => true, // 常に利用可能
+    modifiers: {
+      enemySpeedMultiplier: 1.0,
+      enemyHealthMultiplier: 1.0,
+      enemySpawnRateMultiplier: 1.0,
+      scoreMultiplier: 0.0, // デバッグモードではスコア無効
+      coinMultiplier: 0.0,
+      experienceMultiplier: 0.0,
+    },
+    specialRules: [
+      'デバッグUI表示',
+      'キーボードショートカット有効',
+      'シナリオ再現機能',
+      '各種テスト支援機能',
+      'スコア・報酬無効',
+    ],
+    rewardMultiplier: 0.0, // デバッグモードでは報酬なし
+  },
 ];
 
 /**
@@ -109,6 +132,8 @@ export function getGameModeUnlockRequirement(modeId: string): string {
       return 'ウェーブ10まで到達する';
     case 'survival':
       return 'ボスを5体倒す';
+    case 'debug':
+      return '条件なし（開発者向け）';
     default:
       return '条件なし';
   }

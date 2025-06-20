@@ -1,4 +1,6 @@
 import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
+import { DebugInputHandler } from '../debug/DebugInputHandler';
+import { DebugManager } from '../debug/DebugManager';
 import { Boss } from '../entities/Boss';
 import { BossBullet } from '../entities/BossBullet';
 import { Bullet } from '../entities/Bullet';
@@ -44,6 +46,8 @@ export class Game implements IGame {
   private touchInputManager: TouchInputManager | null = null;
   private mobileUIIntegration: MobileUIIntegration | null = null;
   private isMobile: boolean;
+  private debugManager?: DebugManager;
+  private debugInputHandler?: DebugInputHandler;
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -108,6 +112,24 @@ export class Game implements IGame {
     );
 
     this.stateManager.setState('STARTING', this);
+
+    // デバッグモードの初期化（必要に応じて）
+    this.initializeDebugMode();
+  }
+
+  /**
+   * デバッグモードの初期化
+   */
+  private initializeDebugMode(): void {
+    // デバッグモードかどうかをチェック（後で実装）
+    // 現在は常に初期化（開発中のため）
+    this.debugManager = new DebugManager(this, this.player, this.eventEmitter);
+    this.debugInputHandler = new DebugInputHandler(
+      this.debugManager,
+      this.inputManager
+    );
+
+    console.log('🔧 デバッグモードを初期化しました');
   }
 
   /**
@@ -759,6 +781,14 @@ export class Game implements IGame {
       this.mobileUIIntegration.dispose();
     }
 
+    if (this.debugManager) {
+      this.debugManager.dispose();
+    }
+
+    if (this.debugInputHandler) {
+      this.debugInputHandler.dispose();
+    }
+
     if (this.shootInterval) {
       clearInterval(this.shootInterval);
     }
@@ -776,5 +806,19 @@ export class Game implements IGame {
    */
   public getTouchInputManager(): TouchInputManager | null {
     return this.touchInputManager;
+  }
+
+  /**
+   * DebugManagerを取得（デバッグ用）
+   */
+  public getDebugManager(): DebugManager | undefined {
+    return this.debugManager;
+  }
+
+  /**
+   * デバッグモードが有効かどうか
+   */
+  public isDebugModeActive(): boolean {
+    return this.debugManager?.isActive() ?? false;
   }
 }

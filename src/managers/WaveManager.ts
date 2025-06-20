@@ -96,12 +96,17 @@ export class WaveManager {
       console.log(`[DEBUG] Wave ${this.currentWave}: Boss should spawn!`);
       const bossWave = WaveConfiguration.getBossWaveConfig(this.currentWave);
       if (bossWave) {
-        console.log(`[DEBUG] Wave ${this.currentWave}: Boss wave config found:`, bossWave);
+        console.log(
+          `[DEBUG] Wave ${this.currentWave}: Boss wave config found:`,
+          bossWave
+        );
         this.prepareBossWave(bossWave);
         this.waveActive = true;
         return true;
       } else {
-        console.warn(`[DEBUG] Wave ${this.currentWave}: Boss should spawn but no wave config found!`);
+        console.warn(
+          `[DEBUG] Wave ${this.currentWave}: Boss should spawn but no wave config found!`
+        );
       }
     } else {
       console.log(`[DEBUG] Wave ${this.currentWave}: No boss spawn expected`);
@@ -226,7 +231,9 @@ export class WaveManager {
 
     // ボスを生成
     const bossType = WaveConfiguration.getBossTypeForWave(this.currentWave);
-    console.log(`[DEBUG] Creating boss type: ${bossType} for wave ${this.currentWave}`);
+    console.log(
+      `[DEBUG] Creating boss type: ${bossType} for wave ${this.currentWave}`
+    );
 
     this.currentBoss = this.gameObjectFactory.createBoss(
       bossType,
@@ -386,9 +393,11 @@ export class WaveManager {
   }
 
   private completeWave(): void {
-    console.log(`[DEBUG] Wave ${this.currentWave} completed. Boss wave: ${this.isBossWave}`);
+    console.log(
+      `[DEBUG] Wave ${this.currentWave} completed. Boss wave: ${this.isBossWave}`
+    );
     this.waveActive = false;
-    
+
     // ボスウェーブフラグをリセット
     if (this.isBossWave) {
       this.isBossWave = false;

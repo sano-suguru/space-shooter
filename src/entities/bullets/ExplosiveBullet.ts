@@ -33,7 +33,9 @@ export class ExplosiveBullet extends BossBullet {
       return null;
     }
 
-    console.log(`[DEBUG] ExplosiveBullet: Exploding at (${this.x}, ${this.y}) with radius ${this.explosionRadius}`);
+    console.log(
+      `[DEBUG] ExplosiveBullet: Exploding at (${this.x}, ${this.y}) with radius ${this.explosionRadius}`
+    );
     this.hasExploded = true;
     this.explosion = new Explosion(this.getConfig());
     this.explosion.initialize(

@@ -222,7 +222,9 @@ export class StormInterceptor extends Boss {
     const newPhase = this.calculatePhase(healthPercentage);
 
     if (newPhase !== this.currentPhase) {
-      console.log(`[DEBUG] StormInterceptor: Phase transition ${this.currentPhase} -> ${newPhase} (Health: ${this.getHealthPercentage().toFixed(2)})`);
+      console.log(
+        `[DEBUG] StormInterceptor: Phase transition ${this.currentPhase} -> ${newPhase} (Health: ${this.getHealthPercentage().toFixed(2)})`
+      );
       this.triggerPhaseTransition(newPhase);
     }
   }

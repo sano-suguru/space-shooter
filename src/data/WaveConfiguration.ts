@@ -89,7 +89,13 @@ export class WaveConfiguration {
       name: '混合攻撃',
       enemies: [
         { type: 'SMALL', count: 10, formation: 'circle', delay: 120 },
-        { type: 'MEDIUM', count: 4, formation: 'diamond', delay: 300, offsetY: 60 },
+        {
+          type: 'MEDIUM',
+          count: 4,
+          formation: 'diamond',
+          delay: 300,
+          offsetY: 60,
+        },
       ],
       bonusScore: 200,
       nextWaveDelay: 3500,
@@ -108,7 +114,13 @@ export class WaveConfiguration {
       name: '精鋭部隊',
       enemies: [
         { type: 'LARGE', count: 3, formation: 'line', delay: 500 },
-        { type: 'MEDIUM', count: 5, formation: 'arrow', delay: 300, offsetY: 100 },
+        {
+          type: 'MEDIUM',
+          count: 5,
+          formation: 'arrow',
+          delay: 300,
+          offsetY: 100,
+        },
       ],
       bonusScore: 250,
       nextWaveDelay: 4000,
@@ -119,8 +131,20 @@ export class WaveConfiguration {
       name: '最終防衛線',
       enemies: [
         { type: 'SMALL', count: 12, formation: 'vformation', delay: 100 },
-        { type: 'MEDIUM', count: 6, formation: 'diamond', delay: 250, offsetY: 80 },
-        { type: 'LARGE', count: 2, formation: 'circle', delay: 600, offsetY: 140 },
+        {
+          type: 'MEDIUM',
+          count: 6,
+          formation: 'diamond',
+          delay: 250,
+          offsetY: 80,
+        },
+        {
+          type: 'LARGE',
+          count: 2,
+          formation: 'circle',
+          delay: 600,
+          offsetY: 140,
+        },
       ],
       bonusScore: 300,
       nextWaveDelay: 4500,

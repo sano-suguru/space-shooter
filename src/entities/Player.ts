@@ -20,6 +20,7 @@ export class Player extends GameObject implements IPlayer {
   private bulletType: 'single' | 'triple' = 'single';
   private shieldActive = false;
   private invincible = false;
+  private debugInvincible = false; // デバッグ用無敵フラグ
   private lastHitTime = 0;
   private lastFireTime = 0;
   private thrusterParticles: Array<{
@@ -309,6 +310,11 @@ export class Player extends GameObject implements IPlayer {
   }
 
   public takeDamage(amount: number): void {
+    // デバッグ無敵時はダメージを受けない
+    if (this.debugInvincible) {
+      return;
+    }
+
     if (!this.invincible && !this.shieldActive) {
       const reducedDamage = this.applyDamageReduction(amount);
       this.health = Math.max(0, this.health - reducedDamage);
@@ -487,5 +493,19 @@ export class Player extends GameObject implements IPlayer {
    */
   public getVelocity(): Vector2D {
     return { ...this.velocity };
+  }
+
+  /**
+   * デバッグ無敵モードを設定（デバッグ用）
+   */
+  public setDebugInvincible(invincible: boolean): void {
+    this.debugInvincible = invincible;
+  }
+
+  /**
+   * デバッグ無敵モードの状態を取得（デバッグ用）
+   */
+  public isDebugInvincible(): boolean {
+    return this.debugInvincible;
   }
 }

@@ -62,16 +62,22 @@ export class Enemy extends GameObject {
     ctx.save();
     ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
 
-    // エネミータイプに応じた描画
+    // エネミータイプに応じた描画（アウトライン付き）
     switch (this.enemyType) {
       case 'SMALL':
-        this.drawBasicEnemy(ctx, enemyTypeConfig.color);
+        this.drawWithOutline(ctx, () => {
+          this.drawBasicEnemy(ctx, enemyTypeConfig.color);
+        });
         break;
       case 'MEDIUM':
-        this.drawFastEnemy(ctx, enemyTypeConfig.color);
+        this.drawWithOutline(ctx, () => {
+          this.drawFastEnemy(ctx, enemyTypeConfig.color);
+        });
         break;
       case 'LARGE':
-        this.drawHeavyEnemy(ctx, enemyTypeConfig.color);
+        this.drawWithOutline(ctx, () => {
+          this.drawHeavyEnemy(ctx, enemyTypeConfig.color);
+        });
         break;
     }
 
@@ -180,6 +186,36 @@ export class Enemy extends GameObject {
       ctx.arc(x, y, size * 0.2, 0, Math.PI * 2);
       ctx.fill();
     }
+  }
+
+  /**
+   * 敵の視認性を向上させるためのアウトライン描画
+   */
+  private drawWithOutline(
+    ctx: CanvasRenderingContext2D,
+    drawFunction: () => void
+  ): void {
+    // 1. 影効果（背景との分離）
+    ctx.save();
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 2;
+    drawFunction();
+    ctx.restore();
+
+    // 2. 白いアウトライン（視認性向上）
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.lineWidth = 3;
+    ctx.shadowBlur = 5;
+    ctx.shadowColor = 'rgba(255, 255, 255, 0.6)';
+    drawFunction();
+    ctx.stroke();
+    ctx.restore();
+
+    // 3. メイン描画
+    drawFunction();
   }
 
   public takeDamage(): boolean {

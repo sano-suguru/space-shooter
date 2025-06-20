@@ -114,7 +114,9 @@ export class ShieldGuardian extends Boss {
     const newPhase = this.calculatePhase(healthPercentage);
 
     if (newPhase !== this.currentPhase) {
-      console.log(`[DEBUG] ShieldGuardian: Phase transition ${this.currentPhase} -> ${newPhase} (Health: ${this.getHealthPercentage().toFixed(2)})`);
+      console.log(
+        `[DEBUG] ShieldGuardian: Phase transition ${this.currentPhase} -> ${newPhase} (Health: ${this.getHealthPercentage().toFixed(2)})`
+      );
       this.triggerPhaseTransition(newPhase);
     }
   }

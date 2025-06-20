@@ -75,6 +75,13 @@ export class InputManager implements IInputManager {
         'A',
         'S',
         'D',
+        'F1',
+        'F2',
+        'F3',
+        'F4',
+        'F5',
+        'F6',
+        'F12',
       ].includes(key)
     ) {
       event.preventDefault();
