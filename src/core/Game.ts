@@ -85,6 +85,13 @@ export class Game implements IGame {
     // PlayerにGameインスタンスを設定（循環依存回避）
     this.player.setGame(this);
 
+    // 武器システムの初期化状況をログ出力
+    console.log('🔫 ゲーム初期化時の武器システム状況:', {
+      hasWeaponManager: !!this.player.getWeaponManager(),
+      weaponSystemEnabled: this.player.isWeaponSystemEnabled(),
+      equippedWeapons: this.player.getEquippedWeapons().length,
+    });
+
     // 動的敵生成システムを有効化
     this.gameObjectFactory.setDynamicEnemyEnabled(true);
 

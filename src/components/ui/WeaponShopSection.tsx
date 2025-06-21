@@ -69,9 +69,11 @@ export const WeaponShopSection: React.FC<WeaponShopSectionProps> = ({
   const handlePurchase = async (weaponId: string): Promise<void> => {
     if (purchaseInProgress) return;
 
+    console.log('🔫 武器購入試行:', { weaponId });
     setPurchaseInProgress(weaponId);
     try {
-      await onPurchase(weaponId);
+      const result = await onPurchase(weaponId);
+      console.log('🔫 武器購入結果:', { weaponId, success: result });
     } finally {
       setPurchaseInProgress(null);
     }
@@ -81,9 +83,11 @@ export const WeaponShopSection: React.FC<WeaponShopSectionProps> = ({
   const handleEquip = async (weaponId: string, slot: number): Promise<void> => {
     if (purchaseInProgress) return;
 
+    console.log('🔫 武器装備試行:', { weaponId, slot });
     setPurchaseInProgress(weaponId);
     try {
-      await onEquip(weaponId, slot);
+      const result = await onEquip(weaponId, slot);
+      console.log('🔫 武器装備結果:', { weaponId, slot, success: result });
     } finally {
       setPurchaseInProgress(null);
     }
@@ -93,9 +97,11 @@ export const WeaponShopSection: React.FC<WeaponShopSectionProps> = ({
   const handleUnequip = async (weaponId: string): Promise<void> => {
     if (purchaseInProgress) return;
 
+    console.log('🔫 武器取り外し試行:', { weaponId });
     setPurchaseInProgress(weaponId);
     try {
-      await onUnequip(weaponId);
+      const result = await onUnequip(weaponId);
+      console.log('🔫 武器取り外し結果:', { weaponId, success: result });
     } finally {
       setPurchaseInProgress(null);
     }

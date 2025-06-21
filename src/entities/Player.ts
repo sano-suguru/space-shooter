@@ -61,6 +61,13 @@ export class Player extends GameObject implements IPlayer {
     this.maxHealth = this.config.player.maxHealth;
     this.fireRate = this.config.player.fireRate;
     this.playerRenderer = new PlayerRenderer(this.config);
+
+    // 武器システムの初期状態をログ出力
+    console.log('🔫 Player初期化完了:', {
+      hasWeaponManager: !!this.weaponManager,
+      useWeaponSystem: this.useWeaponSystem,
+      activeWeaponSlot: this.activeWeaponSlot,
+    });
   }
 
   /**
@@ -558,6 +565,11 @@ export class Player extends GameObject implements IPlayer {
    */
   public setWeaponManager(weaponManager: WeaponManager): void {
     this.weaponManager = weaponManager;
+    console.log('🔫 WeaponManagerが設定されました:', {
+      weaponManager: !!weaponManager,
+      equippedWeapons: weaponManager.getEquippedWeapons().length,
+      ownedWeapons: weaponManager.getOwnedWeapons().length,
+    });
   }
 
   /**
@@ -572,6 +584,10 @@ export class Player extends GameObject implements IPlayer {
    */
   public enableWeaponSystem(enable: boolean = true): void {
     this.useWeaponSystem = enable;
+    console.log('🔫 武器システム使用フラグ:', {
+      enabled: enable,
+      hasWeaponManager: !!this.weaponManager,
+    });
   }
 
   /**
@@ -595,9 +611,19 @@ export class Player extends GameObject implements IPlayer {
    * 武器装備
    */
   public equipWeapon(weaponId: string, slot: number): boolean {
-    if (!this.weaponManager) return false;
+    console.log('🔫 武器装備試行:', {
+      weaponId,
+      slot,
+      hasWeaponManager: !!this.weaponManager,
+    });
+
+    if (!this.weaponManager) {
+      console.error('❌ WeaponManagerが初期化されていません');
+      return false;
+    }
 
     const result = this.weaponManager.equipWeapon(weaponId, slot);
+    console.log('🔫 武器装備結果:', result);
     return result.success;
   }
 
@@ -605,9 +631,18 @@ export class Player extends GameObject implements IPlayer {
    * 武器取り外し
    */
   public unequipWeapon(slot: number): boolean {
-    if (!this.weaponManager) return false;
+    console.log('🔫 武器取り外し試行:', {
+      slot,
+      hasWeaponManager: !!this.weaponManager,
+    });
+
+    if (!this.weaponManager) {
+      console.error('❌ WeaponManagerが初期化されていません');
+      return false;
+    }
 
     const result = this.weaponManager.unequipWeapon(slot);
+    console.log('🔫 武器取り外し結果:', result);
     return result.success;
   }
 

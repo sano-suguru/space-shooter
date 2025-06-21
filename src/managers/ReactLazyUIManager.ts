@@ -6,6 +6,7 @@ import React from 'react';
 import { createRoot, Root } from 'react-dom/client';
 
 import { SafeProgressDisplay } from '../components/ui/lazy/LazyComponents';
+import { UpgradeShop } from '../components/ui/UpgradeShop';
 import { EventEmitter } from '../events/EventEmitter';
 import { EventMap } from '../events/EventType';
 import { ProgressManager } from '../progression/managers/ProgressManager';
@@ -20,6 +21,7 @@ export class ReactLazyUIManager {
   private activeUI: string | null = null;
 
   private progressDisplayBtn!: HTMLElement;
+  private upgradeShopBtn!: HTMLElement;
 
   constructor(
     private eventEmitter: EventEmitter<EventMap>,
@@ -41,6 +43,12 @@ export class ReactLazyUIManager {
     } catch (_error) {
       console.warn('Progress display button not found, UI will be limited');
     }
+
+    try {
+      this.upgradeShopBtn = getElementOrThrow('upgrade-shop-btn');
+    } catch (_error) {
+      console.warn('Upgrade shop button not found, UI will be limited');
+    }
   }
 
   /**
@@ -54,6 +62,14 @@ export class ReactLazyUIManager {
     } catch (_error) {
       console.warn('Progress display container not found');
     }
+
+    try {
+      const container = getElementOrThrow('upgrade-shop-container');
+      const root = createRoot(container);
+      this.roots.set('upgrade-shop-container', root);
+    } catch (_error) {
+      console.warn('Upgrade shop container not found');
+    }
   }
 
   /**
@@ -63,6 +79,12 @@ export class ReactLazyUIManager {
     if (this.progressDisplayBtn) {
       this.progressDisplayBtn.addEventListener('click', () =>
         this.toggleProgressDisplay()
+      );
+    }
+
+    if (this.upgradeShopBtn) {
+      this.upgradeShopBtn.addEventListener('click', () =>
+        this.toggleUpgradeShop()
       );
     }
 
@@ -85,6 +107,10 @@ export class ReactLazyUIManager {
         case 'p':
           event.preventDefault();
           this.toggleProgressDisplay();
+          break;
+        case 'u':
+          event.preventDefault();
+          this.toggleUpgradeShop();
           break;
         case 'escape':
           event.preventDefault();
@@ -109,6 +135,21 @@ export class ReactLazyUIManager {
   }
 
   /**
+   * アップグレードショップの表示/非表示を切り替え
+   */
+  public toggleUpgradeShop(): void {
+    console.log('🔫 ショップボタンがクリックされました');
+    if (this.activeUI === 'upgrade-shop') {
+      this.hideAllUIs();
+    } else {
+      this.hideAllUIs();
+      this.showUpgradeShop();
+      this.activeUI = 'upgrade-shop';
+      this.updateButtonState('upgrade-shop');
+    }
+  }
+
+  /**
    * 進行状況表示を表示
    */
   private showProgressDisplay(): void {
@@ -123,6 +164,37 @@ export class ReactLazyUIManager {
           onClose: () => this.hideAllUIs(),
         })
       );
+    }
+  }
+
+  /**
+   * アップグレードショップを表示
+   */
+  private showUpgradeShop(): void {
+    console.log('🔫 ショップ表示を試行中:', {
+      hasWeaponManager: !!this.weaponManager,
+      hasRoot: !!this.roots.get('upgrade-shop-container'),
+    });
+
+    const root = this.roots.get('upgrade-shop-container');
+    if (root && this.weaponManager) {
+      const profile = this.progressManager.getProfile();
+
+      root.render(
+        React.createElement(UpgradeShop, {
+          isVisible: true,
+          playerProfile: profile,
+          availableUpgrades: [], // 空の配列（武器カテゴリのみ使用）
+          onClose: () => this.hideAllUIs(),
+          onPurchase: () => Promise.resolve(false), // ダミー実装
+          weaponManager: this.weaponManager,
+        })
+      );
+    } else {
+      console.error('🔫 ショップ表示に失敗:', {
+        hasRoot: !!root,
+        hasWeaponManager: !!this.weaponManager,
+      });
     }
   }
 
@@ -146,6 +218,9 @@ export class ReactLazyUIManager {
     if (activeUIName === 'progress-display' && this.progressDisplayBtn) {
       this.progressDisplayBtn.classList.add('active');
     }
+    if (activeUIName === 'upgrade-shop' && this.upgradeShopBtn) {
+      this.upgradeShopBtn.classList.add('active');
+    }
   }
 
   /**
@@ -153,6 +228,7 @@ export class ReactLazyUIManager {
    */
   private resetButtonStates(): void {
     this.progressDisplayBtn?.classList.remove('active');
+    this.upgradeShopBtn?.classList.remove('active');
   }
 
   /**
@@ -161,6 +237,9 @@ export class ReactLazyUIManager {
   private handleProfileUpdate(): void {
     if (this.activeUI === 'progress-display') {
       this.showProgressDisplay();
+    }
+    if (this.activeUI === 'upgrade-shop') {
+      this.showUpgradeShop();
     }
   }
 
