@@ -108,6 +108,14 @@ export class Game implements IGame {
     // GameRendererを初期化
     this.gameRenderer = new GameRenderer(this.ctx, this.backgroundRenderer);
 
+    // WeaponManagerをGameRendererに設定（武器システム初期化後に設定）
+    setTimeout(() => {
+      const weaponManager = this.player.getWeaponManager();
+      if (weaponManager) {
+        this.gameRenderer.setWeaponManager(weaponManager);
+      }
+    }, 0);
+
     // GameEngineを初期化
     this.gameEngine = new GameEngine(
       (deltaTime: number) => this.updateWithDeltaTime(deltaTime),
@@ -365,6 +373,16 @@ export class Game implements IGame {
     this.player.update(deltaTime);
     this.gameObjectManager.updateAllObjects(deltaTime);
 
+    // 弾丸のビジュアル更新
+    const weaponManager = this.player.getWeaponManager();
+    if (weaponManager) {
+      const bullets = this.gameObjectManager.getBullets();
+      weaponManager.updateBulletVisuals(bullets, deltaTime);
+
+      // 非アクティブ弾丸のクリーンアップは既存のremoveOffscreenObjectsで処理
+      // GameObjectManagerが自動的に非アクティブ弾丸を削除する
+    }
+
     // ウェーブシステムのアップデート
     if (this.config.wave.systemEnabled) {
       this.waveManager.update();
@@ -399,7 +417,13 @@ export class Game implements IGame {
     const deltaTime = now - (this.lastDrawTime || now);
     this.lastDrawTime = now;
 
-    this.gameRenderer.render(this.player, this.gameObjectManager, deltaTime);
+    const weaponManager = this.player.getWeaponManager();
+    this.gameRenderer.render(
+      this.player,
+      this.gameObjectManager,
+      deltaTime,
+      weaponManager
+    );
   }
 
   private spawnEnemy = (): void => {
@@ -459,6 +483,12 @@ export class Game implements IGame {
 
     // リセット後に新しいプレイヤーをGameObjectManagerに設定
     this.gameObjectManager.setPlayer(this.player);
+
+    // WeaponManagerをGameRendererに再設定
+    const weaponManager = this.player.getWeaponManager();
+    if (weaponManager) {
+      this.gameRenderer.setWeaponManager(weaponManager);
+    }
 
     this.level = 1;
     this.bossSpawnScore = 1000;
@@ -624,6 +654,20 @@ export class Game implements IGame {
    */
   public toggleBackgroundOptimization(): void {
     this.gameRenderer.toggleBackgroundOptimization();
+  }
+
+  /**
+   * ビジュアル効果の有効/無効を切り替え
+   */
+  public toggleEnhancedVisuals(): void {
+    this.gameRenderer.toggleEnhancedVisuals();
+  }
+
+  /**
+   * ビジュアル効果の状態を取得
+   */
+  public isEnhancedVisualsEnabled(): boolean {
+    return this.gameRenderer.isEnhancedVisualsEnabled();
   }
 
   /**

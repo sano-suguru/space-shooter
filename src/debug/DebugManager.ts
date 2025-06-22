@@ -91,6 +91,57 @@ export class DebugManager {
   }
 
   /**
+   * ビジュアル効果の切り替え
+   */
+  public toggleEnhancedVisuals(): void {
+    this.game.toggleEnhancedVisuals();
+    const isEnabled = this.game.isEnhancedVisualsEnabled();
+    console.log(`✨ 拡張ビジュアル効果: ${isEnabled ? 'ON' : 'OFF'}`);
+  }
+
+  /**
+   * 背景最適化の切り替え
+   */
+  public toggleBackgroundOptimization(): void {
+    this.game.toggleBackgroundOptimization();
+    console.log('🎨 背景レンダリング最適化を切り替えました');
+  }
+
+  /**
+   * 武器タイプの切り替え（デバッグ用）
+   */
+  public switchWeaponForDebug(slot: number): void {
+    this.game.switchWeapon(slot);
+    console.log(`🔫 武器スロット ${slot} に切り替えました`);
+  }
+
+  /**
+   * パフォーマンス統計の表示
+   */
+  public logPerformanceStats(): void {
+    try {
+      const stats = this.game.getAllPerformanceStats();
+      console.log('📊 パフォーマンス統計:', {
+        背景レンダリング: {
+          統計データ: stats.background,
+        },
+        オブジェクトプール: {
+          統計データ: stats.pools,
+        },
+        パフォーマンス: {
+          統計データ: stats.performance,
+        },
+        LOD: {
+          統計データ: stats.lod,
+        },
+        ビジュアル効果: this.game.isEnhancedVisualsEnabled() ? 'ON' : 'OFF',
+      });
+    } catch (error) {
+      console.warn('⚠️ パフォーマンス統計の取得に失敗しました:', error);
+    }
+  }
+
+  /**
    * デバッグ状態を取得
    */
   public getDebugState(): DebugState {
@@ -130,6 +181,7 @@ export class DebugManager {
    */
   private resetAllEffects(): void {
     this.setInvincibility(false);
+    // ビジュアル効果は保持（ユーザーの設定として）
     // 他の効果も今後ここでリセット
   }
 
@@ -144,6 +196,8 @@ export class DebugManager {
       現在ウェーブ: state.currentWave,
       敵数: state.enemyCount,
       FPS: state.fps,
+      ビジュアル効果: this.game.isEnhancedVisualsEnabled() ? 'ON' : 'OFF',
+      装備武器数: this.game.getEquippedWeapons().length,
     });
   }
 

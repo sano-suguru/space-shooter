@@ -1,5 +1,6 @@
 import { Player } from '../entities/Player';
 import { GameObjectManager } from '../managers/GameObjectManager';
+import { WeaponManager } from '../weapons/managers/WeaponManager';
 
 import { BackgroundRenderer } from './BackgroundRenderer';
 
@@ -9,6 +10,7 @@ import { BackgroundRenderer } from './BackgroundRenderer';
  */
 export class GameRenderer {
   private useOptimizedBackground = true;
+  private weaponManager: WeaponManager | null = null;
 
   constructor(
     private ctx: CanvasRenderingContext2D,
@@ -21,10 +23,11 @@ export class GameRenderer {
   public render(
     player: Player,
     gameObjectManager: GameObjectManager,
-    deltaTime: number = 16.67
+    deltaTime: number = 16.67,
+    weaponManager?: WeaponManager
   ): void {
     this.drawBackground(gameObjectManager, deltaTime);
-    this.drawGameObjects(player, gameObjectManager);
+    this.drawGameObjects(player, gameObjectManager, weaponManager);
   }
 
   /**
@@ -77,13 +80,23 @@ export class GameRenderer {
    */
   private drawGameObjects(
     player: Player,
-    gameObjectManager: GameObjectManager
+    gameObjectManager: GameObjectManager,
+    weaponManager?: WeaponManager
   ): void {
     // プレイヤー描画
     player.draw(this.ctx);
 
-    // ゲームオブジェクト描画
-    gameObjectManager.getBullets().forEach(bullet => bullet.draw(this.ctx));
+    // 弾丸描画（ビジュアル効果対応）
+    const bullets = gameObjectManager.getBullets();
+    if (weaponManager?.isEnhancedVisualsEnabled()) {
+      // カスタムビジュアル効果付きで描画
+      weaponManager.renderBullets(bullets, this.ctx);
+    } else {
+      // 従来の描画
+      bullets.forEach(bullet => bullet.draw(this.ctx));
+    }
+
+    // その他のゲームオブジェクト描画
     gameObjectManager.getEnemies().forEach(enemy => enemy.draw(this.ctx));
     gameObjectManager.getPowerups().forEach(powerup => powerup.draw(this.ctx));
     gameObjectManager
@@ -93,7 +106,7 @@ export class GameRenderer {
       .getExplosions()
       .forEach(explosion => explosion.draw(this.ctx));
 
-    // 新しい弾丸タイプの描画
+    // 新しい弾丸タイプの描画（特殊弾丸は従来の描画を使用）
     gameObjectManager
       .getExplosiveBullets()
       .forEach(bullet => bullet.draw(this.ctx));
@@ -125,6 +138,31 @@ export class GameRenderer {
     console.log(
       `Background optimization: ${this.useOptimizedBackground ? 'ON' : 'OFF'}`
     );
+  }
+
+  /**
+   * 武器マネージャーを設定
+   */
+  public setWeaponManager(weaponManager: WeaponManager): void {
+    this.weaponManager = weaponManager;
+  }
+
+  /**
+   * ビジュアル効果の有効/無効を切り替え
+   */
+  public toggleEnhancedVisuals(): void {
+    if (this.weaponManager) {
+      const currentState = this.weaponManager.isEnhancedVisualsEnabled();
+      this.weaponManager.setEnhancedVisualsEnabled(!currentState);
+      console.log(`Enhanced bullet visuals: ${!currentState ? 'ON' : 'OFF'}`);
+    }
+  }
+
+  /**
+   * ビジュアル効果の状態を取得
+   */
+  public isEnhancedVisualsEnabled(): boolean {
+    return this.weaponManager?.isEnhancedVisualsEnabled() ?? false;
   }
 
   /**

@@ -1,4 +1,7 @@
 import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
+import { BulletVisualManager } from '../weapons/systems/BulletVisualManager';
+import { EnchantmentType } from '../weapons/types/EnchantmentTypes';
+import { WeaponConfig } from '../weapons/types/WeaponTypes';
 
 import { GameObject } from './GameObject';
 
@@ -21,6 +24,12 @@ export class Bullet extends GameObject {
   private pulsePhase: number = 0;
   private config: GameConfig;
   private owner: 'player' | 'enemy' | 'boss' = 'player'; // 弾丸の所有者
+
+  // ビジュアル効果関連
+  private visualManager: BulletVisualManager | null = null;
+  private weaponConfig: WeaponConfig | null = null;
+  private enchantments: EnchantmentType[] = [];
+  private useCustomVisuals: boolean = false;
 
   // エンチャント効果プロパティ
   private piercing: boolean = false;
@@ -80,6 +89,10 @@ export class Bullet extends GameObject {
    * 弾丸をリセット（オブジェクトプール用）
    */
   public reset(): void {
+    // ビジュアル状態をクリーンアップ
+    this.cleanupVisuals();
+
+    // 基本リセット処理
     this.x = 0;
     this.y = 0;
     this.active = false;
@@ -90,6 +103,7 @@ export class Bullet extends GameObject {
     this.rotation = 0;
     this.pulsePhase = 0;
     this.bulletType = 'plasma';
+    this.owner = 'player';
   }
 
   public update(deltaTime: number): void {
@@ -116,6 +130,11 @@ export class Bullet extends GameObject {
 
     // トレイル更新
     this.updateTrail();
+
+    // カスタムビジュアル更新
+    if (this.useCustomVisuals && this.visualManager) {
+      this.visualManager.updateBulletVisual(this, deltaTime);
+    }
   }
 
   private updateTrail(): void {
@@ -140,6 +159,13 @@ export class Bullet extends GameObject {
   public draw(ctx: CanvasRenderingContext2D): void {
     if (!this.active) return;
 
+    // カスタムビジュアルが有効な場合はBulletVisualManagerを使用
+    if (this.useCustomVisuals && this.visualManager) {
+      this.visualManager.renderBullet(this, ctx);
+      return;
+    }
+
+    // 従来の描画処理
     ctx.save();
 
     // トレイルの描画
@@ -462,5 +488,80 @@ export class Bullet extends GameObject {
    */
   public setOwner(owner: 'player' | 'enemy' | 'boss'): void {
     this.owner = owner;
+  }
+
+  /**
+   * ビジュアルマネージャーを設定
+   */
+  public setVisualManager(visualManager: BulletVisualManager): void {
+    this.visualManager = visualManager;
+  }
+
+  /**
+   * 武器設定とエンチャント情報を設定してビジュアル効果を有効化
+   */
+  public setWeaponVisual(
+    weaponConfig: WeaponConfig,
+    enchantments: EnchantmentType[] = [],
+    visualManager?: BulletVisualManager
+  ): void {
+    this.weaponConfig = weaponConfig;
+    this.enchantments = [...enchantments];
+
+    if (visualManager) {
+      this.visualManager = visualManager;
+    }
+
+    if (this.visualManager) {
+      this.visualManager.setBulletVisual(this, weaponConfig, enchantments);
+      this.useCustomVisuals = true;
+    }
+  }
+
+  /**
+   * カスタムビジュアルの有効/無効を切り替え
+   */
+  public setCustomVisualsEnabled(enabled: boolean): void {
+    this.useCustomVisuals = enabled;
+  }
+
+  /**
+   * カスタムビジュアルが有効かどうかを取得
+   */
+  public isCustomVisualsEnabled(): boolean {
+    return this.useCustomVisuals;
+  }
+
+  /**
+   * 武器設定を取得
+   */
+  public getWeaponConfig(): WeaponConfig | null {
+    return this.weaponConfig;
+  }
+
+  /**
+   * エンチャント情報を取得
+   */
+  public getEnchantments(): EnchantmentType[] {
+    return [...this.enchantments];
+  }
+
+  /**
+   * ビジュアルマネージャーを取得
+   */
+  public getVisualManager(): BulletVisualManager | null {
+    return this.visualManager;
+  }
+
+  /**
+   * ビジュアル状態をクリーンアップ
+   */
+  public cleanupVisuals(): void {
+    if (this.visualManager && this.useCustomVisuals) {
+      this.visualManager.cleanupBulletVisual(this);
+    }
+    this.useCustomVisuals = false;
+    this.weaponConfig = null;
+    this.enchantments = [];
   }
 }

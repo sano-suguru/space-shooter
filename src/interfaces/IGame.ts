@@ -1,6 +1,7 @@
 import { BossBullet } from '../entities/BossBullet';
 import { Bullet } from '../entities/Bullet';
 import { Enemy } from '../entities/Enemy';
+import type { EquippedWeapon } from '../weapons/types/WeaponTypes';
 
 /**
  * Gameクラスのインターフェース
@@ -46,4 +47,39 @@ export interface IGame {
    * 現在のボス体力を取得する
    */
   getCurrentBossHealth(): number;
+
+  /**
+   * ビジュアル効果の有効/無効を切り替え
+   */
+  toggleEnhancedVisuals(): void;
+
+  /**
+   * ビジュアル効果の状態を取得
+   */
+  isEnhancedVisualsEnabled(): boolean;
+
+  /**
+   * 背景最適化の切り替え
+   */
+  toggleBackgroundOptimization(): void;
+
+  /**
+   * 武器切り替え
+   */
+  switchWeapon(slot: number): void;
+
+  /**
+   * 装備中の武器一覧を取得
+   */
+  getEquippedWeapons(): EquippedWeapon[];
+
+  /**
+   * 全パフォーマンス統計を取得
+   */
+  getAllPerformanceStats(): {
+    background: Record<string, unknown>;
+    pools: Record<string, unknown>;
+    performance: Record<string, unknown>;
+    lod: Record<string, unknown>;
+  };
 }

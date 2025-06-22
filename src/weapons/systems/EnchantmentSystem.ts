@@ -46,16 +46,18 @@ export class EnchantmentSystem {
     config: EnchantmentGenerationConfig
   ): EnchantmentGenerationResult {
     const log: string[] = [];
-    log.push(`エンチャント生成開始 - レアリティ: ${config.weaponRarity}`);
+    log.push(`🔮 エンチャント生成開始 - レアリティ: ${config.weaponRarity}`);
 
     // エンチャント数を決定
     const enchantmentCount = this.determineEnchantmentCount(
       config.weaponRarity,
       config.forceEnchantmentCount
     );
-    log.push(`エンチャント数: ${enchantmentCount}`);
+    log.push(`📊 決定されたエンチャント数: ${enchantmentCount}`);
 
     if (enchantmentCount === 0) {
+      log.push(`❌ エンチャントなしで生成完了`);
+      console.log('🔮 エンチャント生成結果:', log.join(' | '));
       return {
         enchantments: [],
         totalRarity: 0,
@@ -76,7 +78,8 @@ export class EnchantmentSystem {
       0
     );
 
-    log.push(`生成完了 - 総レアリティ: ${totalRarity.toFixed(3)}`);
+    log.push(`✅ 生成完了 - 総レアリティ: ${totalRarity.toFixed(3)}`);
+    console.log('🔮 エンチャント生成結果:', log.join(' | '));
 
     return {
       enchantments,
@@ -93,28 +96,45 @@ export class EnchantmentSystem {
     forceCount?: number
   ): number {
     if (forceCount !== undefined) {
-      return Math.max(0, Math.min(5, forceCount));
+      const forcedCount = Math.max(0, Math.min(5, forceCount));
+      console.log(`🎯 強制エンチャント数: ${forcedCount}`);
+      return forcedCount;
     }
 
     // レアリティによる最大エンチャント数
     const maxEnchantments = this.getMaxEnchantmentsByRarity(weaponRarity);
+    console.log(
+      `🎲 武器レアリティ ${weaponRarity} の最大エンチャント数: ${maxEnchantments}`
+    );
 
     // 確率テーブルから選択
     const roll = this.randomProvider.random();
     let cumulativeProbability = 0;
+    console.log(`🎰 ランダムロール: ${roll.toFixed(3)}`);
 
     for (const [countStr, probability] of Object.entries(
       ENCHANTMENT_COUNT_PROBABILITY
     )) {
       const count = parseInt(countStr);
-      if (count > maxEnchantments) continue;
+      if (count > maxEnchantments) {
+        console.log(
+          `⏭️ エンチャント数 ${count} は最大値 ${maxEnchantments} を超えるためスキップ`
+        );
+        continue;
+      }
 
       cumulativeProbability += probability;
+      console.log(
+        `🎯 エンチャント数 ${count}: 確率 ${probability} (累積: ${cumulativeProbability.toFixed(3)})`
+      );
+
       if (roll <= cumulativeProbability) {
+        console.log(`✅ 選択されたエンチャント数: ${count}`);
         return count;
       }
     }
 
+    console.log(`⚠️ フォールバック: エンチャント数 0`);
     return 0;
   }
 

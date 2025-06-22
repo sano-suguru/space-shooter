@@ -8,7 +8,10 @@ import {
   EnchantedWeapon,
   EnchantedWeaponUtils,
 } from '../weapons/types/EnchantedWeapon';
-import { Enchantment } from '../weapons/types/EnchantmentTypes';
+import {
+  Enchantment,
+  BASIC_ENCHANTMENTS,
+} from '../weapons/types/EnchantmentTypes';
 
 /**
  * 武器比較システム
@@ -190,25 +193,15 @@ export class WeaponComparisonSystem {
    * エンチャント効果の説明を取得
    */
   public getEnchantmentDescription(enchantment: Enchantment): string {
-    const descriptions: Record<string, string> = {
-      DAMAGE_BOOST: `ダメージ +${enchantment.value}%`,
-      FIRE_RATE_BOOST: `連射速度 +${enchantment.value}%`,
-      BULLET_COUNT: `弾数 +${enchantment.value}`,
-      PIERCING: `貫通 +${enchantment.value}`,
-      CRITICAL_HIT: `クリティカル率 +${enchantment.value}%`,
-      EXPLOSIVE: `爆発ダメージ +${enchantment.value}%`,
-      HOMING: `追尾性能 +${enchantment.value}%`,
-      CHAIN_LIGHTNING: `連鎖雷撃 +${enchantment.value}回`,
-      FREEZE: `凍結確率 +${enchantment.value}%`,
-      LIFE_STEAL: `ライフスティール +${enchantment.value}%`,
-      SPLIT: `分裂弾 +${enchantment.value}個`,
-      RICOCHET: `跳弾 +${enchantment.value}回`,
-      ORBITAL_STRIKE: `軌道爆撃確率 +${enchantment.value}%`,
-      TIME_DILATION: `時間減速 +${enchantment.value}%`,
-    };
-    return (
-      descriptions[enchantment.type] ??
-      `${enchantment.type}: +${enchantment.value}`
-    );
+    // BASIC_ENCHANTMENTSから日本語名を取得
+    const enchantmentConfig = BASIC_ENCHANTMENTS[enchantment.type];
+
+    if (enchantmentConfig) {
+      // 既存のdescriptionプロパティを使用（ティア情報付き）
+      return enchantment.description;
+    }
+
+    // フォールバック: 設定が見つからない場合
+    return `${enchantment.type}: +${enchantment.value}`;
   }
 }

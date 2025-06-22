@@ -14,6 +14,7 @@ import { RealRandomProvider } from '../../providers/RealRandomProvider';
 import { Vector2D } from '../../types';
 import { ALL_WEAPON_CONFIGS, getWeaponConfig } from '../data/weaponConfigs';
 import { IWeaponManager } from '../interfaces/IWeapon';
+import { EnhancedWeaponBulletFactory } from '../services/EnhancedWeaponBulletFactory';
 import { WeaponBulletFactory } from '../services/WeaponBulletFactory';
 import { ComboEffectProcessor } from '../systems/ComboEffectProcessor';
 import { WeaponDropSystem } from '../systems/WeaponDropSystem';
@@ -36,6 +37,8 @@ export class WeaponManager implements IWeaponManager {
   private weaponCooldowns: Map<string, number> = new Map();
   private maxEquippedWeapons: number = 3;
   private bulletFactory: WeaponBulletFactory;
+  private enhancedBulletFactory: EnhancedWeaponBulletFactory;
+  private useEnhancedVisuals: boolean = true; // ビジュアル効果の有効/無効
 
   // エンチャント済み武器システム
   private enchantedWeapons: Map<string, EnchantedWeapon> = new Map();
@@ -48,6 +51,7 @@ export class WeaponManager implements IWeaponManager {
     private randomProvider?: IRandomProvider
   ) {
     this.bulletFactory = new WeaponBulletFactory();
+    this.enhancedBulletFactory = new EnhancedWeaponBulletFactory();
 
     // ランダムプロバイダーの初期化
     const provider = this.randomProvider ?? new RealRandomProvider();
@@ -333,14 +337,31 @@ export class WeaponManager implements IWeaponManager {
     const bulletStartX = playerPos.x + player.getWidth() / 2;
     const bulletStartY = playerPos.y;
 
-    // WeaponBulletFactoryを使用して弾丸生成
+    // 弾丸生成（ビジュアル効果の有無に応じて選択）
     const direction = { x: 0, y: -1 }; // 上向き
-    const bullets = this.bulletFactory.createWeaponTypeBullet(
-      weapon.config.type,
-      weapon.config,
-      { x: bulletStartX, y: bulletStartY },
-      direction
-    );
+    const position = { x: bulletStartX, y: bulletStartY };
+
+    let bullets: Bullet[];
+    if (this.useEnhancedVisuals) {
+      // エンチャント済み武器の場合はエンチャント情報を取得
+      const enchantedWeapon = this.enchantedWeapons.get(weaponId);
+      const enchantments = enchantedWeapon?.enchantments.map(e => e.type) ?? [];
+
+      bullets = this.enhancedBulletFactory.createWeaponTypeVisualBullet(
+        weapon.config.type,
+        weapon.config,
+        position,
+        direction,
+        enchantments
+      );
+    } else {
+      bullets = this.bulletFactory.createWeaponTypeBullet(
+        weapon.config.type,
+        weapon.config,
+        position,
+        direction
+      );
+    }
 
     // 追尾弾丸の場合、ターゲットを設定
     bullets.forEach(bullet => {
@@ -398,6 +419,71 @@ export class WeaponManager implements IWeaponManager {
   }
 
   /**
+   * 弾丸のビジュアル更新（外部から呼び出し用）
+   */
+  public updateBulletVisuals(bullets: Bullet[], deltaTime: number): void {
+    if (this.useEnhancedVisuals) {
+      this.enhancedBulletFactory.updateBulletVisuals(bullets, deltaTime);
+    }
+  }
+
+  /**
+   * 弾丸のカスタム描画（外部から呼び出し用）
+   */
+  public renderBullets(bullets: Bullet[], ctx: CanvasRenderingContext2D): void {
+    if (this.useEnhancedVisuals) {
+      this.enhancedBulletFactory.renderBullets(bullets, ctx);
+    } else {
+      // 従来の描画
+      bullets.forEach(bullet => bullet.draw(ctx));
+    }
+  }
+
+  /**
+   * 非アクティブ弾丸のクリーンアップ（外部から呼び出し用）
+   */
+  public cleanupInactiveBullets(bullets: Bullet[]): Bullet[] {
+    const activeBullets: Bullet[] = [];
+    const inactiveBullets: Bullet[] = [];
+
+    bullets.forEach(bullet => {
+      if (bullet.isActive()) {
+        activeBullets.push(bullet);
+      } else {
+        inactiveBullets.push(bullet);
+      }
+    });
+
+    // 非アクティブ弾丸のビジュアルをクリーンアップ
+    if (this.useEnhancedVisuals && inactiveBullets.length > 0) {
+      this.enhancedBulletFactory.cleanupBulletVisuals(inactiveBullets);
+    }
+
+    return activeBullets;
+  }
+
+  /**
+   * ビジュアル効果の有効/無効を切り替え
+   */
+  public setEnhancedVisualsEnabled(enabled: boolean): void {
+    this.useEnhancedVisuals = enabled;
+  }
+
+  /**
+   * ビジュアル効果が有効かどうかを取得
+   */
+  public isEnhancedVisualsEnabled(): boolean {
+    return this.useEnhancedVisuals;
+  }
+
+  /**
+   * 拡張弾丸ファクトリーを取得
+   */
+  public getEnhancedBulletFactory(): EnhancedWeaponBulletFactory {
+    return this.enhancedBulletFactory;
+  }
+
+  /**
    * 武器統計更新
    */
   private updateWeaponStats(
@@ -449,6 +535,7 @@ export class WeaponManager implements IWeaponManager {
     this.weaponStats.clear();
     this.weaponCooldowns.clear();
     this.bulletFactory.cleanup();
+    this.enhancedBulletFactory.cleanup();
     this.initializeBasicWeapon();
   }
 
@@ -477,7 +564,17 @@ export class WeaponManager implements IWeaponManager {
    * 弾丸プール統計取得
    */
   public getBulletPoolStats(): Record<string, number> {
-    return this.bulletFactory.getPoolStats();
+    const basicStats = this.bulletFactory.getPoolStats();
+    if (this.useEnhancedVisuals) {
+      const enhancedStats = this.enhancedBulletFactory.getEnhancedStats();
+      return {
+        ...basicStats,
+        enhanced_pool: Object.keys(enhancedStats.poolStats).length,
+        visual_states: enhancedStats.visualStats.activeVisualStates,
+        total_particles: enhancedStats.visualStats.totalParticles,
+      };
+    }
+    return basicStats;
   }
 
   // エンチャント済み武器システムのメソッド
@@ -557,13 +654,24 @@ export class WeaponManager implements IWeaponManager {
     const firePosition = { x: bulletStartX, y: bulletStartY };
     const fireDirection = { x: 0, y: -1 };
 
-    // 基本弾丸を生成
-    const bullets = this.bulletFactory.createWeaponTypeBullet(
-      weapon.config.type,
-      weapon.config,
-      firePosition,
-      fireDirection
-    );
+    // 基本弾丸を生成（ビジュアル効果付き）
+    let bullets: Bullet[];
+    if (this.useEnhancedVisuals) {
+      bullets = this.enhancedBulletFactory.createWeaponTypeVisualBullet(
+        weapon.config.type,
+        weapon.config,
+        firePosition,
+        fireDirection,
+        enchantedWeapon.enchantments.map(e => e.type)
+      );
+    } else {
+      bullets = this.bulletFactory.createWeaponTypeBullet(
+        weapon.config.type,
+        weapon.config,
+        firePosition,
+        fireDirection
+      );
+    }
 
     // エンチャント効果を適用
     const comboResult = this.comboEffectProcessor.applyComboEffects(
