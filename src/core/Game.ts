@@ -116,7 +116,7 @@ export class Game implements IGame {
 
     this.stateManager.setState('STARTING', this);
 
-    // デバッグモードの初期化（必要に応じて）
+    // デバッグモードの初期化（WaveManager初期化後）
     this.initializeDebugMode();
   }
 
@@ -181,9 +181,13 @@ export class Game implements IGame {
       this.inputManager
     );
 
+    // WaveManagerが初期化された後にDebugManagerに設定
+    if (this.waveManager) {
+      this.debugManager.setWaveManager(this.waveManager);
+    }
+
     console.log('🔧 デバッグモードを初期化しました');
   }
-
 
   private initializeGameObjects(): void {
     // GameObjectManagerを初期化
@@ -336,14 +340,12 @@ export class Game implements IGame {
   public start(): void {
     this.eventEmitter.emit('gameStarted');
 
-
     this.gameEngine.start();
     setInterval(this.spawnEnemy, this.config.enemy.spawnInterval);
 
     // ウェーブシステムを開始
     this.startWaveSystem();
   }
-
 
   /**
    * GameEngineから呼び出される更新メソッド
@@ -713,7 +715,6 @@ export class Game implements IGame {
       this.debugInputHandler.dispose();
     }
   }
-
 
   /**
    * DebugManagerを取得（デバッグ用）

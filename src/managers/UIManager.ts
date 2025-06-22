@@ -49,7 +49,6 @@ export class UIManager {
     this.gameOverElement.classList.remove('hidden');
   }
 
-
   /**
    * 設定を取得（テスト用）
    */

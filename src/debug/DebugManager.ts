@@ -6,6 +6,7 @@ import { Player } from '../entities/Player';
 import { EventEmitter } from '../events/EventEmitter';
 import { EventMap } from '../events/EventType';
 import { IGame } from '../interfaces/IGame';
+import { WaveManager } from '../managers/WaveManager';
 
 import { DebugState } from './types/DebugTypes';
 
@@ -14,6 +15,7 @@ export class DebugManager {
   private game: IGame;
   private player: Player;
   private eventEmitter: EventEmitter<EventMap>;
+  private waveManager: WaveManager | null = null;
 
   constructor(
     game: IGame,
@@ -65,11 +67,39 @@ export class DebugManager {
   }
 
   /**
+   * WaveManagerを設定
+   */
+  public setWaveManager(waveManager: WaveManager): void {
+    this.waveManager = waveManager;
+  }
+
+  /**
+   * 次のウェーブにスキップ
+   */
+  public skipToNextWave(): void {
+    if (!this.waveManager) {
+      console.warn('⚠️ WaveManagerが設定されていません');
+      return;
+    }
+
+    // WaveManagerを通じて次のウェーブを開始
+    const currentWave = this.waveManager.getCurrentWave();
+    this.waveManager.startNextWave();
+    console.log(
+      `⏭️ Wave ${currentWave} から Wave ${currentWave + 1} にスキップしました`
+    );
+  }
+
+  /**
    * デバッグ状態を取得
    */
   public getDebugState(): DebugState {
     // 現在の状態を更新
     this.debugState.playerHealth = this.player.getHealth();
+
+    if (this.waveManager) {
+      this.debugState.currentWave = this.waveManager.getCurrentWave();
+    }
 
     return { ...this.debugState };
   }

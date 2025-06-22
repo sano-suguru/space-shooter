@@ -6,12 +6,12 @@ import { GameObjectFactory } from './factories/GameObjectFactory';
 import { IInputManager } from './interfaces/IInputManager';
 import { DOMManager, MessageManager } from './managers';
 import { GameStateManager } from './managers/GameStateManager';
+import { InputManager } from './managers/InputManager';
 import { ReactLazyUIManager } from './managers/ReactLazyUIManager';
 import { ScoreManager } from './managers/ScoreManager';
 import { UIManager } from './managers/UIManager';
 import { ProgressManager } from './progression/managers/ProgressManager';
 import { RealRandomProvider, RealTimeProvider } from './providers';
-import { InputManager } from './managers/InputManager';
 import { getElementOrThrow } from './utils/DOMUtils';
 import { WeaponManager } from './weapons/managers/WeaponManager';
 
@@ -42,7 +42,6 @@ function initGame(): void {
     coreManagers.progressManager,
     weaponManager
   );
-
 
   const game = createGame(
     canvas,
@@ -134,7 +133,6 @@ function initializeUIManagers(
   console.log('Active UI Manager:', reactLazyUIManager.getActiveUI());
 }
 
-
 function createGame(
   canvas: HTMLCanvasElement,
   eventEmitter: EventEmitter<EventMap>,
@@ -155,7 +153,6 @@ function createGame(
     managers.messageManager
   );
 }
-
 
 function initApplication(): void {
   initGame(); // ゲーム初期化（React.lazy()システム統合済み）

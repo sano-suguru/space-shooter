@@ -56,8 +56,9 @@ export class DebugInputHandler {
         console.log('⏸️ F3: 時間停止/再開（未実装）');
         break;
       case 'F4':
-        // TODO: 次のウェーブへスキップ
-        console.log('⏭️ F4: 次のウェーブへスキップ（未実装）');
+      case '4': // テスト用に4キーでもウェーブスキップ
+        // 次のウェーブへスキップ
+        this.debugManager.skipToNextWave();
         break;
       case 'F5':
         // TODO: 敵全削除
