@@ -99,5 +99,13 @@ export type EventMap = Readonly<{
     droppedWeapon: DroppedWeapon;
     playerPosition: { x: number; y: number };
   }) => void;
+  weaponSelectionStarted: (data: {
+    availableWeapons: DroppedWeapon[];
+    playerPosition: { x: number; y: number };
+  }) => void;
+  weaponSelectionCompleted: (data: {
+    selectedWeaponIndex: number;
+    selectedWeapon: DroppedWeapon;
+  }) => void;
 }> &
   GameCommandMap;

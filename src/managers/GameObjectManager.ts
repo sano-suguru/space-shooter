@@ -126,7 +126,7 @@ export class GameObjectManager {
     this.explosions.forEach(explosion => explosion.update(deltaTime));
     this.bossBullets.forEach(bossBullet => bossBullet.update(deltaTime));
 
-    // デバッグ: ドロップされた武器の更新状況を確認
+    // ドロップされた武器の更新とプレイヤー距離チェック
     if (this.droppedWeapons.length > 0) {
       console.log(
         `🔧 GameObjectManager: ${this.droppedWeapons.length}個の武器を更新中`
@@ -146,6 +146,12 @@ export class GameObjectManager {
           console.log(`🚀 STEP4: update()呼び出し成功`);
         } catch (error) {
           console.error(`🚀 STEP4: update()呼び出しエラー:`, error);
+        }
+
+        // プレイヤーとの距離チェック（武器発見イベント発火のため）
+        if (this.player) {
+          const playerPos = this.player.getPosition();
+          weapon.checkPlayerDistance(playerPos.x, playerPos.y);
         }
 
         console.log(`🚀 STEP5: 武器[${index}]の処理完了`);

@@ -81,6 +81,7 @@ export class BulletVisualManager {
     enchantments: EnchantmentType[] = []
   ): void {
     const visualConfig = this.generateBulletVisual(weaponConfig, enchantments);
+
     const bulletId = bullet.getId();
 
     const visualState: BulletVisualState = {

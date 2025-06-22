@@ -6,6 +6,7 @@ export class BossBullet extends GameObject {
   private speedX: number;
   private speedY: number;
   private config: GameConfig;
+  private uniqueId: string = '';
 
   constructor(
     x: number,
@@ -47,5 +48,45 @@ export class BossBullet extends GameObject {
    */
   public getConfig(): GameConfig {
     return this.config;
+  }
+
+  /**
+   * 弾丸の一意IDを取得
+   */
+  public getId(): string {
+    if (!this.uniqueId) {
+      this.uniqueId = `boss_bullet_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+    }
+    return this.uniqueId;
+  }
+
+  /**
+   * IDをリセット（サブクラス用）
+   */
+  protected resetId(): void {
+    this.uniqueId = '';
+  }
+
+  /**
+   * 弾丸の位置を取得
+   */
+  public getPosition(): { x: number; y: number } {
+    return { x: this.x, y: this.y };
+  }
+
+  /**
+   * 弾丸がアクティブかどうかを確認
+   */
+  public isActive(): boolean {
+    return this.isOnScreen();
+  }
+
+  /**
+   * 弾丸を非アクティブ化
+   */
+  public deactivate(): void {
+    // BossBulletでは画面外に移動させることで非アクティブ化
+    this.x = -1000;
+    this.y = -1000;
   }
 }

@@ -1,3 +1,4 @@
+import { Game } from '../core/Game';
 import { DroppedWeapon } from '../entities/DroppedWeapon';
 import { EventEmitter } from '../events/EventEmitter';
 import { EventMap } from '../events/EventType';
@@ -6,6 +7,7 @@ import { WeaponComparisonUI } from '../ui/WeaponComparisonUI';
 import { EnchantedWeapon } from '../weapons/types/EnchantedWeapon';
 
 import { GameObjectManager } from './GameObjectManager';
+import { GameStateManager } from './GameStateManager';
 
 /**
  * 武器比較マネージャー
@@ -16,14 +18,21 @@ export class WeaponComparisonManager {
   private comparisonUI: WeaponComparisonUI;
   private currentDroppedWeapon: DroppedWeapon | null = null;
   private gameObjectManager: GameObjectManager;
+  private gameStateManager: GameStateManager;
+  private gameInstance: Game | null = null;
 
   constructor(
     private eventEmitter: EventEmitter<EventMap>,
-    gameObjectManager: GameObjectManager
+    gameObjectManager: GameObjectManager,
+    gameStateManager: GameStateManager
   ) {
     this.comparisonSystem = new WeaponComparisonSystem();
     this.comparisonUI = new WeaponComparisonUI();
     this.gameObjectManager = gameObjectManager;
+    this.gameStateManager = gameStateManager;
+
+    // WeaponComparisonUIにGameStateManagerを設定
+    this.comparisonUI.setGameStateManager(gameStateManager);
 
     this.setupEventListeners();
   }
@@ -63,6 +72,13 @@ export class WeaponComparisonManager {
       return;
     }
 
+    console.log('🎮 ゲーム状態をWEAPON_SELECTIONに変更します');
+
+    // ゲーム状態をWEAPON_SELECTIONに変更（時間停止）
+    if (this.gameInstance) {
+      this.gameStateManager.setState('WEAPON_SELECTION', this.gameInstance);
+    }
+
     this.currentDroppedWeapon = data.droppedWeapon;
 
     const currentWeapon = this.getCurrentPlayerWeapon(player);
@@ -76,6 +92,12 @@ export class WeaponComparisonManager {
 
     // 比較UIを表示
     this.comparisonUI.show(comparisonData, this.handlePlayerChoice.bind(this));
+
+    console.log('⏸️ 武器選択状態に移行しました - ゲーム時間停止', {
+      weaponName: newWeapon.displayName,
+      rarity: newWeapon.rarity,
+      playerPosition: data.playerPosition,
+    });
   }
 
   /**
@@ -127,6 +149,12 @@ export class WeaponComparisonManager {
     } else {
       console.log('❌ 現在の武器を保持します');
       this.keepCurrentWeapon();
+    }
+
+    // 武器選択完了後、ゲーム状態をPLAYINGに戻す
+    console.log('🎮 武器選択完了 - ゲーム状態をPLAYINGに戻します');
+    if (this.gameInstance) {
+      this.gameStateManager.setState('PLAYING', this.gameInstance);
     }
 
     this.currentDroppedWeapon = null;
@@ -195,6 +223,13 @@ export class WeaponComparisonManager {
    */
   public forceClose(): void {
     this.comparisonUI.hide();
+
+    // 強制終了時もゲーム状態をPLAYINGに戻す
+    if (this.currentDroppedWeapon && this.gameInstance) {
+      console.log('🎮 武器比較強制終了 - ゲーム状態をPLAYINGに戻します');
+      this.gameStateManager.setState('PLAYING', this.gameInstance);
+    }
+
     this.currentDroppedWeapon = null;
   }
 
@@ -203,5 +238,14 @@ export class WeaponComparisonManager {
    */
   public isComparing(): boolean {
     return this.currentDroppedWeapon !== null;
+  }
+
+  /**
+   * Gameインスタンスを設定（初期化時に呼び出される）
+   */
+  public setGameInstance(game: Game): void {
+    this.gameInstance = game;
+    // WeaponComparisonUIにもGameインスタンスを設定
+    this.comparisonUI.setGameInstance(game);
   }
 }

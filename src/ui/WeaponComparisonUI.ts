@@ -1,4 +1,6 @@
+import { IGame } from '../interfaces/IGame';
 import { WeaponComparisonData } from '../interfaces/IWeaponComparison';
+import { GameStateManager } from '../managers/GameStateManager';
 import { WeaponComparisonSystem } from '../systems/WeaponComparisonSystem';
 
 /**
@@ -9,10 +11,26 @@ export class WeaponComparisonUI {
   private container: HTMLDivElement | null = null;
   private comparisonSystem: WeaponComparisonSystem;
   private onChoiceCallback: ((equipNew: boolean) => void) | null = null;
+  private gameInstance: IGame | null = null;
+  private gameStateManager: GameStateManager | null = null;
+  private keyboardHandler: ((e: KeyboardEvent) => void) | null = null;
 
   constructor() {
     this.comparisonSystem = new WeaponComparisonSystem();
-    this.setupKeyboardListeners();
+  }
+
+  /**
+   * ゲームインスタンスを設定
+   */
+  public setGameInstance(game: IGame): void {
+    this.gameInstance = game;
+  }
+
+  /**
+   * GameStateManagerを設定
+   */
+  public setGameStateManager(stateManager: GameStateManager): void {
+    this.gameStateManager = stateManager;
   }
 
   /**
@@ -26,6 +44,9 @@ export class WeaponComparisonUI {
     this.createUI(comparisonData);
     document.body.appendChild(this.container!);
 
+    // キーボードリスナーを設定
+    this.setupKeyboardListeners();
+
     // ゲームを一時停止
     this.pauseGame();
   }
@@ -34,6 +55,9 @@ export class WeaponComparisonUI {
    * 武器比較UIを非表示
    */
   public hide(): void {
+    // キーボードリスナーを削除
+    this.removeKeyboardListeners();
+
     if (this.container) {
       document.body.removeChild(this.container);
       this.container = null;
@@ -232,7 +256,10 @@ export class WeaponComparisonUI {
    * キーボードリスナーを設定
    */
   private setupKeyboardListeners(): void {
-    document.addEventListener('keydown', e => {
+    // 既存のリスナーがある場合は削除
+    this.removeKeyboardListeners();
+
+    this.keyboardHandler = (e: KeyboardEvent) => {
       if (!this.container) return;
 
       switch (e.key.toLowerCase()) {
@@ -246,7 +273,19 @@ export class WeaponComparisonUI {
           this.handleChoice(false);
           break;
       }
-    });
+    };
+
+    document.addEventListener('keydown', this.keyboardHandler);
+  }
+
+  /**
+   * キーボードリスナーを削除
+   */
+  private removeKeyboardListeners(): void {
+    if (this.keyboardHandler) {
+      document.removeEventListener('keydown', this.keyboardHandler);
+      this.keyboardHandler = null;
+    }
   }
 
   /**
@@ -263,16 +302,31 @@ export class WeaponComparisonUI {
    * ゲームを一時停止
    */
   private pauseGame(): void {
-    // ゲームループを一時停止する処理（後で実装）
-    console.log('🔄 ゲーム一時停止');
+    console.log('🔄 武器比較UI: ゲーム一時停止');
+
+    if (this.gameInstance) {
+      // ゲームループを一時停止
+      this.gameInstance.pauseGameLoop();
+    }
+
+    if (this.gameStateManager && this.gameInstance) {
+      // ゲーム状態を武器選択状態に変更
+      this.gameStateManager.setState(
+        'WEAPON_SELECTION',
+        this.gameInstance as unknown as import('../core/Game').Game
+      );
+    }
   }
 
   /**
    * ゲームを再開
    */
   private resumeGame(): void {
-    // ゲームループを再開する処理（後で実装）
-    console.log('▶️ ゲーム再開');
+    // ゲーム状態の復帰はWeaponComparisonManagerで行うため、
+    // ここではゲームループの再開のみ実行
+    if (this.gameInstance) {
+      this.gameInstance.resumeGameLoop();
+    }
   }
 
   /**

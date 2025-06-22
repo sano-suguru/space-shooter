@@ -116,6 +116,108 @@ export class DebugManager {
   }
 
   /**
+   * 武器を強制ドロップ（デバッグ用）
+   */
+  public forceWeaponDrop(): void {
+    console.log('🎁 デバッグ: 武器強制ドロップを実行');
+
+    // プレイヤーの位置を取得
+    const playerPosition = this.player.getPosition();
+    console.log('📍 プレイヤー位置:', playerPosition);
+
+    // 武器マネージャーを取得
+    const weaponManager = this.player.getWeaponManager();
+    if (!weaponManager) {
+      console.error('❌ WeaponManagerが見つかりません');
+      return;
+    }
+    console.log('✅ WeaponManager取得成功');
+
+    // 武器ドロップシステムを取得
+    const weaponDropSystem = weaponManager.getWeaponDropSystem();
+    if (!weaponDropSystem) {
+      console.error('❌ WeaponDropSystemが見つかりません');
+      return;
+    }
+    console.log('✅ WeaponDropSystem取得成功');
+
+    // 強制ドロップ用の敵情報を作成
+    const debugEnemyInfo = {
+      type: 'elite' as const, // エリート敵として扱い、ドロップ率を上げる
+      level: 10, // 高レベルに設定
+      position: {
+        x: playerPosition.x + 50, // プレイヤーの少し右側にドロップ
+        y: playerPosition.y,
+      },
+    };
+
+    // 武器ドロップを試行（強制的に成功させるため複数回試行）
+    let dropAttempts = 0;
+    const maxAttempts = 10;
+
+    while (dropAttempts < maxAttempts) {
+      console.log(`🎲 ドロップ試行 ${dropAttempts + 1}/${maxAttempts}`);
+      const dropResult = weaponDropSystem.attemptDrop(debugEnemyInfo);
+      
+      console.log('🎲 ドロップ結果:', {
+        success: dropResult.success,
+        actualDropRate: dropResult.actualDropRate,
+        dropReason: dropResult.dropReason,
+        hasDroppedWeapon: !!dropResult.droppedWeapon,
+        hasEnchantedWeapon: !!dropResult.enchantedWeapon,
+      });
+
+      if (dropResult.success && dropResult.droppedWeapon) {
+        console.log('✅ 武器ドロップ成功 - GameObjectManagerに追加中...');
+        
+        // DroppedWeaponにEventEmitterを設定
+        dropResult.droppedWeapon.setEventEmitter(this.eventEmitter);
+        console.log('✅ EventEmitter設定完了');
+
+        // 直接的なアクセス方法を試行
+        try {
+          // Game.tsのhandleWeaponDropメソッドと同じ方法を使用
+          const gameInstance = this.game as any;
+          if (gameInstance.gameObjectManager && gameInstance.gameObjectManager.addDroppedWeapon) {
+            gameInstance.gameObjectManager.addDroppedWeapon(dropResult.droppedWeapon);
+            console.log('✅ GameObjectManagerに武器追加成功（直接アクセス）');
+          } else {
+            console.error('❌ GameObjectManagerまたはaddDroppedWeaponメソッドが見つかりません');
+            console.log('🔍 利用可能なプロパティ:', Object.keys(gameInstance));
+          }
+        } catch (error) {
+          console.error('❌ GameObjectManagerへの追加でエラー:', error);
+        }
+
+        console.log('🎉 デバッグ武器ドロップ成功:', {
+          weaponName: dropResult.enchantedWeapon?.displayName,
+          rarity: dropResult.enchantedWeapon?.rarity,
+          position: debugEnemyInfo.position,
+          attempts: dropAttempts + 1,
+        });
+
+        // 成功メッセージを表示
+        this.game.showMessage(
+          `🔧 デバッグ: ${dropResult.enchantedWeapon?.rarity?.toUpperCase()}武器をドロップしました！`,
+          2000,
+          'info'
+        );
+
+        return;
+      }
+
+      dropAttempts++;
+    }
+
+    console.warn(`⚠️ ${maxAttempts}回試行しましたが武器ドロップに失敗しました`);
+    this.game.showMessage(
+      '🔧 デバッグ: 武器ドロップに失敗しました',
+      1500,
+      'info'
+    );
+  }
+
+  /**
    * パフォーマンス統計の表示
    */
   public logPerformanceStats(): void {

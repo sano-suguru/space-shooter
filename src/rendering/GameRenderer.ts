@@ -207,6 +207,20 @@ export class GameRenderer {
   }
 
   /**
+   * 一時停止状態を設定
+   */
+  public setPaused(paused: boolean): void {
+    this.backgroundRenderer.setPaused(paused);
+  }
+
+  /**
+   * 一時停止状態を取得
+   */
+  public isPausedState(): boolean {
+    return this.backgroundRenderer.isPausedState();
+  }
+
+  /**
    * リソースクリーンアップ
    */
   public dispose(): void {

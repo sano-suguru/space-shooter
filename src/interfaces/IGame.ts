@@ -74,6 +74,16 @@ export interface IGame {
   getEquippedWeapons(): EquippedWeapon[];
 
   /**
+   * ゲームループを一時停止
+   */
+  pauseGameLoop(): void;
+
+  /**
+   * ゲームループを再開
+   */
+  resumeGameLoop(): void;
+
+  /**
    * 全パフォーマンス統計を取得
    */
   getAllPerformanceStats(): {

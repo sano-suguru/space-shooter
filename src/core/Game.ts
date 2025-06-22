@@ -261,8 +261,12 @@ export class Game implements IGame {
   private initializeWeaponComparisonSystem(): void {
     this.weaponComparisonManager = new WeaponComparisonManager(
       this.eventEmitter,
-      this.gameObjectManager
+      this.gameObjectManager,
+      this.stateManager
     );
+
+    // WeaponComparisonManagerにGameインスタンスを設定
+    this.weaponComparisonManager.setGameInstance(this);
   }
 
   private setupEventListeners(): void {
@@ -366,6 +370,12 @@ export class Game implements IGame {
       this.updateGameObjects(deltaTime);
       this.checkCollisions();
       this.gameObjectManager.removeOffscreenObjects();
+    }
+
+    // 武器選択状態の場合は更新処理を停止
+    if (this.stateManager.isWeaponSelecting()) {
+      console.log('⏸️ 武器選択中 - ゲームオブジェクトの更新を停止');
+      return;
     }
   }
 
@@ -577,10 +587,12 @@ export class Game implements IGame {
 
   public resumeGameLoop(): void {
     this.gameEngine.resume();
+    this.gameRenderer.setPaused(false);
   }
 
   public pauseGameLoop(): void {
     this.gameEngine.pause();
+    this.gameRenderer.setPaused(true);
   }
 
   public showGameOverScreen(): void {
@@ -862,6 +874,9 @@ export class Game implements IGame {
     });
 
     if (dropResult.success && dropResult.droppedWeapon) {
+      // DroppedWeaponにEventEmitterを設定
+      dropResult.droppedWeapon.setEventEmitter(this.eventEmitter);
+
       // ゲームオブジェクトマネージャーに追加
       this.gameObjectManager.addDroppedWeapon(dropResult.droppedWeapon);
 

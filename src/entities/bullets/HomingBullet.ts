@@ -172,6 +172,8 @@ export class HomingBullet extends BossBullet {
   public reset(): void {
     this.target = undefined;
     this.homingStartTime = Date.now();
+    // 親クラスのIDをリセット
+    this.resetId();
   }
 
   /**

@@ -1,8 +1,14 @@
 import { Game } from '../core/Game';
+import { DroppedWeapon } from '../entities/DroppedWeapon';
 import { EventEmitter } from '../events/EventEmitter';
 import { EventMap } from '../events/EventType';
 
-export type GameStateKey = 'STARTING' | 'PLAYING' | 'PAUSED' | 'GAME_OVER';
+export type GameStateKey =
+  | 'STARTING'
+  | 'PLAYING'
+  | 'PAUSED'
+  | 'GAME_OVER'
+  | 'WEAPON_SELECTION';
 
 export interface GameState {
   enter(game: Game): void;
@@ -143,6 +149,111 @@ class GameOverState implements GameState {
   }
 }
 
+class WeaponSelectionState implements GameState {
+  private selectedWeaponIndex: number = 0;
+  private availableWeapons: DroppedWeapon[] = [];
+
+  constructor(private eventEmitter: EventEmitter<EventMap>) {}
+
+  enter(game: Game): void {
+    console.log('Entering Weapon Selection state');
+    game.pauseGameLoop();
+
+    // 武器選択開始イベントを発行
+    this.eventEmitter.emit('weaponSelectionStarted', {
+      availableWeapons: this.availableWeapons,
+      playerPosition: { x: 0, y: 0 }, // プレイヤー位置は後で実装
+    });
+
+    game.showMessage(
+      'Select a weapon: Use Arrow Keys and press SPACE to confirm'
+    );
+  }
+
+  update(_game: Game): void {
+    // 武器選択状態では時間が完全に停止するため、更新処理は行わない
+  }
+
+  exit(game: Game): void {
+    console.log('Exiting Weapon Selection state');
+    game.hideMessage();
+
+    // 武器選択完了イベントを発行
+    if (this.availableWeapons[this.selectedWeaponIndex]) {
+      this.eventEmitter.emit('weaponSelectionCompleted', {
+        selectedWeaponIndex: this.selectedWeaponIndex,
+        selectedWeapon: this.availableWeapons[this.selectedWeaponIndex],
+      });
+    }
+  }
+
+  handleInput(game: Game, input: string): void {
+    switch (input) {
+      case 'ArrowUp':
+      case 'w':
+      case 'W':
+        this.selectedWeaponIndex = Math.max(0, this.selectedWeaponIndex - 1);
+        this.updateSelectionDisplay(game);
+        break;
+      case 'ArrowDown':
+      case 's':
+      case 'S':
+        this.selectedWeaponIndex = Math.min(
+          this.availableWeapons.length - 1,
+          this.selectedWeaponIndex + 1
+        );
+        this.updateSelectionDisplay(game);
+        break;
+      case ' ':
+        // 武器選択を確定してゲームを再開
+        this.confirmSelection(game);
+        break;
+      case 'Escape':
+        // 選択をキャンセルしてゲームを再開
+        this.cancelSelection(game);
+        break;
+    }
+  }
+
+  setAvailableWeapons(weapons: DroppedWeapon[]): void {
+    this.availableWeapons = weapons;
+    this.selectedWeaponIndex = 0;
+  }
+
+  private updateSelectionDisplay(game: Game): void {
+    const selectedWeapon = this.availableWeapons[this.selectedWeaponIndex];
+    if (selectedWeapon) {
+      const enchantedWeapon = selectedWeapon.getEnchantedWeapon();
+      game.showMessage(
+        `Select weapon: ${enchantedWeapon.displayName} (${
+          this.selectedWeaponIndex + 1
+        }/${
+          this.availableWeapons.length
+        })\nPress SPACE to confirm, ESC to cancel`
+      );
+    }
+  }
+
+  private confirmSelection(game: Game): void {
+    const selectedWeapon = this.availableWeapons[this.selectedWeaponIndex];
+    if (selectedWeapon) {
+      // 選択された武器の収集処理（後で実装）
+      console.log(
+        '武器選択確定:',
+        selectedWeapon.getEnchantedWeapon().displayName
+      );
+    }
+
+    // ゲームを再開
+    game.getStateManager().setState('PLAYING', game);
+  }
+
+  private cancelSelection(game: Game): void {
+    // 選択をキャンセルしてゲームを再開
+    game.getStateManager().setState('PLAYING', game);
+  }
+}
+
 export class GameStateManager {
   private currentState: GameState;
   private states: Record<GameStateKey, GameState>;
@@ -153,6 +264,7 @@ export class GameStateManager {
       PLAYING: new PlayingState(),
       PAUSED: new PausedState(),
       GAME_OVER: new GameOverState(),
+      WEAPON_SELECTION: new WeaponSelectionState(this.eventEmitter),
     };
     this.currentState = this.states.STARTING;
   }
@@ -180,5 +292,22 @@ export class GameStateManager {
     return Object.keys(this.states).find(
       key => this.states[key as GameStateKey] === this.currentState
     ) as GameStateKey;
+  }
+
+  /**
+   * 武器選択状態を開始
+   */
+  startWeaponSelection(game: Game, availableWeapons: DroppedWeapon[]): void {
+    const weaponSelectionState = this.states
+      .WEAPON_SELECTION as WeaponSelectionState;
+    weaponSelectionState.setAvailableWeapons(availableWeapons);
+    this.setState('WEAPON_SELECTION', game);
+  }
+
+  /**
+   * 武器選択状態かどうかを判定
+   */
+  isWeaponSelecting(): boolean {
+    return this.currentState === this.states.WEAPON_SELECTION;
   }
 }

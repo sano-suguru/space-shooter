@@ -181,6 +181,8 @@ export class ReflectingBullet extends BossBullet {
    */
   public reset(): void {
     this.reflectionCount = 0;
+    // 親クラスのIDをリセット
+    this.resetId();
   }
 
   /**

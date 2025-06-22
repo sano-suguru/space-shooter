@@ -68,6 +68,11 @@ export class DebugInputHandler {
         // TODO: パワーアップ全取得
         console.log('⚡ F6: パワーアップ全取得（未実装）');
         break;
+      case 'F7':
+      case '7': // テスト用に7キーでも武器強制ドロップ
+        // 武器強制ドロップ
+        this.debugManager.forceWeaponDrop();
+        break;
       case 'F12':
         // デバッグ情報をコンソールに出力
         this.debugManager.logDebugInfo();

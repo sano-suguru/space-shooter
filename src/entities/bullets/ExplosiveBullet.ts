@@ -93,6 +93,8 @@ export class ExplosiveBullet extends BossBullet {
   public reset(): void {
     this.hasExploded = false;
     this.explosion = undefined;
+    // 親クラスのIDをリセット
+    this.resetId();
   }
 
   /**

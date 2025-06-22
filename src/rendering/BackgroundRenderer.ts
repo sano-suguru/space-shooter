@@ -53,6 +53,9 @@ export class BackgroundRenderer {
   private lodManager: LODManager;
   private lastUpdateTime = 0;
 
+  // 一時停止状態管理
+  private isPaused = false;
+
   constructor(private config: GameConfig = createGameConfig()) {
     this.initializeCaches();
     this.performanceMonitor = new PerformanceMonitor();
@@ -268,11 +271,14 @@ export class BackgroundRenderer {
     // 3. 宇宙塵雲（遠景エフェクト）
     spaceDusts.forEach(dust => dust.draw(ctx));
 
-    // 4. 惑星（定期更新キャッシュ使用）
-    this.planetCacheFrameCounter++;
+    // 4. 惑星（定期更新キャッシュ使用 - 一時停止中はアニメーション停止）
+    if (!this.isPaused) {
+      this.planetCacheFrameCounter++;
+    }
     if (
       !this.planetCacheValid ||
-      this.planetCacheFrameCounter >= this.planetCacheUpdateInterval
+      (!this.isPaused &&
+        this.planetCacheFrameCounter >= this.planetCacheUpdateInterval)
     ) {
       this.renderPlanetsToCache(planets);
     }
@@ -281,14 +287,29 @@ export class BackgroundRenderer {
     // 5. 星（毎フレーム描画 - 改良されたバリエーション）
     stars.forEach(star => star.draw(ctx));
 
-    // 6. 流星群（中景エフェクト）
-    meteorShowers.forEach(shower => shower.draw(ctx));
+    // 6. 流星群（中景エフェクト - 一時停止中はアニメーション停止）
+    if (!this.isPaused) {
+      meteorShowers.forEach(shower => shower.draw(ctx));
+    } else {
+      // 一時停止中は最後の状態で描画
+      meteorShowers.forEach(shower => shower.draw(ctx));
+    }
 
-    // 7. 彗星（動的エフェクト）
-    comets.forEach(comet => comet.draw(ctx));
+    // 7. 彗星（動的エフェクト - 一時停止中はアニメーション停止）
+    if (!this.isPaused) {
+      comets.forEach(comet => comet.draw(ctx));
+    } else {
+      // 一時停止中は最後の状態で描画
+      comets.forEach(comet => comet.draw(ctx));
+    }
 
-    // 8. オーロラ（前景エフェクト）
-    auroras.forEach(aurora => aurora.draw(ctx));
+    // 8. オーロラ（前景エフェクト - 一時停止中はアニメーション停止）
+    if (!this.isPaused) {
+      auroras.forEach(aurora => aurora.draw(ctx));
+    } else {
+      // 一時停止中は最後の状態で描画
+      auroras.forEach(aurora => aurora.draw(ctx));
+    }
 
     // パフォーマンス測定
     const endTime = performance.now();
@@ -729,6 +750,21 @@ export class BackgroundRenderer {
     this.planetCacheValid = false;
     this.staticElementsCacheValid = false;
     this.planetCacheFrameCounter = 0;
+  }
+
+  /**
+   * 一時停止状態を設定
+   */
+  public setPaused(paused: boolean): void {
+    this.isPaused = paused;
+    console.log(`🎨 BackgroundRenderer: ${paused ? '一時停止' : '再開'}`);
+  }
+
+  /**
+   * 一時停止状態を取得
+   */
+  public isPausedState(): boolean {
+    return this.isPaused;
   }
 
   /**

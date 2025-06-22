@@ -5,6 +5,8 @@
  */
 
 import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
+import { EventEmitter } from '../events/EventEmitter';
+import { EventMap } from '../events/EventType';
 import { EnchantedWeapon } from '../weapons/types/EnchantedWeapon';
 import { WeaponRarity } from '../weapons/types/WeaponTypes';
 
@@ -42,12 +44,15 @@ export class DroppedWeapon extends GameObject {
   private spawnAnimation: number = 0;
   private trail: Array<{ x: number; y: number; alpha: number }> = [];
   private config: GameConfig;
+  private eventEmitter: EventEmitter<EventMap> | null = null;
+  private hasTriggeredWeaponFound: boolean = false;
 
   constructor(
     enchantedWeapon: EnchantedWeapon,
     x: number,
     y: number,
-    config?: GameConfig
+    config?: GameConfig,
+    eventEmitter?: EventEmitter<EventMap>
   ) {
     const gameConfig = config ?? createGameConfig();
 
@@ -57,6 +62,7 @@ export class DroppedWeapon extends GameObject {
     this.enchantedWeapon = enchantedWeapon;
     this.maxLifeTime = 30000; // 30秒で消失
     this.pickupRadius = 50;
+    this.eventEmitter = eventEmitter ?? null;
 
     // 初期速度（ランダムな方向に飛び散る）
     const angle = Math.random() * Math.PI * 2;
@@ -518,15 +524,48 @@ export class DroppedWeapon extends GameObject {
         pickupRadius: this.pickupRadius,
         state: this.state,
         lifeTime: (this.lifeTime / 1000).toFixed(1) + 's',
+        hasTriggeredWeaponFound: this.hasTriggeredWeaponFound,
       });
     }
 
+    // 武器発見イベントの発火（一度だけ）
     if (
       distance <= this.pickupRadius &&
-      this.state === DroppedWeaponState.FLOATING
+      this.state === DroppedWeaponState.FLOATING &&
+      !this.hasTriggeredWeaponFound &&
+      this.eventEmitter
     ) {
       console.log(
-        `🎯 ${this.enchantedWeapon.displayName}: FLOATING → ATTRACTING`
+        `🔍 武器発見イベント発火: ${this.enchantedWeapon.displayName}`,
+        {
+          distance: distance.toFixed(1),
+          pickupRadius: this.pickupRadius,
+          playerPosition: { x: playerX, y: playerY },
+        }
+      );
+
+      this.hasTriggeredWeaponFound = true;
+      this.eventEmitter.emit('weaponFound', {
+        droppedWeapon: this,
+        playerPosition: { x: playerX, y: playerY },
+      });
+
+      // 状態をATTRACTINGに変更
+      this.state = DroppedWeaponState.ATTRACTING;
+      console.log(
+        `🎯 ${this.enchantedWeapon.displayName}: FLOATING → ATTRACTING (weaponFound発火)`
+      );
+      return true;
+    }
+
+    // 従来の処理（weaponFoundイベント未発火の場合）
+    if (
+      distance <= this.pickupRadius &&
+      this.state === DroppedWeaponState.FLOATING &&
+      this.hasTriggeredWeaponFound
+    ) {
+      console.log(
+        `🎯 ${this.enchantedWeapon.displayName}: FLOATING → ATTRACTING (既存処理)`
       );
       this.state = DroppedWeaponState.ATTRACTING;
       return true;
@@ -583,5 +622,26 @@ export class DroppedWeapon extends GameObject {
       this.y > -this.height &&
       this.y < this.config.canvas.height + this.height
     );
+  }
+
+  /**
+   * EventEmitterを設定
+   */
+  public setEventEmitter(eventEmitter: EventEmitter<EventMap>): void {
+    this.eventEmitter = eventEmitter;
+  }
+
+  /**
+   * 武器発見フラグをリセット（テスト用）
+   */
+  public resetWeaponFoundFlag(): void {
+    this.hasTriggeredWeaponFound = false;
+  }
+
+  /**
+   * 武器発見フラグの状態を取得（テスト用）
+   */
+  public hasTriggeredWeaponFoundEvent(): boolean {
+    return this.hasTriggeredWeaponFound;
   }
 }

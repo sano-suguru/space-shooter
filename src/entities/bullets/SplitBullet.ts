@@ -180,6 +180,8 @@ export class SplitBullet extends BossBullet {
   public reset(): void {
     this.hasSplit = false;
     this.creationTime = Date.now();
+    // 親クラスのIDをリセット
+    this.resetId();
   }
 
   /**
