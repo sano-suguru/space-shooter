@@ -32,7 +32,7 @@ export class WeaponBulletFactory implements IWeaponBulletFactory {
   public createBasicBullet(
     weaponConfig: WeaponConfig,
     position: Vector2D,
-    direction: Vector2D
+    _direction: Vector2D
   ): Bullet {
     const bullet = this.getBulletFromPool(weaponConfig.id) ?? new Bullet();
 
@@ -43,8 +43,9 @@ export class WeaponBulletFactory implements IWeaponBulletFactory {
     bullet.initialize(
       position.x,
       position.y,
-      speed * direction.y, // Y方向の速度（通常は上向き）
-      color
+      speed, // 正の速度値を渡す
+      color,
+      'player' // プレイヤーの武器から発射された弾丸
     );
 
     return bullet;

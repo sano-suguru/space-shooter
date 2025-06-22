@@ -20,6 +20,23 @@ export class Bullet extends GameObject {
   private rotationSpeed: number = 0.2;
   private pulsePhase: number = 0;
   private config: GameConfig;
+  private owner: 'player' | 'enemy' | 'boss' = 'player'; // 弾丸の所有者
+
+  // エンチャント効果プロパティ
+  private piercing: boolean = false;
+  private piercingCount: number = 0;
+  private explosive: boolean = false;
+  private explosionRadius: number = 0;
+  private homing: boolean = false;
+  private homingDuration: number = 0;
+  private chainLightning: boolean = false;
+  private chainCount: number = 0;
+  private split: boolean = false;
+  private splitCount: number = 0;
+  private ricochet: boolean = false;
+  private ricochetCount: number = 0;
+  private criticalChance: number = 0;
+  private uniqueId: string = '';
 
   constructor(x: number = 0, y: number = 0, config?: GameConfig) {
     // 後方互換性のため、configが未指定の場合はデフォルト設定を使用
@@ -38,7 +55,8 @@ export class Bullet extends GameObject {
     x: number,
     y: number,
     speed?: number,
-    color?: string
+    color?: string,
+    owner?: 'player' | 'enemy' | 'boss'
   ): void {
     this.x = x;
     this.y = y;
@@ -49,6 +67,7 @@ export class Bullet extends GameObject {
     this.trail = [];
     this.rotation = 0;
     this.pulsePhase = Math.random() * Math.PI * 2;
+    this.owner = owner ?? 'player'; // デフォルトはプレイヤー
 
     // 色から弾丸タイプを判定
     if (color?.includes('ff')) this.bulletType = 'energy';
@@ -76,8 +95,14 @@ export class Bullet extends GameObject {
   public update(deltaTime: number): void {
     if (!this.active) return;
 
-    // 弾丸の位置更新
-    this.y -= this.speed * deltaTime;
+    // 弾丸の位置更新（所有者に応じて方向を決定）
+    if (this.owner === 'player') {
+      // プレイヤーの弾丸は上向き（負の方向）
+      this.y -= this.speed * deltaTime;
+    } else {
+      // 敵・ボスの弾丸は下向き（正の方向）
+      this.y += this.speed * deltaTime;
+    }
 
     // アニメーション更新
     this.animationTime += deltaTime;
@@ -313,5 +338,129 @@ export class Bullet extends GameObject {
    */
   public getPosition(): { x: number; y: number } {
     return { x: this.x, y: this.y };
+  }
+
+  // エンチャント効果メソッド
+  public setPiercing(count: number): void {
+    this.piercing = count > 0;
+    this.piercingCount = count;
+  }
+
+  public setExplosive(explosive: boolean): void {
+    this.explosive = explosive;
+  }
+
+  public setExplosionRadius(radius: number): void {
+    this.explosionRadius = radius;
+  }
+
+  public setHoming(homing: boolean): void {
+    this.homing = homing;
+  }
+
+  public setHomingDuration(duration: number): void {
+    this.homingDuration = duration;
+  }
+
+  public setChainLightning(chain: boolean): void {
+    this.chainLightning = chain;
+  }
+
+  public setChainCount(count: number): void {
+    this.chainCount = count;
+  }
+
+  public setSplit(split: boolean): void {
+    this.split = split;
+  }
+
+  public setSplitCount(count: number): void {
+    this.splitCount = count;
+  }
+
+  public setRicochet(ricochet: boolean): void {
+    this.ricochet = ricochet;
+  }
+
+  public setRicochetCount(count: number): void {
+    this.ricochetCount = count;
+  }
+
+  public setCriticalChance(chance: number): void {
+    this.criticalChance = chance;
+  }
+
+  public getId(): string {
+    if (!this.uniqueId) {
+      this.uniqueId = `bullet_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+    }
+    return this.uniqueId;
+  }
+
+  // エンチャント効果の取得メソッド
+  public isPiercing(): boolean {
+    return this.piercing;
+  }
+
+  public getPiercingCount(): number {
+    return this.piercingCount;
+  }
+
+  public isExplosive(): boolean {
+    return this.explosive;
+  }
+
+  public getExplosionRadius(): number {
+    return this.explosionRadius;
+  }
+
+  public isHoming(): boolean {
+    return this.homing;
+  }
+
+  public getHomingDuration(): number {
+    return this.homingDuration;
+  }
+
+  public hasChainLightning(): boolean {
+    return this.chainLightning;
+  }
+
+  public getChainCount(): number {
+    return this.chainCount;
+  }
+
+  public canSplit(): boolean {
+    return this.split;
+  }
+
+  public getSplitCount(): number {
+    return this.splitCount;
+  }
+
+  public canRicochet(): boolean {
+    return this.ricochet;
+  }
+
+  public getRicochetCount(): number {
+    return this.ricochetCount;
+  }
+
+  public getCriticalChance(): number {
+    return this.criticalChance;
+  }
+
+  /**
+   * 弾丸の所有者を取得
+   */
+  public getOwner(): 'player' | 'enemy' | 'boss' {
+    return this.owner;
+  }
+
+  /**
+   * 弾丸の所有者を設定
+   */
+  public setOwner(owner: 'player' | 'enemy' | 'boss'): void {
+    this.owner = owner;
   }
 }

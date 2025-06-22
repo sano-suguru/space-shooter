@@ -1,4 +1,5 @@
 import { Bullet } from '../entities/Bullet';
+import { DroppedWeapon } from '../entities/DroppedWeapon';
 import { Enemy } from '../entities/Enemy';
 import { PowerUp } from '../entities/PowerUp';
 import { GameStateKey } from '../managers/GameStateManager';
@@ -94,5 +95,9 @@ export type EventMap = Readonly<{
   weaponPurchased: (data: { weaponId: string; cost: number }) => void;
   weaponEquipped: (data: { weaponId: string; slot: number }) => void;
   weaponUnequipped: (data: { weaponId: string; slot: number }) => void;
+  weaponFound: (data: {
+    droppedWeapon: DroppedWeapon;
+    playerPosition: { x: number; y: number };
+  }) => void;
 }> &
   GameCommandMap;

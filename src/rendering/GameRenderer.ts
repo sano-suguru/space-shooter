@@ -87,6 +87,9 @@ export class GameRenderer {
     gameObjectManager.getEnemies().forEach(enemy => enemy.draw(this.ctx));
     gameObjectManager.getPowerups().forEach(powerup => powerup.draw(this.ctx));
     gameObjectManager
+      .getDroppedWeapons()
+      .forEach(weapon => weapon.draw(this.ctx));
+    gameObjectManager
       .getExplosions()
       .forEach(explosion => explosion.draw(this.ctx));
 

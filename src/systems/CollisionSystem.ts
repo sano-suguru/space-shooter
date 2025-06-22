@@ -1,5 +1,6 @@
 import { Boss } from '../entities/Boss';
 import { Bullet } from '../entities/Bullet';
+import { DroppedWeapon } from '../entities/DroppedWeapon';
 import { Enemy } from '../entities/Enemy';
 import { GameObject } from '../entities/GameObject';
 import { Player } from '../entities/Player';
@@ -32,8 +33,9 @@ export class CollisionSystem {
    * 全ての衝突判定を統合的に実行
    */
   public checkAllCollisions(player: IPlayer): void {
-    // 衝突可能な全オブジェクトを取得
-    const allObjects = this.gameObjectManager.getAllCollidableObjects();
+    // 衝突可能な全オブジェクトを取得（ドロップされた武器を含む）
+    const allObjects =
+      this.gameObjectManager.getAllCollidableObjectsWithWeapons();
     allObjects.push(player as unknown as GameObject);
 
     // 空間分割による最適化を適用
@@ -44,6 +46,7 @@ export class CollisionSystem {
     this.checkBulletPlayerCollisions(player);
     this.checkPlayerEnemyCollisions(player);
     this.checkPlayerPowerupCollisions(player);
+    this.checkPlayerDroppedWeaponCollisions(player);
 
     const boss = this.gameObjectManager.getBoss();
     if (boss) {
@@ -103,10 +106,19 @@ export class CollisionSystem {
 
     for (const nearbyObj of nearbyObjects) {
       if (this.isBullet(nearbyObj) && bullets.includes(nearbyObj)) {
+        // プレイヤーの弾丸は除外
+        if (nearbyObj.getOwner() === 'player') {
+          continue;
+        }
+
         if (
           nearbyObj.isActive() &&
           this.checkCollision(player as unknown as GameObject, nearbyObj)
         ) {
+          console.log('💥 敵弾丸がプレイヤーに命中:', {
+            bulletOwner: nearbyObj.getOwner(),
+            damage: 20,
+          });
           this.eventEmitter.emit('playerDamaged', 20);
           nearbyObj.deactivate();
           break; // プレイヤーは一度の衝突で処理終了
@@ -157,6 +169,42 @@ export class CollisionSystem {
         if (this.checkCollision(player as unknown as GameObject, nearbyObj)) {
           this.eventEmitter.emit('powerUpCollected', nearbyObj);
           this.gameObjectManager.removePowerUp(nearbyObj);
+        }
+      }
+    }
+  }
+
+  /**
+   * プレイヤーとドロップされた武器の衝突判定（SpatialHash最適化版）
+   */
+  private checkPlayerDroppedWeaponCollisions(player: IPlayer): void {
+    const droppedWeapons = this.gameObjectManager.getDroppedWeapons();
+    if (droppedWeapons.length === 0) return;
+
+    const nearbyObjects = this.collisionOptimizer
+      .getSpatialHash()
+      .getNearby(player as unknown as GameObject);
+    this.spatialHashChecks += nearbyObjects.size;
+    this.totalChecks += droppedWeapons.length;
+
+    for (const nearbyObj of nearbyObjects) {
+      if (
+        this.isDroppedWeapon(nearbyObj) &&
+        droppedWeapons.includes(nearbyObj)
+      ) {
+        // DroppedWeaponクラスの距離チェックメソッドを使用
+        const playerPos = player.getPosition();
+
+        if (nearbyObj.checkPlayerDistance(playerPos.x, playerPos.y)) {
+          console.log(
+            `🔍 武器発見: ${nearbyObj.getEnchantedWeapon().displayName}`
+          );
+
+          // 武器比較システムを呼び出す（後で実装）
+          this.eventEmitter.emit('weaponFound', {
+            droppedWeapon: nearbyObj,
+            playerPosition: playerPos,
+          });
         }
       }
     }
@@ -229,6 +277,13 @@ export class CollisionSystem {
    */
   private isPowerUp(obj: GameObject): obj is PowerUp {
     return obj instanceof PowerUp;
+  }
+
+  /**
+   * 型ガード関数：オブジェクトがDroppedWeaponかどうかを判定
+   */
+  private isDroppedWeapon(obj: GameObject): obj is DroppedWeapon {
+    return obj instanceof DroppedWeapon;
   }
 
   /**

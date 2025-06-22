@@ -7,6 +7,7 @@ import {
   StormInterceptor,
 } from '../entities/bosses';
 import { Comet } from '../entities/Comet';
+import { DroppedWeapon } from '../entities/DroppedWeapon';
 import { DynamicEnemy } from '../entities/DynamicEnemy';
 import { Enemy } from '../entities/Enemy';
 import { MeteorShower } from '../entities/MeteorShower';
@@ -27,6 +28,7 @@ import {
 } from '../systems/types/EnemyGeneration';
 import { BossType, EnemyType, Vector2D } from '../types';
 import { randomRange } from '../utils/RandomUtils';
+import { EnchantedWeapon } from '../weapons/types/EnchantedWeapon';
 
 export class GameObjectFactory {
   private randomProvider: IRandomProvider;
@@ -414,5 +416,16 @@ export class GameObjectFactory {
     if (waveNumber >= 16 && waveNumber <= 21) return waveNumber % 5 === 1; // シールド・ガーディアン
     if (waveNumber >= 22) return waveNumber % 5 === 2; // ストーム・インターセプター
     return false;
+  }
+
+  /**
+   * ドロップされた武器を作成
+   */
+  public createDroppedWeapon(
+    enchantedWeapon: EnchantedWeapon,
+    x: number,
+    y: number
+  ): DroppedWeapon {
+    return new DroppedWeapon(enchantedWeapon, x, y, this.config);
   }
 }

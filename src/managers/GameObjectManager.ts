@@ -9,6 +9,7 @@ import {
   SplitBullet,
 } from '../entities/bullets';
 import { Comet } from '../entities/Comet';
+import { DroppedWeapon } from '../entities/DroppedWeapon';
 import { Enemy } from '../entities/Enemy';
 import { Explosion } from '../entities/Explosion';
 import { GameObject } from '../entities/GameObject';
@@ -39,6 +40,7 @@ export class GameObjectManager {
   private explosions: Explosion[] = [];
   private powerups: PowerUp[] = [];
   private bossBullets: BossBullet[] = [];
+  private droppedWeapons: DroppedWeapon[] = [];
   private boss: Boss | null = null;
   private player: IPlayer | null = null;
 
@@ -124,6 +126,32 @@ export class GameObjectManager {
     this.explosions.forEach(explosion => explosion.update(deltaTime));
     this.bossBullets.forEach(bossBullet => bossBullet.update(deltaTime));
 
+    // デバッグ: ドロップされた武器の更新状況を確認
+    if (this.droppedWeapons.length > 0) {
+      console.log(
+        `🔧 GameObjectManager: ${this.droppedWeapons.length}個の武器を更新中`
+      );
+      this.droppedWeapons.forEach((weapon, index) => {
+        console.log(` STEP1: 武器[${index}]の処理開始`);
+
+        console.log(`🚀 STEP2: update()メソッドの存在確認`, {
+          hasUpdate: typeof weapon.update === 'function',
+          weaponType: weapon.constructor.name,
+        });
+
+        console.log(`🚀 STEP3: update()呼び出し直前 (deltaTime: ${deltaTime})`);
+
+        try {
+          weapon.update(deltaTime);
+          console.log(`🚀 STEP4: update()呼び出し成功`);
+        } catch (error) {
+          console.error(`🚀 STEP4: update()呼び出しエラー:`, error);
+        }
+
+        console.log(`🚀 STEP5: 武器[${index}]の処理完了`);
+      });
+    }
+
     // 新しい弾丸タイプの更新
     this.explosiveBullets.forEach(bullet => bullet.update(deltaTime));
     this.homingBullets.forEach(bullet => bullet.update(deltaTime));
@@ -177,6 +205,9 @@ export class GameObjectManager {
     this.enemies = this.enemies.filter(enemy => enemy.isOnScreen());
     this.powerups = this.powerups.filter(powerup => powerup.isOnScreen());
     this.bossBullets = this.bossBullets.filter(bullet => bullet.isOnScreen());
+    this.droppedWeapons = this.droppedWeapons.filter(weapon =>
+      weapon.isOnScreen()
+    );
 
     // 新しい弾丸タイプの画面外削除
     this.explosiveBullets = this.explosiveBullets.filter(bullet =>
@@ -210,12 +241,13 @@ export class GameObjectManager {
     x: number,
     y: number,
     speed?: number,
-    color?: string
+    color?: string,
+    owner?: 'player' | 'enemy' | 'boss'
   ): Bullet | null {
     const bulletPool = this.poolManager.getPool<Bullet>('bullet');
     if (bulletPool) {
       const bullet = bulletPool.get();
-      bullet.initialize(x, y, speed, color);
+      bullet.initialize(x, y, speed, color, owner);
       this.bullets.push(bullet); // 弾丸を配列に自動追加
       return bullet;
     }
@@ -282,6 +314,7 @@ export class GameObjectManager {
     this.explosions = [];
     this.powerups = [];
     this.bossBullets = [];
+    this.droppedWeapons = [];
     this.boss = null;
 
     // 新しい弾丸タイプもクリア
@@ -501,6 +534,72 @@ export class GameObjectManager {
       ...this.enemies,
       ...this.powerups,
       ...this.bossBullets,
+      ...this.explosiveBullets,
+      ...this.homingBullets,
+      ...this.reflectingBullets,
+      ...this.splitBullets,
+    ];
+
+    if (this.boss) {
+      objects.push(this.boss);
+    }
+
+    return objects;
+  }
+
+  // ドロップされた武器の管理メソッド
+
+  /**
+   * ドロップされた武器を取得
+   */
+  public getDroppedWeapons(): DroppedWeapon[] {
+    return this.droppedWeapons;
+  }
+
+  /**
+   * ドロップされた武器を追加
+   */
+  public addDroppedWeapon(weapon: DroppedWeapon): void {
+    this.droppedWeapons.push(weapon);
+  }
+
+  /**
+   * ドロップされた武器を削除
+   */
+  public removeDroppedWeapon(weapon: DroppedWeapon): void {
+    const index = this.droppedWeapons.indexOf(weapon);
+    if (index > -1) {
+      this.droppedWeapons.splice(index, 1);
+    }
+  }
+
+  /**
+   * プレイヤーの近くにあるドロップされた武器を取得
+   */
+  public getNearbyDroppedWeapons(
+    playerX: number,
+    playerY: number,
+    radius: number = 50
+  ): DroppedWeapon[] {
+    return this.droppedWeapons.filter(weapon => {
+      const weaponPos = { x: weapon.x, y: weapon.y };
+      const distance = Math.sqrt(
+        Math.pow(weaponPos.x - playerX, 2) + Math.pow(weaponPos.y - playerY, 2)
+      );
+      return distance <= radius;
+    });
+  }
+
+  /**
+   * 衝突判定用の全オブジェクトを取得（ドロップされた武器を含む）
+   */
+  public getAllCollidableObjectsWithWeapons(): GameObject[] {
+    const objects: GameObject[] = [
+      ...this.bullets,
+      ...this.enemies,
+      ...this.powerups,
+      ...this.bossBullets,
+      ...this.droppedWeapons,
       ...this.explosiveBullets,
       ...this.homingBullets,
       ...this.reflectingBullets,

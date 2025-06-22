@@ -14,7 +14,8 @@ export interface IGame {
     x: number,
     y: number,
     speed?: number,
-    color?: string
+    color?: string,
+    owner?: 'player' | 'enemy' | 'boss'
   ): Bullet | null;
 
   /**

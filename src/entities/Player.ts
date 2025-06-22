@@ -217,11 +217,12 @@ export class Player extends GameObject implements IPlayer {
   }
 
   private updateShooting(): void {
+    // 自動射撃システム：発射間隔に基づいて自動で射撃
     if (this.useWeaponSystem && this.weaponManager) {
-      // 武器システムを使用した射撃
+      // 武器システムを使用した自動射撃
       this.shootWithWeapons();
     } else {
-      // 従来の射撃システム
+      // 従来の自動射撃システム
       this.shoot();
     }
   }
@@ -295,11 +296,12 @@ export class Player extends GameObject implements IPlayer {
     const bulletSpeed = speed ?? this.config.bullet.speed;
 
     if (this.game) {
-      return this.game.createBullet(x, y, bulletSpeed, color);
+      // Game経由で弾丸を作成し、所有者を直接設定
+      return this.game.createBullet(x, y, bulletSpeed, color, 'player');
     } else {
       // フォールバック：Gameインスタンスがない場合は直接作成
       const bullet = new Bullet();
-      bullet.initialize(x, y, bulletSpeed, color);
+      bullet.initialize(x, y, bulletSpeed, color, 'player'); // 所有者を設定
       return bullet;
     }
   }
@@ -356,20 +358,41 @@ export class Player extends GameObject implements IPlayer {
   }
 
   public takeDamage(amount: number): void {
+    // デバッグログ：ダメージを受けた原因を特定
+    console.log('💥 プレイヤーがダメージを受けました:', {
+      damage: amount,
+      currentHealth: this.health,
+      debugInvincible: this.debugInvincible,
+      invincible: this.invincible,
+      shieldActive: this.shieldActive,
+      stackTrace: new Error().stack?.split('\n').slice(1, 5), // 呼び出し元を特定
+    });
+
     // デバッグ無敵時はダメージを受けない
     if (this.debugInvincible) {
+      console.log('🛡️ デバッグ無敵モードでダメージ無効');
       return;
     }
 
     if (!this.invincible && !this.shieldActive) {
       const reducedDamage = this.applyDamageReduction(amount);
       this.health = Math.max(0, this.health - reducedDamage);
+      console.log('❤️ 体力更新:', {
+        oldHealth: this.health + reducedDamage,
+        newHealth: this.health,
+        damageApplied: reducedDamage,
+      });
       this.eventEmitter.emit('healthChanged', this.health);
       this.invincible = true;
       this.lastHitTime = Date.now();
       if (this.health <= 0) {
+        console.log('💀 プレイヤー死亡');
         this.eventEmitter.emit('gameOver');
       }
+    } else {
+      console.log('🛡️ ダメージ無効:', {
+        reason: this.invincible ? '無敵時間中' : 'シールド有効',
+      });
     }
   }
 
@@ -681,5 +704,210 @@ export class Player extends GameObject implements IPlayer {
    */
   public getActiveWeaponSlot(): number {
     return this.activeWeaponSlot;
+  }
+
+  /**
+   * エンチャント済み武器を装備
+   */
+  public equipEnchantedWeapon(
+    enchantedWeapon: import('../weapons/types/EnchantedWeapon').EnchantedWeapon,
+    slot?: number
+  ): boolean {
+    if (!this.weaponManager) {
+      console.error('❌ WeaponManagerが初期化されていません');
+      return false;
+    }
+
+    // スロットが指定されていない場合は空きスロットを探す
+    const targetSlot = slot ?? this.findEmptyWeaponSlot();
+    if (targetSlot === -1) {
+      console.warn('⚠️ 空きスロットがありません');
+      return false;
+    }
+
+    const result = this.weaponManager.equipEnchantedWeapon(
+      enchantedWeapon,
+      targetSlot
+    );
+
+    if (result.success) {
+      console.log('⚔️ エンチャント済み武器を装備しました:', {
+        weaponName: enchantedWeapon.displayName,
+        rarity: enchantedWeapon.rarity,
+        slot: targetSlot,
+        enchantments: enchantedWeapon.enchantments.length,
+      });
+
+      // 装備した武器をアクティブスロットに設定
+      this.setActiveWeaponSlot(targetSlot);
+    }
+
+    return result.success;
+  }
+
+  /**
+   * 空きの武器スロットを探す
+   */
+  private findEmptyWeaponSlot(): number {
+    const equippedWeapons = this.getEquippedWeapons();
+    const maxSlots = 3; // 最大スロット数
+
+    for (let slot = 0; slot < maxSlots; slot++) {
+      const hasWeaponInSlot = equippedWeapons.some(
+        weapon => weapon.slot === slot
+      );
+      if (!hasWeaponInSlot) {
+        return slot;
+      }
+    }
+
+    return -1; // 空きスロットなし
+  }
+
+  /**
+   * 武器比較（アップグレード判定）
+   */
+  public compareWeapons(
+    currentWeaponId: string,
+    candidateWeapon: import('../weapons/types/EnchantedWeapon').EnchantedWeapon
+  ): {
+    betterWeapon: import('../weapons/types/EnchantedWeapon').EnchantedWeapon;
+    improvements: string[];
+    recommendation: 'upgrade' | 'keep_current' | 'situational';
+  } | null {
+    if (!this.weaponManager) {
+      return null;
+    }
+
+    return this.weaponManager.compareWeapons(currentWeaponId, candidateWeapon);
+  }
+
+  /**
+   * 現在装備中の武器を取得（武器比較システム用）
+   */
+  public getCurrentWeapon():
+    | import('../weapons/types/EnchantedWeapon').EnchantedWeapon
+    | null {
+    if (!this.weaponManager) {
+      console.log('🔫 WeaponManagerが初期化されていません - 現在の武器なし');
+      return null;
+    }
+
+    const equippedWeapons = this.weaponManager.getEquippedWeapons();
+    if (equippedWeapons.length === 0) {
+      console.log('🔫 装備中の武器がありません');
+      return null;
+    }
+
+    // アクティブスロットの武器を取得
+    const activeWeapon = equippedWeapons.find(
+      w => w.slot === this.activeWeaponSlot
+    );
+
+    if (activeWeapon) {
+      // エンチャント済み武器の場合
+      const enchantedWeapon = this.weaponManager.getEnchantedWeapon(
+        activeWeapon.weaponId
+      );
+      if (enchantedWeapon) {
+        console.log('✅ アクティブエンチャント武器取得:', {
+          slot: this.activeWeaponSlot,
+          weaponName: enchantedWeapon.displayName,
+          rarity: enchantedWeapon.rarity,
+        });
+        return enchantedWeapon;
+      }
+
+      // 通常武器の場合はconfigから情報を取得してEnchantedWeapon形式で返す
+      console.log('📍 アクティブ通常武器取得:', {
+        slot: this.activeWeaponSlot,
+        weaponId: activeWeapon.weaponId,
+        configType: activeWeapon.config.type,
+      });
+
+      // 通常武器をEnchantedWeapon形式に変換
+      return this.convertToEnchantedWeapon(activeWeapon);
+    }
+
+    // アクティブスロットに武器がない場合は最初の武器を返す
+    const firstWeapon = equippedWeapons[0];
+    if (firstWeapon) {
+      const enchantedWeapon = this.weaponManager.getEnchantedWeapon(
+        firstWeapon.weaponId
+      );
+      if (enchantedWeapon) {
+        console.log('📍 最初のエンチャント武器を取得:', {
+          weaponName: enchantedWeapon.displayName,
+          rarity: enchantedWeapon.rarity,
+        });
+        return enchantedWeapon;
+      }
+
+      console.log('📍 最初の通常武器を取得:', {
+        weaponId: firstWeapon.weaponId,
+        configType: firstWeapon.config.type,
+      });
+
+      return this.convertToEnchantedWeapon(firstWeapon);
+    }
+
+    console.log('❌ 現在の武器が見つかりません');
+    return null;
+  }
+
+  /**
+   * 通常武器をEnchantedWeapon形式に変換
+   */
+  private convertToEnchantedWeapon(
+    equippedWeapon: import('../weapons/types/WeaponTypes').EquippedWeapon
+  ): import('../weapons/types/EnchantedWeapon').EnchantedWeapon {
+    const config = equippedWeapon.config;
+
+    return {
+      // WeaponConfig基本プロパティ
+      id: config.id,
+      name: config.name,
+      type: config.type,
+      rarity: config.rarity,
+      damage: config.damage,
+      fireRate: config.fireRate,
+      bulletSpeed: config.bulletSpeed ?? 300,
+      bulletCount: config.bulletCount ?? 1,
+      color: config.color ?? '#00ff00',
+      description: config.description ?? '',
+      cost: config.cost,
+      maxLevel: config.maxLevel,
+      unlockCondition: config.unlockCondition,
+      specialEffect: config.specialEffect,
+      icon: config.icon,
+      spreadAngle: config.spreadAngle,
+
+      // EnchantedWeapon固有プロパティ
+      uniqueId: equippedWeapon.weaponId,
+      baseWeaponId: equippedWeapon.weaponId,
+      displayName: config.name ?? equippedWeapon.weaponId,
+      enchantments: [],
+      comboEffects: [],
+      generatedAt: Date.now(),
+      totalStats: {
+        finalDamage: config.damage,
+        finalFireRate: config.fireRate,
+        finalBulletSpeed: config.bulletSpeed ?? 300,
+        finalBulletCount: config.bulletCount ?? 1,
+        finalSpreadAngle: config.spreadAngle ?? 0,
+        piercingCount: 0,
+        criticalChance: 0,
+        explosionRadius: 0,
+        homingDuration: 0,
+        chainCount: 0,
+        freezeDuration: 0,
+        lifeStealRate: 0,
+        splitCount: 0,
+        ricochetCount: 0,
+        totalMultiplier: 1.0,
+        comboCount: 0,
+        hasLegendaryCombo: false,
+      },
+    };
   }
 }

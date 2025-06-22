@@ -9,10 +9,15 @@ import { Player } from '../../entities/Player';
 import { EventEmitter } from '../../events/EventEmitter';
 import { EventMap } from '../../events/EventType';
 import { PlayerProfile } from '../../progression/types/PlayerProfile';
+import { IRandomProvider } from '../../providers/IRandomProvider';
+import { RealRandomProvider } from '../../providers/RealRandomProvider';
 import { Vector2D } from '../../types';
 import { ALL_WEAPON_CONFIGS, getWeaponConfig } from '../data/weaponConfigs';
 import { IWeaponManager } from '../interfaces/IWeapon';
 import { WeaponBulletFactory } from '../services/WeaponBulletFactory';
+import { ComboEffectProcessor } from '../systems/ComboEffectProcessor';
+import { WeaponDropSystem } from '../systems/WeaponDropSystem';
+import { EnchantedWeapon } from '../types/EnchantedWeapon';
 import {
   EquippedWeapon,
   WeaponConfig,
@@ -32,11 +37,25 @@ export class WeaponManager implements IWeaponManager {
   private maxEquippedWeapons: number = 3;
   private bulletFactory: WeaponBulletFactory;
 
+  // エンチャント済み武器システム
+  private enchantedWeapons: Map<string, EnchantedWeapon> = new Map();
+  private weaponDropSystem: WeaponDropSystem;
+  private comboEffectProcessor: ComboEffectProcessor;
+
   constructor(
     private eventEmitter: EventEmitter<EventMap>,
-    private playerProfile: PlayerProfile
+    private playerProfile: PlayerProfile,
+    private randomProvider?: IRandomProvider
   ) {
     this.bulletFactory = new WeaponBulletFactory();
+
+    // ランダムプロバイダーの初期化
+    const provider = this.randomProvider ?? new RealRandomProvider();
+
+    // エンチャントシステムの初期化
+    this.weaponDropSystem = new WeaponDropSystem(provider);
+    this.comboEffectProcessor = new ComboEffectProcessor();
+
     // 基本武器を初期装備として追加
     this.initializeBasicWeapon();
   }
@@ -459,5 +478,219 @@ export class WeaponManager implements IWeaponManager {
    */
   public getBulletPoolStats(): Record<string, number> {
     return this.bulletFactory.getPoolStats();
+  }
+
+  // エンチャント済み武器システムのメソッド
+
+  /**
+   * エンチャント済み武器を装備
+   */
+  public equipEnchantedWeapon(
+    enchantedWeapon: EnchantedWeapon,
+    slot: number
+  ): WeaponEquipResult {
+    // スロット範囲チェック
+    if (slot < 0 || slot >= this.maxEquippedWeapons) {
+      return {
+        success: false,
+        reason: 'invalid_slot',
+      };
+    }
+
+    // エンチャント済み武器を保存
+    this.enchantedWeapons.set(enchantedWeapon.uniqueId, enchantedWeapon);
+
+    // 既存武器の取り外し
+    let replacedWeapon: string | undefined;
+    if (this.equippedWeapons.has(slot)) {
+      replacedWeapon = this.equippedWeapons.get(slot)?.weaponId;
+    }
+
+    // エンチャント済み武器を装備武器として設定
+    const equippedWeapon: EquippedWeapon = {
+      weaponId: enchantedWeapon.uniqueId,
+      config: enchantedWeapon,
+      level: 1,
+      lastFireTime: 0,
+      slot,
+      experience: 0,
+    };
+
+    this.equippedWeapons.set(slot, equippedWeapon);
+    this.initializeWeaponStats(enchantedWeapon.uniqueId);
+
+    return {
+      success: true,
+      weaponId: enchantedWeapon.uniqueId,
+      slot,
+      replacedWeapon,
+    };
+  }
+
+  /**
+   * エンチャント済み武器で射撃（組み合わせ効果適用）
+   */
+  public fireEnchantedWeapon(weaponId: string, player: Player): Bullet[] {
+    const weapon = Array.from(this.equippedWeapons.values()).find(
+      w => w.weaponId === weaponId
+    );
+
+    if (!weapon) {
+      return [];
+    }
+
+    const currentTime = Date.now();
+    if (currentTime - weapon.lastFireTime < weapon.config.fireRate) {
+      return [];
+    }
+
+    const enchantedWeapon = this.enchantedWeapons.get(weaponId);
+    if (!enchantedWeapon) {
+      // 通常の武器として射撃
+      return this.fireWeapon(weaponId, player);
+    }
+
+    // 射撃位置計算
+    const playerPos = player.getPosition();
+    const bulletStartX = playerPos.x + player.getWidth() / 2;
+    const bulletStartY = playerPos.y;
+    const firePosition = { x: bulletStartX, y: bulletStartY };
+    const fireDirection = { x: 0, y: -1 };
+
+    // 基本弾丸を生成
+    const bullets = this.bulletFactory.createWeaponTypeBullet(
+      weapon.config.type,
+      weapon.config,
+      firePosition,
+      fireDirection
+    );
+
+    // エンチャント効果を適用
+    const comboResult = this.comboEffectProcessor.applyComboEffects(
+      enchantedWeapon,
+      bullets,
+      firePosition,
+      fireDirection
+    );
+
+    // 発射時刻更新
+    weapon.lastFireTime = currentTime;
+
+    // 統計更新
+    this.updateWeaponStats(
+      weaponId,
+      'shot',
+      comboResult.modifiedBullets.length
+    );
+
+    return comboResult.modifiedBullets;
+  }
+
+  /**
+   * 全エンチャント済み武器で射撃
+   */
+  public fireAllEnchantedWeapons(player: Player): Bullet[] {
+    const bullets: Bullet[] = [];
+    const currentTime = Date.now();
+
+    for (const weapon of this.equippedWeapons.values()) {
+      if (currentTime - weapon.lastFireTime >= weapon.config.fireRate) {
+        const weaponBullets = this.fireEnchantedWeapon(weapon.weaponId, player);
+        bullets.push(...weaponBullets);
+      }
+    }
+
+    return bullets;
+  }
+
+  /**
+   * 武器ドロップシステムを取得
+   */
+  public getWeaponDropSystem(): WeaponDropSystem {
+    return this.weaponDropSystem;
+  }
+
+  /**
+   * エンチャント済み武器を取得
+   */
+  public getEnchantedWeapon(weaponId: string): EnchantedWeapon | null {
+    return this.enchantedWeapons.get(weaponId) ?? null;
+  }
+
+  /**
+   * 全エンチャント済み武器を取得
+   */
+  public getAllEnchantedWeapons(): EnchantedWeapon[] {
+    return Array.from(this.enchantedWeapons.values());
+  }
+
+  /**
+   * エンチャント済み武器の比較
+   */
+  public compareWeapons(
+    currentWeaponId: string,
+    candidateWeapon: EnchantedWeapon
+  ): {
+    betterWeapon: EnchantedWeapon;
+    improvements: string[];
+    recommendation: 'upgrade' | 'keep_current' | 'situational';
+  } {
+    const currentWeapon = this.enchantedWeapons.get(currentWeaponId);
+
+    if (!currentWeapon) {
+      return {
+        betterWeapon: candidateWeapon,
+        improvements: ['新しい武器を装備'],
+        recommendation: 'upgrade',
+      };
+    }
+
+    const improvements: string[] = [];
+    const currentStats = currentWeapon.totalStats;
+    const candidateStats = candidateWeapon.totalStats;
+
+    // 基本性能比較
+    if (candidateStats.finalDamage > currentStats.finalDamage) {
+      improvements.push(
+        `攻撃力: ${currentStats.finalDamage} → ${candidateStats.finalDamage}`
+      );
+    }
+
+    if (candidateStats.finalFireRate < currentStats.finalFireRate) {
+      improvements.push(
+        `連射速度向上: ${currentStats.finalFireRate}ms → ${candidateStats.finalFireRate}ms`
+      );
+    }
+
+    if (candidateStats.totalMultiplier > currentStats.totalMultiplier) {
+      improvements.push(
+        `組み合わせ倍率: ${currentStats.totalMultiplier.toFixed(2)}x → ${candidateStats.totalMultiplier.toFixed(2)}x`
+      );
+    }
+
+    // エンチャント数比較
+    if (
+      candidateWeapon.enchantments.length > currentWeapon.enchantments.length
+    ) {
+      improvements.push(
+        `エンチャント数: ${currentWeapon.enchantments.length} → ${candidateWeapon.enchantments.length}`
+      );
+    }
+
+    // 推奨度判定
+    let recommendation: 'upgrade' | 'keep_current' | 'situational';
+    if (improvements.length >= 3) {
+      recommendation = 'upgrade';
+    } else if (improvements.length === 0) {
+      recommendation = 'keep_current';
+    } else {
+      recommendation = 'situational';
+    }
+
+    return {
+      betterWeapon: improvements.length > 0 ? candidateWeapon : currentWeapon,
+      improvements,
+      recommendation,
+    };
   }
 }

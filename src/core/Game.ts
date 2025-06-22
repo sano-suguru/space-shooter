@@ -18,7 +18,9 @@ import { GameStateManager } from '../managers/GameStateManager';
 import { ScoreManager } from '../managers/ScoreManager';
 import { TouchInputManager } from '../managers/TouchInputManager';
 import { WaveManager } from '../managers/WaveManager';
+import { WeaponComparisonManager } from '../managers/WeaponComparisonManager';
 import { MobileUIIntegration } from '../mobile/MobileUIManager';
+import { PlayerProfile } from '../progression/types/PlayerProfile';
 import { IRandomProvider } from '../providers/IRandomProvider';
 import { BackgroundRenderer } from '../rendering/BackgroundRenderer';
 import { GameRenderer } from '../rendering/GameRenderer';
@@ -26,6 +28,7 @@ import { PowerUpEffectService } from '../services/PowerUpEffectService';
 import { CollisionSystem } from '../systems/CollisionSystem';
 import { EnemyType, Vector2D } from '../types';
 import { DeviceDetector } from '../utils/DeviceDetector';
+import { WeaponManager } from '../weapons/managers/WeaponManager';
 import type { EquippedWeapon } from '../weapons/types/WeaponTypes';
 
 import { GameEngine } from './GameEngine';
@@ -49,6 +52,7 @@ export class Game implements IGame {
   private isMobile: boolean;
   private debugManager?: DebugManager;
   private debugInputHandler?: DebugInputHandler;
+  private weaponComparisonManager!: WeaponComparisonManager;
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -79,11 +83,15 @@ export class Game implements IGame {
     this.currentBossHealth = this.config.boss.initialHealth;
     this.initializeGameObjects();
     this.initializeCollisionSystem();
+    this.initializeWeaponComparisonSystem();
     this.setupInputManager();
     this.setupEventListeners();
 
     // PlayerにGameインスタンスを設定（循環依存回避）
     this.player.setGame(this);
+
+    // 武器システムの初期化
+    this.initializeWeaponSystem();
 
     // 武器システムの初期化状況をログ出力
     console.log('🔫 ゲーム初期化時の武器システム状況:', {
@@ -123,6 +131,55 @@ export class Game implements IGame {
 
     // デバッグモードの初期化（必要に応じて）
     this.initializeDebugMode();
+  }
+
+  /**
+   * 武器システムの初期化
+   */
+  private initializeWeaponSystem(): void {
+    // プレイヤープロファイルを作成（基本的な初期値）
+    const playerProfile: PlayerProfile = {
+      totalGamesPlayed: 0,
+      totalScore: 0,
+      highScore: 0,
+      totalPlayTime: 0,
+      lastPlayDate: new Date().toISOString(),
+      coins: 1000, // 初期コイン
+      experience: 0,
+      level: this.level,
+      unlockedUpgrades: ['basic_laser'], // 基本武器は最初から解除
+      equippedUpgrades: {},
+      completedAchievements: [],
+      stats: {
+        enemiesDestroyed: 0,
+        bossesDefeated: 0,
+        maxWaveReached: 1,
+        powerupsCollected: 0,
+        bulletsShot: 0,
+        damageDealt: 0,
+        damageTaken: 0,
+        playStreakDays: 0,
+      },
+    };
+
+    // WeaponManagerを作成
+    const weaponManager = new WeaponManager(
+      this.eventEmitter,
+      playerProfile,
+      this.randomProvider
+    );
+
+    // PlayerにWeaponManagerを設定
+    this.player.setWeaponManager(weaponManager);
+
+    // 武器システムを有効化
+    this.player.enableWeaponSystem(true);
+
+    console.log('🔫 武器システムを初期化しました:', {
+      weaponManager: !!weaponManager,
+      playerProfile: playerProfile,
+      weaponDropSystem: !!weaponManager.getWeaponDropSystem(),
+    });
   }
 
   /**
@@ -257,6 +314,9 @@ export class Game implements IGame {
     // GameObjectManagerを初期化
     this.gameObjectManager = new GameObjectManager(this.eventEmitter);
 
+    // プレイヤーをGameObjectManagerに設定
+    this.gameObjectManager.setPlayer(this.player);
+
     // 従来の背景オブジェクトを作成（設定を使用）
     const stars = Array.from({ length: this.config.background.starCount }, () =>
       this.gameObjectFactory.createStar()
@@ -308,6 +368,16 @@ export class Game implements IGame {
     );
   }
 
+  /**
+   * 武器比較システムを初期化
+   */
+  private initializeWeaponComparisonSystem(): void {
+    this.weaponComparisonManager = new WeaponComparisonManager(
+      this.eventEmitter,
+      this.gameObjectManager
+    );
+  }
+
   private setupEventListeners(): void {
     document.addEventListener('keydown', this.handleKeyDown);
     document.addEventListener('keyup', this.handleKeyUp);
@@ -341,6 +411,9 @@ export class Game implements IGame {
 
   private handleEnemyDestroyed = (enemy: Enemy): void => {
     this.scoreManager.addScore(enemy.getScore());
+
+    // エンチャント済み武器ドロップの判定
+    this.handleWeaponDrop(enemy);
   };
 
   private handlePlayerShot = (): void => {
@@ -540,12 +613,26 @@ export class Game implements IGame {
       this.powerUpEffectService
     );
     this.player.setGame(this);
+
+    // 武器システムを再初期化
+    this.initializeWeaponSystem();
+
     this.gameObjectManager.reset();
+
+    // リセット後に新しいプレイヤーをGameObjectManagerに設定
+    this.gameObjectManager.setPlayer(this.player);
+
     this.level = 1;
     this.bossSpawnScore = 1000;
     this.scoreManager = new ScoreManager(this.eventEmitter);
     this.difficultyFactor = 0;
     this.currentBossHealth = this.config.boss.initialHealth;
+
+    console.log('🔄 ゲームリセット完了 - 武器システム再初期化済み:', {
+      hasWeaponManager: !!this.player.getWeaponManager(),
+      weaponSystemEnabled: this.player.isWeaponSystemEnabled(),
+      playerSetInGameObjectManager: !!this.gameObjectManager.getPlayer(),
+    });
   }
 
   private handleBossDefeat(): void {
@@ -665,9 +752,10 @@ export class Game implements IGame {
     x: number,
     y: number,
     speed?: number,
-    color?: string
+    color?: string,
+    owner?: 'player' | 'enemy' | 'boss'
   ): Bullet | null {
-    return this.gameObjectManager.createBullet(x, y, speed, color);
+    return this.gameObjectManager.createBullet(x, y, speed, color, owner);
   }
 
   /**
@@ -872,5 +960,105 @@ export class Game implements IGame {
   public getEquippedWeapons(): EquippedWeapon[] {
     const weaponManager = this.player?.getWeaponManager();
     return weaponManager?.getEquippedWeapons() ?? [];
+  }
+
+  /**
+   * 敵撃破時の武器ドロップ処理
+   */
+  private handleWeaponDrop(enemy: Enemy): void {
+    console.log('🔫 武器ドロップ処理開始:', {
+      enemyType: enemy.getEnemyType(),
+      enemyPosition: enemy.getPosition(),
+      hasPlayer: !!this.player,
+    });
+
+    const weaponManager = this.player?.getWeaponManager();
+    if (!weaponManager) {
+      console.log('❌ WeaponManagerが見つかりません - 武器ドロップをスキップ');
+      return;
+    }
+
+    console.log('✅ WeaponManagerが見つかりました');
+
+    const weaponDropSystem = weaponManager.getWeaponDropSystem();
+    const enemyPosition = enemy.getPosition();
+    const enemyType = enemy.getEnemyType();
+
+    // 敵情報を作成
+    const enemyInfo = {
+      type: this.mapEnemyTypeToDropType(enemyType),
+      level: this.level,
+      position: enemyPosition,
+    };
+
+    console.log('🎯 ドロップ判定実行:', {
+      enemyInfo,
+      weaponDropSystem: !!weaponDropSystem,
+    });
+
+    // 武器ドロップの判定
+    const dropResult = weaponDropSystem.attemptDrop(enemyInfo);
+
+    console.log('🎲 ドロップ結果:', {
+      success: dropResult.success,
+      actualDropRate: dropResult.actualDropRate,
+      dropReason: dropResult.dropReason,
+    });
+
+    if (dropResult.success && dropResult.droppedWeapon) {
+      // ゲームオブジェクトマネージャーに追加
+      this.gameObjectManager.addDroppedWeapon(dropResult.droppedWeapon);
+
+      // ドロップメッセージを表示
+      const rarityText = this.getRarityDisplayText(
+        dropResult.enchantedWeapon?.rarity ?? 'common'
+      );
+      this.showMessage(`${rarityText}武器がドロップしました！`, 2000, 'info');
+
+      console.log('🎁 武器ドロップ成功:', {
+        weaponName: dropResult.enchantedWeapon?.displayName,
+        rarity: dropResult.enchantedWeapon?.rarity,
+        position: enemyPosition,
+        dropReason: dropResult.dropReason,
+      });
+    } else {
+      console.log('💨 武器ドロップなし:', dropResult.dropReason);
+    }
+  }
+
+  /**
+   * 敵タイプをドロップシステム用にマッピング
+   */
+  private mapEnemyTypeToDropType(
+    enemyType: string
+  ): 'normal' | 'elite' | 'boss' {
+    switch (enemyType) {
+      case 'LARGE':
+        return 'elite';
+      case 'BOSS':
+        return 'boss';
+      default:
+        return 'normal';
+    }
+  }
+
+  /**
+   * レアリティの表示テキストを取得
+   */
+  private getRarityDisplayText(rarity: string): string {
+    switch (rarity) {
+      case 'common':
+        return 'コモン';
+      case 'uncommon':
+        return 'アンコモン';
+      case 'rare':
+        return 'レア';
+      case 'epic':
+        return 'エピック';
+      case 'legendary':
+        return 'レジェンダリー';
+      default:
+        return '';
+    }
   }
 }
