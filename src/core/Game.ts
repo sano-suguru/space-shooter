@@ -16,18 +16,15 @@ import { IMessageManager } from '../interfaces/IMessageManager';
 import { GameObjectManager } from '../managers/GameObjectManager';
 import { GameStateManager } from '../managers/GameStateManager';
 import { ScoreManager } from '../managers/ScoreManager';
-import { TouchInputManager } from '../managers/TouchInputManager';
 import { WaveManager } from '../managers/WaveManager';
 import { WeaponComparisonManager } from '../managers/WeaponComparisonManager';
-import { MobileUIIntegration } from '../mobile/MobileUIManager';
 import { PlayerProfile } from '../progression/types/PlayerProfile';
 import { IRandomProvider } from '../providers/IRandomProvider';
 import { BackgroundRenderer } from '../rendering/BackgroundRenderer';
 import { GameRenderer } from '../rendering/GameRenderer';
 import { PowerUpEffectService } from '../services/PowerUpEffectService';
 import { CollisionSystem } from '../systems/CollisionSystem';
-import { EnemyType, Vector2D } from '../types';
-import { DeviceDetector } from '../utils/DeviceDetector';
+import { EnemyType } from '../types';
 import { WeaponManager } from '../weapons/managers/WeaponManager';
 import type { EquippedWeapon } from '../weapons/types/WeaponTypes';
 
@@ -47,9 +44,6 @@ export class Game implements IGame {
   private backgroundRenderer!: BackgroundRenderer;
   private gameRenderer!: GameRenderer;
   private lastDrawTime: number = 0;
-  private touchInputManager: TouchInputManager | null = null;
-  private mobileUIIntegration: MobileUIIntegration | null = null;
-  private isMobile: boolean;
   private debugManager?: DebugManager;
   private debugInputHandler?: DebugInputHandler;
   private weaponComparisonManager!: WeaponComparisonManager;
@@ -70,21 +64,14 @@ export class Game implements IGame {
     )
   ) {
     this.ctx = this.canvas.getContext('2d') as CanvasRenderingContext2D;
-    this.isMobile = DeviceDetector.isMobile();
-
-    // デバイスに応じてキャンバスサイズを調整
-    if (this.isMobile) {
-      this.setupMobileCanvas();
-    } else {
-      this.canvas.width = this.config.canvas.width;
-      this.canvas.height = this.config.canvas.height;
-    }
+    // キャンバスサイズを固定サイズに設定
+    this.canvas.width = this.config.canvas.width;
+    this.canvas.height = this.config.canvas.height;
 
     this.currentBossHealth = this.config.boss.initialHealth;
     this.initializeGameObjects();
     this.initializeCollisionSystem();
     this.initializeWeaponComparisonSystem();
-    this.setupInputManager();
     this.setupEventListeners();
 
     // PlayerにGameインスタンスを設定（循環依存回避）
@@ -197,118 +184,6 @@ export class Game implements IGame {
     console.log('🔧 デバッグモードを初期化しました');
   }
 
-  /**
-   * モバイル用キャンバス設定
-   */
-  private setupMobileCanvas(): void {
-    // モバイルデバイスの場合、画面サイズに合わせる
-    const updateCanvasSize = (): void => {
-      const dpr = window.devicePixelRatio || 1;
-      const rect = this.canvas.getBoundingClientRect();
-
-      this.canvas.width = rect.width * dpr;
-      this.canvas.height = rect.height * dpr;
-
-      this.ctx.scale(dpr, dpr);
-
-      // CSS サイズを設定
-      this.canvas.style.width = '100vw';
-      this.canvas.style.height = '100vh';
-    };
-
-    updateCanvasSize();
-    window.addEventListener('resize', updateCanvasSize);
-    window.addEventListener('orientationchange', () => {
-      setTimeout(updateCanvasSize, 100);
-    });
-  }
-
-  /**
-   * 入力管理システムの初期化
-   */
-  private setupInputManager(): void {
-    if (this.isMobile) {
-      // モバイルデバイスの場合、TouchInputManagerを使用
-      this.touchInputManager = new TouchInputManager(this.canvas);
-      this.setupMobileInputEvents();
-    }
-    // デスクトップの場合は既存のinputManagerを使用
-  }
-
-  /**
-   * モバイル入力イベントの設定
-   */
-  private setupMobileInputEvents(): void {
-    if (!this.touchInputManager) return;
-
-    // タッチ入力をキーボード入力にマッピング
-    this.touchInputManager.onKeyDown((key: string) => {
-      // 既存のキーハンドラーを使用
-      this.handleKeyDown({ key } as KeyboardEvent);
-    });
-
-    this.touchInputManager.onKeyUp((key: string) => {
-      // 既存のキーハンドラーを使用
-      this.handleKeyUp({ key } as KeyboardEvent);
-    });
-
-    // モバイル専用イベントリスナー
-    this.eventEmitter.on('mobileShootStart', () => {
-      // 連続射撃開始
-      this.startContinuousShoot();
-    });
-
-    this.eventEmitter.on('mobileShootEnd', () => {
-      // 連続射撃停止
-      this.stopContinuousShoot();
-    });
-
-    this.eventEmitter.on('mobileSpecialStart', () => {
-      // 特殊攻撃発動
-      this.player.activateSpecialAttack();
-    });
-
-    this.eventEmitter.on('mobileJoystickMove', movement => {
-      // ジョイスティック移動をプレイヤーに反映
-      this.handleJoystickMovement(movement);
-    });
-  }
-
-  private shootInterval: number | null = null;
-
-  /**
-   * 連続射撃開始
-   */
-  private startContinuousShoot(): void {
-    if (this.shootInterval) return;
-
-    // 即座に1発撃つ
-    this.player.shoot();
-
-    // 連続射撃開始
-    this.shootInterval = window.setInterval(() => {
-      this.player.shoot();
-    }, 150); // 150ms間隔で射撃
-  }
-
-  /**
-   * 連続射撃停止
-   */
-  private stopContinuousShoot(): void {
-    if (this.shootInterval) {
-      clearInterval(this.shootInterval);
-      this.shootInterval = null;
-    }
-  }
-
-  /**
-   * ジョイスティック移動処理
-   */
-  private handleJoystickMovement(movement: { x: number; y: number }): void {
-    // プレイヤーの移動速度を設定
-    const speed = this.config.player.maxSpeed;
-    this.player.setVelocity(movement.x * speed, movement.y * speed);
-  }
 
   private initializeGameObjects(): void {
     // GameObjectManagerを初期化
@@ -461,10 +336,6 @@ export class Game implements IGame {
   public start(): void {
     this.eventEmitter.emit('gameStarted');
 
-    // モバイルデバイス用の初期化処理
-    if (this.isMobile) {
-      this.initializeMobileGameplay();
-    }
 
     this.gameEngine.start();
     setInterval(this.spawnEnemy, this.config.enemy.spawnInterval);
@@ -473,41 +344,6 @@ export class Game implements IGame {
     this.startWaveSystem();
   }
 
-  /**
-   * モバイル専用のゲームプレイ初期化
-   */
-  private initializeMobileGameplay(): void {
-    // MobileUIIntegrationを初期化
-    this.mobileUIIntegration = new MobileUIIntegration(
-      this.eventEmitter,
-      this.canvas
-    );
-    this.mobileUIIntegration.initialize();
-
-    // TouchInputManagerとMobileUIManagerの連携設定
-    if (this.touchInputManager) {
-      // ジョイスティック移動イベントの処理
-      this.eventEmitter.on('mobileJoystickMove', (movement: Vector2D) => {
-        this.touchInputManager?.handleJoystickMovement(movement);
-      });
-
-      // ジョイスティック開始イベントの処理
-      this.eventEmitter.on('mobileJoystickStart', () => {
-        this.touchInputManager?.handleJoystickStart();
-      });
-
-      // ジョイスティック終了イベントの処理
-      this.eventEmitter.on('mobileJoystickEnd', () => {
-        this.touchInputManager?.handleJoystickEnd();
-      });
-    }
-
-    // モバイル用のゲーム状態を開始状態に設定
-    this.stateManager.setState('PLAYING', this);
-
-    // モバイル用のUI表示メッセージ
-    this.showMessage('タッチでゲーム開始！', 2000, 'info');
-  }
 
   /**
    * GameEngineから呼び出される更新メソッド
@@ -869,14 +705,6 @@ export class Game implements IGame {
       this.gameRenderer.dispose();
     }
 
-    if (this.touchInputManager) {
-      this.touchInputManager.dispose();
-    }
-
-    if (this.mobileUIIntegration) {
-      this.mobileUIIntegration.dispose();
-    }
-
     if (this.debugManager) {
       this.debugManager.dispose();
     }
@@ -884,25 +712,8 @@ export class Game implements IGame {
     if (this.debugInputHandler) {
       this.debugInputHandler.dispose();
     }
-
-    if (this.shootInterval) {
-      clearInterval(this.shootInterval);
-    }
   }
 
-  /**
-   * モバイルデバイス判定
-   */
-  public isMobileDevice(): boolean {
-    return this.isMobile;
-  }
-
-  /**
-   * TouchInputManagerを取得
-   */
-  public getTouchInputManager(): TouchInputManager | null {
-    return this.touchInputManager;
-  }
 
   /**
    * DebugManagerを取得（デバッグ用）

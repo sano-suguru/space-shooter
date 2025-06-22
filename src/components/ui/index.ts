@@ -23,7 +23,6 @@ export { ProgressHeader } from './ProgressHeader';
 export { ExperienceBar } from './ExperienceBar';
 export { QuickStats } from './QuickStats';
 export { StatItem } from './StatItem';
-export { VirtualJoystick } from './VirtualJoystick';
 export { WeaponItem } from './WeaponItem';
 export { WeaponShopSection } from './WeaponShopSection';
 export { WeaponSwitcher } from './WeaponSwitcher';

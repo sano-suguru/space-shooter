@@ -397,25 +397,46 @@ export class Player extends GameObject implements IPlayer {
   }
 
   public activatePowerup(type: PowerUpType): void {
+    console.log('⚡ [Player] PowerUp有効化開始:', {
+      type,
+      hasPowerUpEffectService: !!this.powerUpEffectService,
+      timestamp: Date.now(),
+    });
+
     if (this.powerUpEffectService) {
       // 新しいPowerUpEffectServiceを使用
       this.powerUpEffectService.applyEffect(this, type);
       this.eventEmitter.emit('powerUpActivated', type);
 
       const duration = this.powerUpEffectService.getEffectDuration(type);
+      console.log('⏰ [Player] PowerUp持続時間設定:', {
+        type,
+        duration,
+        willExpireAt: Date.now() + duration,
+      });
+
       setTimeout(() => {
+        console.log('⏰ [Player] PowerUp持続時間終了 - 除去処理開始:', {
+          type,
+          timestamp: Date.now(),
+        });
         this.powerUpEffectService?.removeEffect(this, type);
         this.eventEmitter.emit('powerUpDeactivated', type);
       }, duration);
     } else {
       // フォールバック：基本的な効果を直接適用
+      console.log('🔄 [Player] フォールバック処理を使用');
       this.applyBasicPowerUpEffect(type);
       this.eventEmitter.emit('powerUpActivated', type);
 
-      setTimeout(
-        () => this.deactivatePowerup(type),
-        this.config.powerup.duration
-      );
+      const duration = this.config.powerup.duration;
+      console.log('⏰ [Player] フォールバック持続時間設定:', {
+        type,
+        duration,
+        willExpireAt: Date.now() + duration,
+      });
+
+      setTimeout(() => this.deactivatePowerup(type), duration);
     }
   }
 
@@ -465,7 +486,21 @@ export class Player extends GameObject implements IPlayer {
   }
 
   public activateShield(): void {
+    console.log('🛡️ [Player] シールドを有効化:', {
+      before: this.shieldActive,
+      after: true,
+      timestamp: Date.now(),
+    });
     this.shieldActive = true;
+  }
+
+  public deactivateShield(): void {
+    console.log('🛡️ [Player] シールドを無効化:', {
+      before: this.shieldActive,
+      after: false,
+      timestamp: Date.now(),
+    });
+    this.shieldActive = false;
   }
 
   public getPosition(): Vector2D {

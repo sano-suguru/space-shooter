@@ -14,7 +14,12 @@ export class PowerUpEffectService {
         player.setBulletType('triple');
         break;
       case 'SHIELD':
+        console.log('🛡️ [PowerUpEffectService] シールド効果を適用中');
         player.activateShield();
+        console.log('🛡️ [PowerUpEffectService] シールド効果適用完了:', {
+          shieldActive: player.isShieldActive(),
+          timestamp: Date.now(),
+        });
         break;
       default:
         console.warn(`Unknown power-up type: ${String(type)}`);
@@ -30,8 +35,26 @@ export class PowerUpEffectService {
         player.setBulletType('single');
         break;
       case 'SHIELD':
-        // シールドの無効化は現在のPlayer実装では自動的に行われる
-        // 将来的にdeactivateShieldメソッドが追加された場合はここで呼び出す
+        console.log('🛡️ [PowerUpEffectService] シールド効果を除去中');
+        console.log('🛡️ [PowerUpEffectService] シールド除去前の状態:', {
+          shieldActive: player.isShieldActive(),
+          timestamp: Date.now(),
+        });
+
+        // シールドを無効化
+        if (player.deactivateShield) {
+          player.deactivateShield();
+          console.log('✅ [PowerUpEffectService] シールドを無効化しました');
+        } else {
+          console.warn(
+            '⚠️ [PowerUpEffectService] deactivateShieldメソッドが利用できません'
+          );
+        }
+
+        console.log('🛡️ [PowerUpEffectService] シールド除去後の状態:', {
+          shieldActive: player.isShieldActive(),
+          timestamp: Date.now(),
+        });
         break;
       default:
         console.warn(`Unknown power-up type: ${String(type)}`);

@@ -9,10 +9,9 @@ import { GameStateManager } from './managers/GameStateManager';
 import { ReactLazyUIManager } from './managers/ReactLazyUIManager';
 import { ScoreManager } from './managers/ScoreManager';
 import { UIManager } from './managers/UIManager';
-import { MobileUIIntegration } from './mobile/MobileUIManager';
 import { ProgressManager } from './progression/managers/ProgressManager';
 import { RealRandomProvider, RealTimeProvider } from './providers';
-import { DeviceDetector } from './utils/DeviceDetector';
+import { InputManager } from './managers/InputManager';
 import { getElementOrThrow } from './utils/DOMUtils';
 import { WeaponManager } from './weapons/managers/WeaponManager';
 
@@ -22,8 +21,8 @@ function initGame(): void {
   const randomProvider = new RealRandomProvider();
   const timeProvider = new RealTimeProvider();
 
-  // デバイスに応じた適切なInputManagerを選択
-  const inputManager = DeviceDetector.getInputManager(canvas);
+  // デスクトップ用InputManagerを使用
+  const inputManager = new InputManager(canvas);
 
   const coreManagers = initializeCoreManagers(
     eventEmitter,
@@ -44,9 +43,6 @@ function initGame(): void {
     weaponManager
   );
 
-  const mobileUIIntegration = initializeMobileUI(eventEmitter, canvas);
-
-  logDeviceInfo(inputManager);
 
   const game = createGame(
     canvas,
@@ -57,7 +53,6 @@ function initGame(): void {
     timeProvider
   );
 
-  setupGameCleanup(game, mobileUIIntegration);
   game.start();
 }
 
@@ -139,20 +134,6 @@ function initializeUIManagers(
   console.log('Active UI Manager:', reactLazyUIManager.getActiveUI());
 }
 
-function initializeMobileUI(
-  eventEmitter: EventEmitter<EventMap>,
-  canvas: HTMLCanvasElement
-): MobileUIIntegration {
-  const mobileUIIntegration = new MobileUIIntegration(eventEmitter, canvas);
-  mobileUIIntegration.initialize();
-  return mobileUIIntegration;
-}
-
-function logDeviceInfo(inputManager: IInputManager): void {
-  const deviceInfo = DeviceDetector.getDeviceInfo();
-  console.log('🔧 Device Info:', deviceInfo);
-  console.log('📱 Input Manager Type:', inputManager.constructor.name);
-}
 
 function createGame(
   canvas: HTMLCanvasElement,
@@ -175,18 +156,6 @@ function createGame(
   );
 }
 
-function setupGameCleanup(
-  game: Game,
-  mobileUIIntegration: MobileUIIntegration
-): void {
-  const originalDispose = game.dispose?.bind(game);
-  game.dispose = (): void => {
-    mobileUIIntegration.dispose();
-    if (originalDispose) {
-      originalDispose();
-    }
-  };
-}
 
 function initApplication(): void {
   initGame(); // ゲーム初期化（React.lazy()システム統合済み）

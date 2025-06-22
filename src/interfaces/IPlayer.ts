@@ -33,6 +33,16 @@ export interface IPlayer {
   activateShield(): void;
 
   /**
+   * シールドを無効化する
+   */
+  deactivateShield?(): void;
+
+  /**
+   * シールドの状態を取得する
+   */
+  isShieldActive(): boolean;
+
+  /**
    * PowerUpを有効化する
    */
   activatePowerup(type: PowerUpType): void;
