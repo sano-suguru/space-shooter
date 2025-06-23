@@ -42,8 +42,10 @@ export class EnhancedWeaponBulletFactory extends WeaponBulletFactory {
 
     // 最初の弾丸にビジュアル効果を適用
     const bullet = bullets[0];
-    if (bullet) {
+    if (bullet && typeof bullet.getSpeed === 'function') {
       this.visualManager.setBulletVisual(bullet, weaponConfig, enchantments);
+    } else if (bullet) {
+      console.warn('無効な弾丸オブジェクトが検出されました:', bullet);
     }
 
     return bullet;
@@ -67,7 +69,11 @@ export class EnhancedWeaponBulletFactory extends WeaponBulletFactory {
 
     // 各弾丸にビジュアル効果を適用
     bullets.forEach(bullet => {
-      this.visualManager.setBulletVisual(bullet, weaponConfig, enchantments);
+      if (bullet && typeof bullet.getSpeed === 'function') {
+        this.visualManager.setBulletVisual(bullet, weaponConfig, enchantments);
+      } else {
+        console.warn('無効な弾丸オブジェクトが検出されました:', bullet);
+      }
     });
 
     return bullets;
@@ -93,7 +99,11 @@ export class EnhancedWeaponBulletFactory extends WeaponBulletFactory {
 
     // 各弾丸にビジュアル効果を適用
     bullets.forEach(bullet => {
-      this.visualManager.setBulletVisual(bullet, weaponConfig, enchantments);
+      if (bullet && typeof bullet.getSpeed === 'function') {
+        this.visualManager.setBulletVisual(bullet, weaponConfig, enchantments);
+      } else {
+        console.warn('無効な弾丸オブジェクトが検出されました:', bullet);
+      }
     });
 
     return bullets;
@@ -104,7 +114,9 @@ export class EnhancedWeaponBulletFactory extends WeaponBulletFactory {
    */
   public updateBulletVisuals(bullets: Bullet[], deltaTime: number): void {
     bullets.forEach(bullet => {
-      this.visualManager.updateBulletVisual(bullet, deltaTime);
+      if (bullet && typeof bullet.getSpeed === 'function') {
+        this.visualManager.updateBulletVisual(bullet, deltaTime);
+      }
     });
   }
 

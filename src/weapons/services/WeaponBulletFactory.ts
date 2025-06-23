@@ -91,6 +91,11 @@ export class WeaponBulletFactory implements IWeaponBulletFactory {
   ): Bullet {
     const bullet = this.getBulletFromPool(weaponConfig.id) ?? new Bullet();
 
+    // プールから取得した弾丸の場合は明示的にリセット
+    if (bullet && typeof bullet.reset === 'function') {
+      bullet.reset();
+    }
+
     // 武器設定に基づいて弾丸を初期化
     const speed = weaponConfig.bulletSpeed;
     const color = this.getWeaponColor(weaponConfig);
@@ -283,6 +288,11 @@ export class WeaponBulletFactory implements IWeaponBulletFactory {
     // 3発同時発射（中央、左、右）
     for (let i = 0; i < 3; i++) {
       const bullet = this.getBulletFromPool(weaponConfig.id) ?? new Bullet();
+
+      // プールから取得した弾丸の場合は明示的にリセット
+      if (bullet && typeof bullet.reset === 'function') {
+        bullet.reset();
+      }
 
       // 弾丸を初期化
       bullet.initialize(

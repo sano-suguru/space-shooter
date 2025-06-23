@@ -2,6 +2,7 @@ import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
 import { IGameEngine } from '../interfaces/IGameEngine';
 import { Vector2D } from '../types';
 
+import { BossAttackEffects } from './BossAttackEffects';
 import { BossBullet } from './BossBullet';
 import { GameObject } from './GameObject';
 
@@ -13,6 +14,9 @@ export class Boss extends GameObject {
   private animationPhase: number = 0;
   private corePulse: number = 0;
   private config: GameConfig;
+  private attackEffects: BossAttackEffects;
+  private attackFlash: number = 0;
+  private isAttacking: boolean = false;
 
   // プレイヤーと統一感のある洗練された要素
   private engineGlow: { phase: number; intensity: number } = {
@@ -59,6 +63,7 @@ export class Boss extends GameObject {
     this.config = gameConfig;
     this.health = gameConfig.boss.initialHealth;
     this.game = game;
+    this.attackEffects = new BossAttackEffects(gameConfig);
 
     this.initializeRefinedStructure();
   }
@@ -160,6 +165,18 @@ export class Boss extends GameObject {
       beam.intensity += deltaTime * (2.2 + index * 0.1);
     });
 
+    // 攻撃エフェクトを更新
+    this.attackEffects.update(deltaTime);
+
+    // 攻撃フラッシュエフェクトを更新
+    if (this.isAttacking) {
+      this.attackFlash += deltaTime * 0.02;
+      if (this.attackFlash > Math.PI) {
+        this.isAttacking = false;
+        this.attackFlash = 0;
+      }
+    }
+
     const currentTime = Date.now();
     if (currentTime - this.lastFireTime > this.config.boss.fireRate) {
       this.shoot();
@@ -168,11 +185,37 @@ export class Boss extends GameObject {
   }
 
   private shoot(): void {
+    // 攻撃フラッシュを開始
+    this.isAttacking = true;
+    this.attackFlash = 0;
+
+    // 画面揺れを追加（軽め）
+    this.attackEffects.addScreenShake(2, 150, 0.08);
+
     const angleSpread = Math.PI / 6;
     for (let i = -2; i <= 2; i++) {
       const angle = i * (angleSpread / 4);
       const speedX = Math.sin(angle) * this.config.boss.bulletSpeed;
       const speedY = Math.cos(angle) * this.config.boss.bulletSpeed;
+
+      // 発射時のパーティクル爆発
+      this.attackEffects.addAttackParticles(
+        this.x + this.width / 2,
+        this.y + this.height,
+        12,
+        'energy',
+        '#ff00ff'
+      );
+
+      // 追加の火花エフェクト
+      this.attackEffects.addAttackParticles(
+        this.x + this.width / 2,
+        this.y + this.height,
+        8,
+        'spark',
+        '#ffff00'
+      );
+
       this.game.addBossBullet(
         new BossBullet(
           this.x + this.width / 2,
@@ -185,8 +228,19 @@ export class Boss extends GameObject {
   }
 
   public draw(ctx: CanvasRenderingContext2D): void {
+    // 攻撃エフェクトを最初に描画（背景として）
+    this.attackEffects.draw(ctx);
+
     ctx.save();
     ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+
+    // 攻撃時のフラッシュエフェクト
+    if (this.isAttacking) {
+      const flashIntensity = Math.sin(this.attackFlash) * 0.5 + 0.5;
+      ctx.shadowColor = '#ffffff';
+      ctx.shadowBlur = 20 * flashIntensity;
+      ctx.globalAlpha = 1 + flashIntensity * 0.3;
+    }
 
     // プレイヤーと統一感のある描画順序
     this.drawShieldLayers(ctx);
@@ -196,8 +250,31 @@ export class Boss extends GameObject {
     this.drawEnergyBeams(ctx);
     this.drawCore(ctx);
 
+    // 攻撃時の追加光輪
+    if (this.isAttacking) {
+      this.drawAttackFlash(ctx);
+    }
+
     ctx.restore();
     this.drawHealthBar(ctx);
+  }
+
+  /**
+   * 攻撃時のフラッシュエフェクトを描画
+   */
+  private drawAttackFlash(ctx: CanvasRenderingContext2D): void {
+    const flashIntensity = Math.sin(this.attackFlash) * 0.7 + 0.3;
+    const radius = (this.width / 2) * (1 + flashIntensity);
+
+    const flashGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radius * 2);
+    flashGradient.addColorStop(0, `rgba(255, 255, 255, ${flashIntensity * 0.8})`);
+    flashGradient.addColorStop(0.5, `rgba(0, 255, 255, ${flashIntensity * 0.4})`);
+    flashGradient.addColorStop(1, 'transparent');
+
+    ctx.fillStyle = flashGradient;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius * 2, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   private drawMainBody(ctx: CanvasRenderingContext2D): void {

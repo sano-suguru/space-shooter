@@ -1,6 +1,7 @@
 import { GameConfig, createGameConfig } from '../../config/GameConfigFactory';
 import { IGameEngine } from '../../interfaces/IGameEngine';
 import { Boss } from '../Boss';
+import { BossAttackEffects } from '../BossAttackEffects';
 import { BossBullet } from '../BossBullet';
 import {
   createAdvancedBullet,
@@ -41,6 +42,9 @@ export class AssaultCruiser extends Boss {
   private lastAttackTime: number = 0;
   private player?: Player;
 
+  // 攻撃エフェクト
+  private assaultEffects: BossAttackEffects;
+
   constructor(game: IGameEngine, config?: GameConfig, player?: Player) {
     const gameConfig = config ?? createGameConfig();
 
@@ -60,6 +64,7 @@ export class AssaultCruiser extends Boss {
     super(game, assaultConfig);
     this.maxHealth = assaultConfig.boss.initialHealth;
     this.player = player;
+    this.assaultEffects = new BossAttackEffects(assaultConfig);
     this.initializeAssaultStructure();
   }
 
@@ -85,6 +90,7 @@ export class AssaultCruiser extends Boss {
     this.updatePhase();
     this.updateVisualEffects(deltaTime);
     this.updateAttackPattern();
+    this.assaultEffects.update(deltaTime);
   }
 
   /**
@@ -229,10 +235,31 @@ export class AssaultCruiser extends Boss {
     const dy = playerPos.y + this.player.getHeight() / 2 - bossCenterY;
     const angle = Math.atan2(dy, dx);
 
+    // 画面揺れ（軽め）
+    this.assaultEffects.addScreenShake(3, 200, 0.1);
+
     // 通常弾を発射
     const speed = this.getConfig().boss.bulletSpeed * 1.5;
     const speedX = Math.cos(angle) * speed;
     const speedY = Math.sin(angle) * speed;
+
+    // 発射時の派手なパーティクル爆発
+    this.assaultEffects.addAttackParticles(
+      bossCenterX,
+      bossCenterY,
+      15,
+      'energy',
+      '#ff6b6b'
+    );
+
+    // 追加の火花エフェクト
+    this.assaultEffects.addAttackParticles(
+      bossCenterX,
+      bossCenterY,
+      10,
+      'spark',
+      '#ffaa00'
+    );
 
     const bullet = this.createBossBullet(
       bossCenterX,
@@ -251,11 +278,41 @@ export class AssaultCruiser extends Boss {
     const bossCenterY = this.y + this.height;
     const directions = 7; // 7方向に拡散
 
+    // 強い画面揺れ
+    this.assaultEffects.addScreenShake(5, 300, 0.12);
+
+    // 大規模なパーティクル爆発
+    this.assaultEffects.addAttackParticles(
+      bossCenterX,
+      bossCenterY,
+      25,
+      'explosion',
+      '#ff8c00'
+    );
+
+    // 追加のエネルギーパーティクル
+    this.assaultEffects.addAttackParticles(
+      bossCenterX,
+      bossCenterY,
+      20,
+      'energy',
+      '#ff4500'
+    );
+
     for (let i = 0; i < directions; i++) {
       const angle = (Math.PI / 6) * (i - 3); // -π/2 から π/2 の範囲で拡散
       const speed = this.getConfig().boss.bulletSpeed;
       const speedX = Math.sin(angle) * speed;
       const speedY = Math.cos(angle) * speed;
+
+      // 爆発パーティクル
+      this.assaultEffects.addAttackParticles(
+        bossCenterX + Math.sin(angle) * 20,
+        bossCenterY + Math.cos(angle) * 20,
+        6,
+        'explosion',
+        '#ff8c00'
+      );
 
       // 爆発弾を作成
       const explosiveBullet = createAdvancedBullet(
@@ -323,6 +380,9 @@ export class AssaultCruiser extends Boss {
   }
 
   public draw(ctx: CanvasRenderingContext2D): void {
+    // 攻撃エフェクトを最初に描画
+    this.assaultEffects.draw(ctx);
+
     ctx.save();
     ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
 

@@ -318,9 +318,20 @@ export class BulletVisualManager {
     bullet: Bullet,
     config: BulletVisualConfig
   ): void {
-    // 色を設定（setTypeメソッドの正しいシグネチャを使用）
-    const colorString = this.colorConfigToString(config.baseColor);
-    bullet.setType(bullet.getSpeed(), colorString); // 新しいgetSpeed()メソッドを使用
+    // 弾丸が適切に初期化されているかチェック
+    if (!bullet || typeof bullet.getSpeed !== 'function') {
+      console.warn('弾丸が適切に初期化されていません:', bullet);
+      return;
+    }
+
+    try {
+      // 色を設定（setTypeメソッドの正しいシグネチャを使用）
+      const colorString = this.colorConfigToString(config.baseColor);
+      const speed = bullet.getSpeed();
+      bullet.setType(speed, colorString);
+    } catch (error) {
+      console.error('弾丸プロパティの更新中にエラーが発生しました:', error);
+    }
 
     // サイズは描画時に適用されるため、ここでは設定しない
   }
