@@ -294,14 +294,16 @@ export class Player extends GameObject implements IPlayer {
     color?: string
   ): Bullet | null {
     const bulletSpeed = speed ?? this.config.bullet.speed;
+    // プレイヤーの弾丸により視認性の高い色を設定
+    const bulletColor = color ?? '#00ffaa'; // より鮮やかな緑色
 
     if (this.game) {
       // Game経由で弾丸を作成し、所有者を直接設定
-      return this.game.createBullet(x, y, bulletSpeed, color, 'player');
+      return this.game.createBullet(x, y, bulletSpeed, bulletColor, 'player');
     } else {
       // フォールバック：Gameインスタンスがない場合は直接作成
       const bullet = new Bullet();
-      bullet.initialize(x, y, bulletSpeed, color, 'player'); // 所有者を設定
+      bullet.initialize(x, y, bulletSpeed, bulletColor, 'player'); // 所有者を設定
       return bullet;
     }
   }

@@ -13,7 +13,7 @@ import {
 import { AreaEffectTrajectory } from './AreaEffectTrajectory';
 import { BarrageTrajectory } from './BarrageTrajectory';
 import { EvasiveTrajectory } from './EvasiveTrajectory';
-import { PrecisionTrajectory } from './PrecisionTrajectory';
+import { IEnemyProvider, PrecisionTrajectory } from './PrecisionTrajectory';
 
 /**
  * 弾道パターンファクトリークラス
@@ -22,6 +22,14 @@ export class TrajectoryFactory {
   private static trajectoryPools: Map<TrajectoryType, IBulletTrajectory[]> =
     new Map();
   private static maxPoolSize: number = 20;
+  private static enemyProvider?: IEnemyProvider;
+
+  /**
+   * 敵プロバイダーを設定
+   */
+  public static setEnemyProvider(provider: IEnemyProvider): void {
+    this.enemyProvider = provider;
+  }
 
   /**
    * 弾道パターンを作成
@@ -34,6 +42,10 @@ export class TrajectoryFactory {
     const pooled = this.getFromPool(config.type);
     if (pooled) {
       pooled.reset();
+      // 精密射撃の場合は敵プロバイダーを設定
+      if (pooled instanceof PrecisionTrajectory && this.enemyProvider) {
+        pooled.setEnemyProvider(this.enemyProvider);
+      }
       return pooled;
     }
 
@@ -49,8 +61,14 @@ export class TrajectoryFactory {
     bulletIndex?: number
   ): IBulletTrajectory {
     switch (config.type) {
-      case TrajectoryType.PRECISION:
-        return new PrecisionTrajectory(config);
+      case TrajectoryType.PRECISION: {
+        const trajectory = new PrecisionTrajectory(config);
+        // 敵プロバイダーが設定されている場合は適用
+        if (this.enemyProvider) {
+          trajectory.setEnemyProvider(this.enemyProvider);
+        }
+        return trajectory;
+      }
 
       case TrajectoryType.AREA_EFFECT:
         return new AreaEffectTrajectory(config);

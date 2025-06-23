@@ -233,14 +233,14 @@ export const VISUAL_CONSTANTS = {
  * 武器タイプ別デフォルト色
  */
 export const WEAPON_TYPE_COLORS = {
-  [WeaponType.BASIC_LASER]: { primary: '#00aaff', secondary: '#ffffff' },
-  [WeaponType.PLASMA_CANNON]: { primary: '#aa00ff', secondary: '#ff00aa' },
-  [WeaponType.ENERGY_BEAM]: { primary: '#ffaa00', secondary: '#ffffff' },
-  [WeaponType.EXPLOSIVE_ROUNDS]: { primary: '#ff4400', secondary: '#ffaa00' },
-  [WeaponType.HOMING_MISSILES]: { primary: '#0088ff', secondary: '#00ffff' },
-  [WeaponType.SPLIT_SHOT]: { primary: '#88ff00', secondary: '#ffffff' },
-  [WeaponType.RAPID_FIRE]: { primary: '#ff8800', secondary: '#ffff00' },
-  [WeaponType.MISSILE_LAUNCHER]: { primary: '#666666', secondary: '#ff4400' },
+  [WeaponType.BASIC_LASER]: { primary: '#00ffff', secondary: '#ffffff' }, // より明るいシアン
+  [WeaponType.PLASMA_CANNON]: { primary: '#ff00ff', secondary: '#ffffff' }, // より明るいマゼンタ
+  [WeaponType.ENERGY_BEAM]: { primary: '#ffff00', secondary: '#ffffff' }, // より明るい黄色
+  [WeaponType.EXPLOSIVE_ROUNDS]: { primary: '#ff6600', secondary: '#ffaa00' }, // より明るいオレンジ
+  [WeaponType.HOMING_MISSILES]: { primary: '#00aaff', secondary: '#00ffff' }, // より明るい青
+  [WeaponType.SPLIT_SHOT]: { primary: '#88ff00', secondary: '#ffffff' }, // 明るい緑（そのまま）
+  [WeaponType.RAPID_FIRE]: { primary: '#ffaa00', secondary: '#ffff00' }, // より明るいオレンジ
+  [WeaponType.MISSILE_LAUNCHER]: { primary: '#aaaaaa', secondary: '#ff6600' }, // より明るいグレー
 } as const;
 
 /**

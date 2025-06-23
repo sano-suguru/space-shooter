@@ -2,19 +2,37 @@
  * 精密射撃弾道パターン
  *
  * ベーシックレーザー用の軽微な追尾効果を実装
- * - 発射後0.5秒は直線移動
+ * - 発射後0.05秒は直線移動
  * - その後軽微な追尾効果を発動
+ * - 実際の敵管理システムと連携して追尾
  */
 
 import { Bullet } from '../../entities/Bullet';
+import { Enemy } from '../../entities/Enemy';
 import { TrajectoryType } from '../types/TrajectoryTypes';
 
 import { BaseTrajectory } from './BaseTrajectory';
 
 /**
+ * 敵管理システムへのアクセスインターフェース
+ */
+export interface IEnemyProvider {
+  getEnemies(): Enemy[];
+}
+
+/**
  * 精密射撃弾道クラス
  */
 export class PrecisionTrajectory extends BaseTrajectory {
+  private enemyProvider?: IEnemyProvider;
+
+  /**
+   * 敵プロバイダーを設定
+   */
+  public setEnemyProvider(provider: IEnemyProvider): void {
+    this.enemyProvider = provider;
+  }
+
   /**
    * 弾道タイプを取得
    */
@@ -29,8 +47,7 @@ export class PrecisionTrajectory extends BaseTrajectory {
     this.initializeTrajectory(bullet);
 
     const elapsedTime = this.getElapsedTime();
-    const straightDuration =
-      this.config.parameters.straightPhaseDuration ?? 200; // 0.2秒に短縮
+    const straightDuration = this.config.parameters.straightPhaseDuration ?? 50; // 0.05秒に大幅短縮
 
     if (elapsedTime < straightDuration) {
       // 直線移動フェーズ
@@ -107,25 +124,70 @@ export class PrecisionTrajectory extends BaseTrajectory {
   }
 
   /**
-   * 最寄りの敵を探す（追尾効果デモ用）
-   * 実際のゲームでは敵管理システムから取得
+   * 最寄りの敵を探す（実際の敵管理システムから取得）
    */
   private findNearestEnemy(position: {
     x: number;
     y: number;
   }): { x: number; y: number } | null {
-    // TODO: 実際の敵管理システムと連携
-    // デモ用：追尾効果が明確に見える敵位置を提供
+    // 敵プロバイダーが設定されていない場合はフォールバック
+    if (!this.enemyProvider) {
+      return this.getFallbackEnemyPosition(position);
+    }
 
-    // 追尾効果をテストするため、常に敵を生成
-    // 弾丸の斜め前方に固定的な敵を配置（追尾効果が最も見えやすい）
-    const enemyDistance = 120; // 固定距離
-    const horizontalOffset = position.x < 400 ? 80 : -80; // 画面中央を基準に左右に配置
+    const enemies = this.enemyProvider.getEnemies();
+    if (!enemies || enemies.length === 0) {
+      return null;
+    }
 
-    return {
-      x: position.x + horizontalOffset,
-      y: position.y - enemyDistance,
-    };
+    let nearestEnemy: Enemy | null = null;
+    let nearestDistance = Infinity;
+
+    // 全ての敵から最も近い敵を探す
+    for (const enemy of enemies) {
+      const enemyPos = enemy.getPosition();
+      const distance = this.calculateDistance(position, enemyPos);
+
+      // 追尾範囲内で最も近い敵を選択
+      const trackingRange = this.config.parameters.trackingRange ?? 400;
+      if (distance < trackingRange && distance < nearestDistance) {
+        nearestEnemy = enemy;
+        nearestDistance = distance;
+      }
+    }
+
+    if (nearestEnemy) {
+      return nearestEnemy.getPosition();
+    }
+
+    return null;
+  }
+
+  /**
+   * 敵プロバイダーが利用できない場合のフォールバック
+   */
+  private getFallbackEnemyPosition(position: {
+    x: number;
+    y: number;
+  }): { x: number; y: number } | null {
+    // デバッグ用：固定的な敵位置を提供（開発時のみ）
+    if (typeof window !== 'undefined' && this.isDebugMode()) {
+      const enemyDistance = 120;
+      const horizontalOffset = position.x < 400 ? 80 : -80;
+      return {
+        x: position.x + horizontalOffset,
+        y: position.y - enemyDistance,
+      };
+    }
+    return null;
+  }
+
+  /**
+   * デバッグモードかどうかを判定
+   */
+  private isDebugMode(): boolean {
+    const windowWithDebug = window as Window & { DEBUG_MODE?: boolean };
+    return Boolean(windowWithDebug.DEBUG_MODE);
   }
 
   /**

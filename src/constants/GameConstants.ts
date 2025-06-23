@@ -32,7 +32,7 @@ export const GAME_CONSTANTS: GameConstants = {
       SMALL: {
         width: 30,
         height: 30,
-        speed: 180,
+        speed: 120,
         health: 1,
         score: 10,
         color: '#7c4dff',
@@ -40,7 +40,7 @@ export const GAME_CONSTANTS: GameConstants = {
       MEDIUM: {
         width: 50,
         height: 50,
-        speed: 120,
+        speed: 80,
         health: 2,
         score: 20,
         color: '#26c6da',
@@ -48,7 +48,7 @@ export const GAME_CONSTANTS: GameConstants = {
       LARGE: {
         width: 70,
         height: 70,
-        speed: 60,
+        speed: 40,
         health: 3,
         score: 30,
         color: '#66bb6a',

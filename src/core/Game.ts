@@ -24,7 +24,9 @@ import { GameRenderer } from '../rendering/GameRenderer';
 import { PowerUpEffectService } from '../services/PowerUpEffectService';
 import { CollisionSystem } from '../systems/CollisionSystem';
 import { EnemyType } from '../types';
+import { GameObjectEnemyProvider } from '../weapons/adapters/GameObjectEnemyProvider';
 import { WeaponManager } from '../weapons/managers/WeaponManager';
+import { TrajectoryFactory } from '../weapons/trajectories/TrajectoryFactory';
 import type { EquippedWeapon } from '../weapons/types/WeaponTypes';
 
 import { GameEngine } from './GameEngine';
@@ -181,6 +183,9 @@ export class Game implements IGame {
     // プレイヤーをGameObjectManagerに設定
     this.gameObjectManager.setPlayer(this.player);
 
+    // 敵プロバイダーを弾道システムに設定
+    this.initializeTrajectoryEnemyProvider();
+
     // 従来の背景オブジェクトを作成（設定を使用）
     const stars = Array.from({ length: this.config.background.starCount }, () =>
       this.gameObjectFactory.createStar()
@@ -220,6 +225,15 @@ export class Game implements IGame {
       meteorShowers,
       spaceDusts
     );
+  }
+
+  /**
+   * 弾道システムに敵プロバイダーを設定
+   */
+  private initializeTrajectoryEnemyProvider(): void {
+    const enemyProvider = new GameObjectEnemyProvider(this.gameObjectManager);
+    TrajectoryFactory.setEnemyProvider(enemyProvider);
+    console.log('🎯 弾道システムに敵プロバイダーを設定しました');
   }
 
   /**

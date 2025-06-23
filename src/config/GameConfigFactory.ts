@@ -158,8 +158,8 @@ function createPlayerConfig(): GameConfig['player'] {
 
 function createBulletConfig(): GameConfig['bullet'] {
   return {
-    width: 5,
-    height: 15,
+    width: 5, // 元のサイズに戻す（プレイヤー弾は動的に調整）
+    height: 15, // 元のサイズに戻す（プレイヤー弾は動的に調整）
     speed: 600,
   };
 }

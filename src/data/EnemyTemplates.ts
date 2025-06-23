@@ -56,7 +56,7 @@ export const ENEMY_BASE_TEMPLATES: Record<
   SMALL: {
     stats: {
       health: 1,
-      speed: 180,
+      speed: 120,
       attackPower: 1,
       defense: 0,
       fireRate: 2000,
@@ -87,7 +87,7 @@ export const ENEMY_BASE_TEMPLATES: Record<
   MEDIUM: {
     stats: {
       health: 2,
-      speed: 120,
+      speed: 80,
       attackPower: 2,
       defense: 1,
       fireRate: 1500,
@@ -118,7 +118,7 @@ export const ENEMY_BASE_TEMPLATES: Record<
   LARGE: {
     stats: {
       health: 3,
-      speed: 60,
+      speed: 40,
       attackPower: 3,
       defense: 2,
       fireRate: 1000,

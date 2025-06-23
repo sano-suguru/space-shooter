@@ -41,6 +41,7 @@ export class DroppedWeapon extends GameObject {
   private attractionSpeed: number = 200;
   private floatAmplitude: number = 10;
   private floatFrequency: number = 2;
+  private gravityForce: number = 80; // フローティング状態での重力
   private spawnAnimation: number = 0;
   private trail: Array<{ x: number; y: number; alpha: number }> = [];
   private config: GameConfig;
@@ -116,6 +117,19 @@ export class DroppedWeapon extends GameObject {
 
     // 寿命チェック
     if (this.lifeTime >= this.maxLifeTime) {
+      this.state = DroppedWeaponState.EXPIRED;
+      return;
+    }
+
+    // 画面外チェック（画面下端を超えた場合は削除）
+    if (this.y > this.config.canvas.height + this.height) {
+      console.log(
+        `🗑️ 武器が画面外に流れて削除: ${this.enchantedWeapon.displayName}`,
+        {
+          position: { x: this.x, y: this.y },
+          screenHeight: this.config.canvas.height,
+        }
+      );
       this.state = DroppedWeaponState.EXPIRED;
       return;
     }
@@ -202,6 +216,9 @@ export class DroppedWeapon extends GameObject {
       Math.sin((this.lifeTime * this.floatFrequency) / 1000) *
       this.floatAmplitude;
     this.y += (floatOffset * deltaTime) / 100;
+
+    // 重力効果で徐々に下方向に移動
+    this.y += this.gravityForce * deltaTime;
   }
 
   /**

@@ -19,7 +19,7 @@ export class Bullet extends GameObject {
   private color: string = '#ff0000';
   private animationTime: number = 0;
   private trail: TrailPoint[] = [];
-  private maxTrailLength: number = 8;
+  private maxTrailLength: number = 12; // トレイルを長くして視認性向上
   private bulletType: 'plasma' | 'laser' | 'energy' | 'missile' = 'plasma';
   private rotation: number = 0;
   private rotationSpeed: number = 0.2;
@@ -76,12 +76,27 @@ export class Bullet extends GameObject {
     this.y = y;
     this.active = true;
     this.speed = speed ?? this.config.bullet.speed;
-    this.color = color ?? '#00aaff';
+    this.owner = owner ?? 'player'; // デフォルトはプレイヤー
+
+    // 所有者に応じて色とサイズを設定
+    if (this.owner === 'player') {
+      this.color = color ?? '#00ffaa'; // プレイヤー弾：より鮮やかな緑色
+      // プレイヤー弾のサイズを大きく設定
+      this.width = 10; // さらに大きく
+      this.height = 25; // さらに大きく
+      this.maxTrailLength = 15; // より長いトレイル
+    } else {
+      this.color = color ?? '#ff4444'; // 敵弾：赤色
+      // 敵弾は元のサイズを維持
+      this.width = 5;
+      this.height = 15;
+      this.maxTrailLength = 6;
+    }
+
     this.animationTime = 0;
     this.trail = [];
     this.rotation = 0;
     this.pulsePhase = Math.random() * Math.PI * 2;
-    this.owner = owner ?? 'player'; // デフォルトはプレイヤー
 
     // 色から弾丸タイプを判定
     if (color?.includes('ff')) this.bulletType = 'energy';
@@ -105,7 +120,7 @@ export class Bullet extends GameObject {
     this.y = 0;
     this.active = false;
     this.speed = this.config.bullet.speed;
-    this.color = '#00aaff';
+    this.color = '#00ff88'; // より明るい緑色に変更
     this.animationTime = 0;
     this.trail = [];
     this.rotation = 0;
@@ -202,6 +217,7 @@ export class Bullet extends GameObject {
       const current = this.trail[i - 1];
       const previous = this.trail[i];
 
+      // より明るく、太いトレイル
       const gradient = ctx.createLinearGradient(
         current.x,
         current.y,
@@ -211,17 +227,29 @@ export class Bullet extends GameObject {
 
       gradient.addColorStop(
         0,
-        this.color.replace(')', `, ${current.alpha * 0.6})`)
+        this.color.replace(')', `, ${current.alpha * 0.9})`) // より不透明に
+      );
+      gradient.addColorStop(
+        0.5,
+        this.color.replace(')', `, ${current.alpha * 0.7})`)
       );
       gradient.addColorStop(
         1,
-        this.color.replace(')', `, ${previous.alpha * 0.3})`)
+        this.color.replace(')', `, ${previous.alpha * 0.5})`) // より見やすく
       );
 
       ctx.strokeStyle = gradient;
-      ctx.lineWidth = this.width * current.alpha * 0.8;
+      ctx.lineWidth = this.width * current.alpha * 1.2; // より太く
       ctx.lineCap = 'round';
 
+      ctx.beginPath();
+      ctx.moveTo(current.x, current.y);
+      ctx.lineTo(previous.x, previous.y);
+      ctx.stroke();
+
+      // 追加の光るエフェクト
+      ctx.strokeStyle = 'rgba(255, 255, 255, ' + current.alpha * 0.4 + ')';
+      ctx.lineWidth = this.width * current.alpha * 0.6;
       ctx.beginPath();
       ctx.moveTo(current.x, current.y);
       ctx.lineTo(previous.x, previous.y);
@@ -253,30 +281,68 @@ export class Bullet extends GameObject {
   }
 
   private drawPlasmaBullet(ctx: CanvasRenderingContext2D): void {
-    const pulseSize = 1 + Math.sin(this.pulsePhase) * 0.3;
+    const pulseSize = 1 + Math.sin(this.pulsePhase) * 0.4; // パルス効果を強化
     const radius = (this.width / 2) * pulseSize;
 
-    // 外側の光輪
-    const outerGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radius * 1.5);
+    // 最外側の光輪（より大きく、より明るく）
+    const outerGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radius * 2.2);
     outerGradient.addColorStop(0, this.color);
-    outerGradient.addColorStop(0.4, this.color.replace(')', ', 0.6)'));
+    outerGradient.addColorStop(0.3, this.color.replace(')', ', 0.8)'));
+    outerGradient.addColorStop(0.6, this.color.replace(')', ', 0.4)'));
     outerGradient.addColorStop(1, this.color.replace(')', ', 0)'));
 
     ctx.fillStyle = outerGradient;
     ctx.beginPath();
-    ctx.arc(0, 0, radius * 1.5, 0, Math.PI * 2);
+    ctx.arc(0, 0, radius * 2.2, 0, Math.PI * 2);
     ctx.fill();
 
-    // 中心コア
+    // 中間の光輪（視認性向上）
+    const middleGradient = ctx.createRadialGradient(
+      0,
+      0,
+      0,
+      0,
+      0,
+      radius * 1.6
+    );
+    middleGradient.addColorStop(0, this.color);
+    middleGradient.addColorStop(0.5, this.color.replace(')', ', 0.7)'));
+    middleGradient.addColorStop(1, this.color.replace(')', ', 0.2)'));
+
+    ctx.fillStyle = middleGradient;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius * 1.6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 中心コア（より明るく）
     const coreGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
-    coreGradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
-    coreGradient.addColorStop(0.3, this.color);
-    coreGradient.addColorStop(1, this.color.replace(')', ', 0.8)'));
+    coreGradient.addColorStop(0, 'rgba(255, 255, 255, 1.0)'); // 完全に白い中心
+    coreGradient.addColorStop(0.2, 'rgba(255, 255, 255, 0.9)');
+    coreGradient.addColorStop(0.4, this.color);
+    coreGradient.addColorStop(1, this.color.replace(')', ', 0.9)'));
 
     ctx.fillStyle = coreGradient;
     ctx.beginPath();
     ctx.arc(0, 0, radius, 0, Math.PI * 2);
     ctx.fill();
+
+    // 追加の輝きエフェクト
+    const sparkCount = 4;
+    for (let i = 0; i < sparkCount; i++) {
+      const angle = (i / sparkCount) * Math.PI * 2 + this.animationTime * 3;
+      const sparkLength = radius * 1.8;
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(
+        Math.cos(angle) * radius * 0.3,
+        Math.sin(angle) * radius * 0.3
+      );
+      ctx.lineTo(Math.cos(angle) * sparkLength, Math.sin(angle) * sparkLength);
+      ctx.stroke();
+    }
   }
 
   private drawLaserBullet(ctx: CanvasRenderingContext2D): void {

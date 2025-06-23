@@ -26,7 +26,7 @@ const BASIC_LASER_VISUAL: BulletVisualConfig = {
     secondary: WEAPON_TYPE_COLORS[WeaponType.BASIC_LASER].secondary,
     alpha: VISUAL_CONSTANTS.DEFAULT_ALPHA,
   },
-  size: VISUAL_CONSTANTS.DEFAULT_SIZE,
+  size: 1.5, // サイズを大きく
   shape: 'beam',
   effects: [
     {
@@ -40,13 +40,13 @@ const BASIC_LASER_VISUAL: BulletVisualConfig = {
   ],
   trail: {
     enabled: true,
-    length: VISUAL_CONSTANTS.DEFAULT_TRAIL_LENGTH,
-    width: 2,
+    length: 15, // より長いトレイル
+    width: 4, // より太いトレイル
     color: {
       primary: WEAPON_TYPE_COLORS[WeaponType.BASIC_LASER].primary,
-      alpha: VISUAL_CONSTANTS.TRAIL_ALPHA,
+      alpha: 0.8, // より不透明
     },
-    fadeRate: VISUAL_CONSTANTS.EFFECT_FADE_RATE,
+    fadeRate: 0.92, // より長く残る
   },
   pulse: {
     enabled: false,
@@ -69,7 +69,7 @@ const PLASMA_CANNON_VISUAL: BulletVisualConfig = {
     secondary: WEAPON_TYPE_COLORS[WeaponType.PLASMA_CANNON].secondary,
     alpha: VISUAL_CONSTANTS.DEFAULT_ALPHA,
   },
-  size: 1.5,
+  size: 2.0, // プラズマキャノンをさらに大きく
   shape: 'plasma',
   effects: [
     {
@@ -97,13 +97,13 @@ const PLASMA_CANNON_VISUAL: BulletVisualConfig = {
   ],
   trail: {
     enabled: true,
-    length: 6,
-    width: 4,
+    length: 12, // より長く
+    width: 6, // より太く
     color: {
       primary: WEAPON_TYPE_COLORS[WeaponType.PLASMA_CANNON].primary,
-      alpha: 0.5,
+      alpha: 0.8, // より不透明
     },
-    fadeRate: 0.9,
+    fadeRate: 0.88, // より長く残る
   },
   pulse: {
     enabled: true,
@@ -130,7 +130,7 @@ const ENERGY_BEAM_VISUAL: BulletVisualConfig = {
     secondary: WEAPON_TYPE_COLORS[WeaponType.ENERGY_BEAM].secondary,
     alpha: VISUAL_CONSTANTS.DEFAULT_ALPHA,
   },
-  size: 1.2,
+  size: 1.8, // エネルギービームを大きく
   shape: 'energy',
   effects: [
     {
@@ -155,13 +155,13 @@ const ENERGY_BEAM_VISUAL: BulletVisualConfig = {
   ],
   trail: {
     enabled: true,
-    length: 10,
-    width: 3,
+    length: 18, // より長く
+    width: 5, // より太く
     color: {
       primary: WEAPON_TYPE_COLORS[WeaponType.ENERGY_BEAM].primary,
-      alpha: 0.6,
+      alpha: 0.8, // より不透明
     },
-    fadeRate: 0.92,
+    fadeRate: 0.9, // より長く残る
   },
   pulse: {
     enabled: false,
@@ -184,7 +184,7 @@ const EXPLOSIVE_ROUNDS_VISUAL: BulletVisualConfig = {
     secondary: WEAPON_TYPE_COLORS[WeaponType.EXPLOSIVE_ROUNDS].secondary,
     alpha: VISUAL_CONSTANTS.DEFAULT_ALPHA,
   },
-  size: 1.3,
+  size: 1.8, // 爆発弾を大きく
   shape: 'circle',
   effects: [
     {
@@ -212,13 +212,13 @@ const EXPLOSIVE_ROUNDS_VISUAL: BulletVisualConfig = {
   ],
   trail: {
     enabled: true,
-    length: 8,
-    width: 3,
+    length: 15, // より長く
+    width: 5, // より太く
     color: {
       primary: '#ff6600',
-      alpha: 0.7,
+      alpha: 0.8, // より不透明
     },
-    fadeRate: 0.88,
+    fadeRate: 0.85, // より長く残る
   },
   pulse: {
     enabled: true,
@@ -245,7 +245,7 @@ const HOMING_MISSILES_VISUAL: BulletVisualConfig = {
     secondary: WEAPON_TYPE_COLORS[WeaponType.HOMING_MISSILES].secondary,
     alpha: VISUAL_CONSTANTS.DEFAULT_ALPHA,
   },
-  size: 1.1,
+  size: 1.6, // 追尾ミサイルを大きく
   shape: 'missile',
   effects: [
     {
@@ -259,13 +259,13 @@ const HOMING_MISSILES_VISUAL: BulletVisualConfig = {
   ],
   trail: {
     enabled: true,
-    length: 12,
-    width: 2,
+    length: 20, // より長く
+    width: 4, // より太く
     color: {
       primary: WEAPON_TYPE_COLORS[WeaponType.HOMING_MISSILES].secondary,
-      alpha: 0.8,
+      alpha: 0.9, // より不透明
     },
-    fadeRate: 0.95,
+    fadeRate: 0.93, // より長く残る
   },
   pulse: {
     enabled: false,
@@ -288,7 +288,7 @@ const SPLIT_SHOT_VISUAL: BulletVisualConfig = {
     secondary: WEAPON_TYPE_COLORS[WeaponType.SPLIT_SHOT].secondary,
     alpha: VISUAL_CONSTANTS.DEFAULT_ALPHA,
   },
-  size: 1.0,
+  size: 1.5, // 分裂弾を大きく
   shape: 'energy',
   effects: [
     {
@@ -313,13 +313,13 @@ const SPLIT_SHOT_VISUAL: BulletVisualConfig = {
   ],
   trail: {
     enabled: true,
-    length: 6,
-    width: 2,
+    length: 12, // より長く
+    width: 4, // より太く
     color: {
       primary: WEAPON_TYPE_COLORS[WeaponType.SPLIT_SHOT].primary,
-      alpha: 0.6,
+      alpha: 0.8, // より不透明
     },
-    fadeRate: 0.9,
+    fadeRate: 0.88, // より長く残る
   },
   pulse: {
     enabled: true,
@@ -346,7 +346,7 @@ const RAPID_FIRE_VISUAL: BulletVisualConfig = {
     secondary: WEAPON_TYPE_COLORS[WeaponType.RAPID_FIRE].secondary,
     alpha: VISUAL_CONSTANTS.DEFAULT_ALPHA,
   },
-  size: 0.8,
+  size: 1.2, // 速射砲を大きく
   shape: 'beam',
   effects: [
     {
@@ -360,13 +360,13 @@ const RAPID_FIRE_VISUAL: BulletVisualConfig = {
   ],
   trail: {
     enabled: true,
-    length: 15,
-    width: 1,
+    length: 25, // より長く
+    width: 3, // より太く
     color: {
       primary: WEAPON_TYPE_COLORS[WeaponType.RAPID_FIRE].primary,
-      alpha: 0.8,
+      alpha: 0.9, // より不透明
     },
-    fadeRate: 0.96,
+    fadeRate: 0.94, // より長く残る
   },
   pulse: {
     enabled: false,
@@ -389,7 +389,7 @@ const MISSILE_LAUNCHER_VISUAL: BulletVisualConfig = {
     secondary: WEAPON_TYPE_COLORS[WeaponType.MISSILE_LAUNCHER].secondary,
     alpha: VISUAL_CONSTANTS.DEFAULT_ALPHA,
   },
-  size: 1.8,
+  size: 2.2, // ミサイルランチャーをさらに大きく
   shape: 'missile',
   effects: [
     {
@@ -415,13 +415,13 @@ const MISSILE_LAUNCHER_VISUAL: BulletVisualConfig = {
   ],
   trail: {
     enabled: true,
-    length: 10,
-    width: 4,
+    length: 18, // より長く
+    width: 6, // より太く
     color: {
       primary: '#ff4400',
-      alpha: 0.6,
+      alpha: 0.8, // より不透明
     },
-    fadeRate: 0.85,
+    fadeRate: 0.82, // より長く残る
   },
   pulse: {
     enabled: false,
