@@ -270,6 +270,20 @@ export class GameStateManager {
   }
 
   setState(newState: GameStateKey, game: Game): void {
+    const currentStateKey = this.getCurrentState();
+
+    // 同一状態への遷移時は処理をスキップ
+    if (currentStateKey === newState) {
+      console.log(
+        `🔄 GameStateManager: 同一状態への遷移をスキップ (${newState})`
+      );
+      return;
+    }
+
+    console.log(
+      `🔄 GameStateManager: 状態遷移 ${currentStateKey} → ${newState}`
+    );
+
     this.currentState.exit(game);
     this.currentState = this.states[newState];
     this.currentState.enter(game);

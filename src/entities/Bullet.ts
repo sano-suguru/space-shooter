@@ -1,6 +1,8 @@
 import { GameConfig, createGameConfig } from '../config/GameConfigFactory';
 import { BulletVisualManager } from '../weapons/systems/BulletVisualManager';
+import { TrajectoryFactory } from '../weapons/trajectories/TrajectoryFactory';
 import { EnchantmentType } from '../weapons/types/EnchantmentTypes';
+import { IBulletTrajectory } from '../weapons/types/TrajectoryTypes';
 import { WeaponConfig } from '../weapons/types/WeaponTypes';
 
 import { GameObject } from './GameObject';
@@ -24,6 +26,9 @@ export class Bullet extends GameObject {
   private pulsePhase: number = 0;
   private config: GameConfig;
   private owner: 'player' | 'enemy' | 'boss' = 'player'; // 弾丸の所有者
+
+  // 弾道システム関連
+  private trajectory?: IBulletTrajectory;
 
   // ビジュアル効果関連
   private visualManager: BulletVisualManager | null = null;
@@ -92,6 +97,9 @@ export class Bullet extends GameObject {
     // ビジュアル状態をクリーンアップ
     this.cleanupVisuals();
 
+    // 弾道状態をクリーンアップ
+    this.cleanupTrajectory();
+
     // 基本リセット処理
     this.x = 0;
     this.y = 0;
@@ -109,13 +117,23 @@ export class Bullet extends GameObject {
   public update(deltaTime: number): void {
     if (!this.active) return;
 
-    // 弾丸の位置更新（所有者に応じて方向を決定）
-    if (this.owner === 'player') {
-      // プレイヤーの弾丸は上向き（負の方向）
-      this.y -= this.speed * deltaTime;
+    // 弾道システムによる位置更新
+    if (this.trajectory && !this.trajectory.isComplete()) {
+      this.trajectory.update(this, deltaTime);
+
+      if (this.trajectory.isComplete()) {
+        TrajectoryFactory.returnToPool(this.trajectory);
+        this.trajectory = undefined;
+      }
     } else {
-      // 敵・ボスの弾丸は下向き（正の方向）
-      this.y += this.speed * deltaTime;
+      // 従来の直線移動（後方互換性）
+      if (this.owner === 'player') {
+        // プレイヤーの弾丸は上向き（負の方向）
+        this.y -= this.speed * deltaTime;
+      } else {
+        // 敵・ボスの弾丸は下向き（正の方向）
+        this.y += this.speed * deltaTime;
+      }
     }
 
     // アニメーション更新
@@ -551,6 +569,33 @@ export class Bullet extends GameObject {
    */
   public getVisualManager(): BulletVisualManager | null {
     return this.visualManager;
+  }
+
+  /**
+   * 弾道パターンを設定
+   */
+  public setTrajectory(trajectory: IBulletTrajectory): void {
+    if (this.trajectory) {
+      TrajectoryFactory.returnToPool(this.trajectory);
+    }
+    this.trajectory = trajectory;
+  }
+
+  /**
+   * 弾道パターンを取得
+   */
+  public getTrajectory(): IBulletTrajectory | undefined {
+    return this.trajectory;
+  }
+
+  /**
+   * 弾道パターンをクリーンアップ
+   */
+  public cleanupTrajectory(): void {
+    if (this.trajectory) {
+      TrajectoryFactory.returnToPool(this.trajectory);
+      this.trajectory = undefined;
+    }
   }
 
   /**

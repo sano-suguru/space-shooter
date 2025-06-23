@@ -34,12 +34,6 @@ export default defineConfig({
                         './src/core/Game.ts',
                         './src/core/GameEngine.ts',
                         './src/managers/GameObjectManager.ts'
-                    ],
-                    // プログレッション関連
-                    progression: [
-                        './src/progression/managers/ProgressManager.ts',
-                        './src/progression/managers/UpgradeManager.ts',
-                        './src/progression/managers/AchievementManager.ts'
                     ]
                 }
             }

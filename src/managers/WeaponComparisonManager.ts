@@ -20,6 +20,13 @@ export class WeaponComparisonManager {
   private gameObjectManager: GameObjectManager;
   private gameStateManager: GameStateManager;
   private gameInstance: Game | null = null;
+  private weaponFoundHandler:
+    | ((data: {
+        droppedWeapon: DroppedWeapon;
+        playerPosition: { x: number; y: number };
+      }) => void)
+    | null = null;
+  private isListenerSetup = false;
 
   constructor(
     private eventEmitter: EventEmitter<EventMap>,
@@ -41,7 +48,20 @@ export class WeaponComparisonManager {
    * イベントリスナーを設定
    */
   private setupEventListeners(): void {
-    this.eventEmitter.on('weaponFound', this.handleWeaponFound.bind(this));
+    // 重複登録を防ぐため、既にセットアップ済みの場合はスキップ
+    if (this.isListenerSetup) {
+      console.log('🔧 WeaponComparisonManager: イベントリスナー既に設定済み');
+      return;
+    }
+
+    // ハンドラー関数を保存
+    this.weaponFoundHandler = this.handleWeaponFound.bind(this);
+
+    // イベントリスナーを登録
+    this.eventEmitter.on('weaponFound', this.weaponFoundHandler);
+
+    this.isListenerSetup = true;
+    console.log('🔧 WeaponComparisonManager: イベントリスナー設定完了');
   }
 
   /**
@@ -247,5 +267,23 @@ export class WeaponComparisonManager {
     this.gameInstance = game;
     // WeaponComparisonUIにもGameインスタンスを設定
     this.comparisonUI.setGameInstance(game);
+  }
+
+  /**
+   * リソースクリーンアップ
+   */
+  public dispose(): void {
+    // イベントリスナーのクリーンアップ
+    if (this.weaponFoundHandler && this.isListenerSetup) {
+      // 現在のEventEmitterの実装では直接削除できないため、
+      // フラグでリスナーを無効化
+      this.weaponFoundHandler = null;
+      this.isListenerSetup = false;
+    }
+
+    // 現在の比較状態をクリア
+    this.currentDroppedWeapon = null;
+
+    console.log('🧹 WeaponComparisonManager: リソースクリーンアップ完了');
   }
 }

@@ -274,22 +274,19 @@ export class ComboEffectProcessor {
    */
   private applyBurstFire(
     comboEffect: ComboEffect,
-    weapon: EnchantedWeapon,
+    _weapon: EnchantedWeapon,
     result: ComboEffectResult,
     firePosition: Vector2D,
-    fireDirection: Vector2D
+    _fireDirection: Vector2D
   ): void {
     // 追加弾丸を生成（バースト効果）
     const burstCount = Math.floor(comboEffect.multiplier * 2);
 
     for (let i = 0; i < burstCount; i++) {
       const angle = (i - burstCount / 2) * 0.1;
-      const _burstDirection = {
-        x:
-          fireDirection.x * Math.cos(angle) - fireDirection.y * Math.sin(angle),
-        y:
-          fireDirection.x * Math.sin(angle) + fireDirection.y * Math.cos(angle),
-      };
+      // バースト方向を計算（未使用だが計算は残す）
+      Math.cos(angle);
+      Math.sin(angle);
 
       // 新しい弾丸を作成（実際の実装では適切なファクトリーを使用）
       // const burstBullet = this.createBullet(firePosition, burstDirection, weapon);
@@ -496,7 +493,7 @@ export class ComboEffectProcessor {
    */
   private applyChaosStorm(
     comboEffect: ComboEffect,
-    weapon: EnchantedWeapon,
+    _weapon: EnchantedWeapon,
     result: ComboEffectResult
   ): void {
     result.modifiedBullets.forEach(bullet => {

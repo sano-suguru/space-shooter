@@ -77,7 +77,7 @@ export class Player extends GameObject implements IPlayer {
     return createGameConfig();
   }
 
-  public setKeyState(_key: string, _pressed: boolean): void {
+  public setKeyState(): void {
     // この方法は非推奨 - InputManagerを直接使用してください
     // 後方互換性のために残しています
     // 実装は空のまま（InputManagerを直接使用することを推奨）
@@ -408,7 +408,7 @@ export class Player extends GameObject implements IPlayer {
       this.powerUpEffectService.applyEffect(this, type);
       this.eventEmitter.emit('powerUpActivated', type);
 
-      const duration = this.powerUpEffectService.getEffectDuration(type);
+      const duration = this.powerUpEffectService.getEffectDuration();
       console.log('⏰ [Player] PowerUp持続時間設定:', {
         type,
         duration,

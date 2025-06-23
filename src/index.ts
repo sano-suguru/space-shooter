@@ -7,10 +7,8 @@ import { IInputManager } from './interfaces/IInputManager';
 import { DOMManager, MessageManager } from './managers';
 import { GameStateManager } from './managers/GameStateManager';
 import { InputManager } from './managers/InputManager';
-import { ReactLazyUIManager } from './managers/ReactLazyUIManager';
 import { ScoreManager } from './managers/ScoreManager';
 import { UIManager } from './managers/UIManager';
-import { ProgressManager } from './progression/managers/ProgressManager';
 import { RealRandomProvider, RealTimeProvider } from './providers';
 import { getElementOrThrow } from './utils/DOMUtils';
 import { WeaponManager } from './weapons/managers/WeaponManager';
@@ -31,25 +29,16 @@ function initGame(): void {
     randomProvider
   );
 
-  const weaponManager = initializeWeaponSystem(
-    eventEmitter,
-    coreManagers.progressManager,
-    coreManagers.player
-  );
+  initializeWeaponSystem(coreManagers.player);
 
-  initializeUIManagers(
-    eventEmitter,
-    coreManagers.progressManager,
-    weaponManager
-  );
+  initializeUIManagers(eventEmitter);
 
   const game = createGame(
     canvas,
     eventEmitter,
     coreManagers,
     inputManager,
-    randomProvider,
-    timeProvider
+    randomProvider
   );
 
   game.start();
@@ -67,7 +56,6 @@ function initializeCoreManagers(
   gameObjectFactory: GameObjectFactory;
   scoreManager: ScoreManager;
   stateManager: GameStateManager;
-  progressManager: ProgressManager;
 } {
   const domManager = new DOMManager();
   const messageManager = new MessageManager(domManager, timeProvider);
@@ -75,7 +63,6 @@ function initializeCoreManagers(
   const gameObjectFactory = new GameObjectFactory(randomProvider, eventEmitter);
   const scoreManager = new ScoreManager(eventEmitter);
   const stateManager = new GameStateManager(eventEmitter);
-  const progressManager = new ProgressManager(eventEmitter, scoreManager);
 
   return {
     domManager,
@@ -84,29 +71,20 @@ function initializeCoreManagers(
     gameObjectFactory,
     scoreManager,
     stateManager,
-    progressManager,
   };
 }
 
-function initializeWeaponSystem(
-  eventEmitter: EventEmitter<EventMap>,
-  progressManager: ProgressManager,
-  player: Player
-): WeaponManager {
-  const weaponManager = new WeaponManager(
-    eventEmitter,
-    progressManager.getProfile()
-  );
+function initializeWeaponSystem(player: Player): WeaponManager {
+  const weaponManager = new WeaponManager({
+    level: 1,
+    coins: 1000,
+  });
   player.setWeaponManager(weaponManager);
   player.enableWeaponSystem(true);
   return weaponManager;
 }
 
-function initializeUIManagers(
-  eventEmitter: EventEmitter<EventMap>,
-  progressManager: ProgressManager,
-  weaponManager: WeaponManager
-): void {
+function initializeUIManagers(eventEmitter: EventEmitter<EventMap>): void {
   // 既存UIManagerを初期化
   const levelElement = getElementOrThrow<HTMLElement>('levelValue');
   const healthElement = getElementOrThrow<HTMLElement>('healthValue');
@@ -122,15 +100,6 @@ function initializeUIManagers(
     healthBarElement,
     gameOverElement
   );
-
-  // React.lazy()システムを統合したUIManagerを初期化
-  const reactLazyUIManager = new ReactLazyUIManager(
-    eventEmitter,
-    progressManager,
-    weaponManager
-  );
-  console.log('🚀 ReactLazyUIManager initialized with code splitting');
-  console.log('Active UI Manager:', reactLazyUIManager.getActiveUI());
 }
 
 function createGame(
@@ -138,8 +107,7 @@ function createGame(
   eventEmitter: EventEmitter<EventMap>,
   managers: ReturnType<typeof initializeCoreManagers>,
   inputManager: IInputManager,
-  randomProvider: RealRandomProvider,
-  _timeProvider: RealTimeProvider
+  randomProvider: RealRandomProvider
 ): Game {
   return new Game(
     canvas,

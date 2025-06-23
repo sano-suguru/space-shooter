@@ -756,6 +756,14 @@ export class BackgroundRenderer {
    * 一時停止状態を設定
    */
   public setPaused(paused: boolean): void {
+    // 既に同じ状態の場合は処理をスキップ
+    if (this.isPaused === paused) {
+      console.log(
+        `🎨 BackgroundRenderer: 既に${paused ? '一時停止' : '再開'}状態です`
+      );
+      return;
+    }
+
     this.isPaused = paused;
     console.log(`🎨 BackgroundRenderer: ${paused ? '一時停止' : '再開'}`);
   }

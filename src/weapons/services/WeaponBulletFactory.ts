@@ -12,6 +12,8 @@ import { SplitBullet } from '../../entities/bullets/SplitBullet';
 import { Player } from '../../entities/Player';
 import { Vector2D } from '../../types';
 import { IWeaponBulletFactory } from '../interfaces/IWeapon';
+import { TrajectoryFactory } from '../trajectories/TrajectoryFactory';
+import { TrajectoryConfig, TrajectoryType } from '../types/TrajectoryTypes';
 import {
   WeaponConfig,
   WeaponRarity,
@@ -25,6 +27,59 @@ import {
 export class WeaponBulletFactory implements IWeaponBulletFactory {
   private bulletPools: Map<string, Bullet[]> = new Map();
   private maxPoolSize: number = 50;
+  private trajectoryConfigs: Map<WeaponType, TrajectoryConfig> = new Map();
+
+  constructor() {
+    this.initializeTrajectoryConfigs();
+  }
+
+  /**
+   * 弾道設定を初期化
+   */
+  private initializeTrajectoryConfigs(): void {
+    // ベーシックレーザー：精密射撃
+    this.trajectoryConfigs.set(WeaponType.BASIC_LASER, {
+      type: TrajectoryType.PRECISION,
+      parameters: {
+        speed: 600,
+        straightPhaseDuration: 500,
+        trackingStrength: 0.002,
+        trackingRange: Math.PI / 6,
+      },
+    });
+
+    // プラズマキャノン：範囲攻撃
+    this.trajectoryConfigs.set(WeaponType.PLASMA_CANNON, {
+      type: TrajectoryType.AREA_EFFECT,
+      parameters: {
+        speed: 500,
+        explosionDelay: 2000,
+        explosionRadius: 25,
+        explosionDamage: 0.9,
+      },
+    });
+
+    // 速射砲：弾幕攻撃
+    this.trajectoryConfigs.set(WeaponType.RAPID_FIRE, {
+      type: TrajectoryType.BARRAGE,
+      parameters: {
+        speed: 650,
+        spreadAngle: Math.PI / 12,
+        bulletCount: 3,
+      },
+    });
+
+    // エネルギービーム：回避困難
+    this.trajectoryConfigs.set(WeaponType.ENERGY_BEAM, {
+      type: TrajectoryType.EVASIVE,
+      parameters: {
+        speed: 700,
+        wavePeriod: 800,
+        maxAmplitude: 40,
+        amplitudeGrowthRate: 0.05,
+      },
+    });
+  }
 
   /**
    * 基本弾丸作成
@@ -48,7 +103,25 @@ export class WeaponBulletFactory implements IWeaponBulletFactory {
       'player' // プレイヤーの武器から発射された弾丸
     );
 
+    // 弾道パターンを適用
+    this.applyTrajectoryPattern(bullet, weaponConfig);
+
     return bullet;
+  }
+
+  /**
+   * 弾道パターンを適用
+   */
+  private applyTrajectoryPattern(
+    bullet: Bullet,
+    weaponConfig: WeaponConfig
+  ): void {
+    const trajectoryConfig = this.trajectoryConfigs.get(weaponConfig.type);
+
+    if (trajectoryConfig) {
+      const trajectory = TrajectoryFactory.createTrajectory(trajectoryConfig);
+      bullet.setTrajectory(trajectory);
+    }
   }
 
   /**

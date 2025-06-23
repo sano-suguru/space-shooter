@@ -103,8 +103,8 @@ export class ExplosiveBullet extends BossBullet {
   public initialize(
     x: number,
     y: number,
-    speedX: number,
-    speedY: number,
+    _speedX: number,
+    _speedY: number,
     explosionRadius?: number,
     explosionDamage?: number
   ): void {

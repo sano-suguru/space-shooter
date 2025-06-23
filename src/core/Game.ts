@@ -18,7 +18,6 @@ import { GameStateManager } from '../managers/GameStateManager';
 import { ScoreManager } from '../managers/ScoreManager';
 import { WaveManager } from '../managers/WaveManager';
 import { WeaponComparisonManager } from '../managers/WeaponComparisonManager';
-import { PlayerProfile } from '../progression/types/PlayerProfile';
 import { IRandomProvider } from '../providers/IRandomProvider';
 import { BackgroundRenderer } from '../rendering/BackgroundRenderer';
 import { GameRenderer } from '../rendering/GameRenderer';
@@ -33,8 +32,6 @@ import { GameEngine } from './GameEngine';
 export class Game implements IGame {
   private ctx: CanvasRenderingContext2D;
   private level = 1;
-  private bossSpawnScore: number = 1000;
-  private currentScore: number = 0;
   private difficultyFactor: number = 0;
   private currentBossHealth: number;
   private gameEngine!: GameEngine;
@@ -132,35 +129,15 @@ export class Game implements IGame {
    * 武器システムの初期化
    */
   private initializeWeaponSystem(): void {
-    // プレイヤープロファイルを作成（基本的な初期値）
-    const playerProfile: PlayerProfile = {
-      totalGamesPlayed: 0,
-      totalScore: 0,
-      highScore: 0,
-      totalPlayTime: 0,
-      lastPlayDate: new Date().toISOString(),
-      coins: 1000, // 初期コイン
-      experience: 0,
+    // 基本的なプレイヤー情報を作成
+    const basicPlayerInfo = {
       level: this.level,
-      unlockedUpgrades: ['basic_laser'], // 基本武器は最初から解除
-      equippedUpgrades: {},
-      completedAchievements: [],
-      stats: {
-        enemiesDestroyed: 0,
-        bossesDefeated: 0,
-        maxWaveReached: 1,
-        powerupsCollected: 0,
-        bulletsShot: 0,
-        damageDealt: 0,
-        damageTaken: 0,
-        playStreakDays: 0,
-      },
+      coins: 1000, // 初期コイン
     };
 
-    // WeaponManagerを作成
+    // WeaponManagerを作成（簡略化）
     const weaponManager = new WeaponManager(
-      this.eventEmitter,
-      playerProfile,
+      basicPlayerInfo,
       this.randomProvider
     );
 
@@ -172,7 +149,7 @@ export class Game implements IGame {
 
     console.log('🔫 武器システムを初期化しました:', {
       weaponManager: !!weaponManager,
-      playerProfile: playerProfile,
+      basicPlayerInfo: basicPlayerInfo,
       weaponDropSystem: !!weaponManager.getWeaponDropSystem(),
     });
   }
@@ -342,10 +319,7 @@ export class Game implements IGame {
     this.player.activatePowerup(powerUp.getType());
   };
 
-  private handleWaveCompleted = (
-    _waveNumber: number,
-    bonusScore: number
-  ): void => {
+  private handleWaveCompleted = (bonusScore: number): void => {
     this.scoreManager.addScore(bonusScore);
   };
 
@@ -398,7 +372,6 @@ export class Game implements IGame {
       this.waveManager.update();
     }
 
-    this.currentScore = this.scoreManager.getScore();
     // 既存のボス生成処理を無効化（新しいウェーブシステムを使用）
     // if (
     //   this.currentScore >= this.bossSpawnScore &&
@@ -406,13 +379,6 @@ export class Game implements IGame {
     // ) {
     //   this.spawnBoss();
     // }
-  }
-
-  private spawnBoss(): void {
-    const boss = new Boss(this, this.config);
-    this.gameObjectManager.setBoss(boss);
-    this.eventEmitter.emit('bossSpawned');
-    this.showMessage('ボスが出現しました！', 3000, 'important');
   }
 
   /**
@@ -501,7 +467,6 @@ export class Game implements IGame {
     }
 
     this.level = 1;
-    this.bossSpawnScore = 1000;
     this.scoreManager = new ScoreManager(this.eventEmitter);
     this.difficultyFactor = 0;
     this.currentBossHealth = this.config.boss.initialHealth;
@@ -531,7 +496,6 @@ export class Game implements IGame {
     setTimeout(() => {
       this.startNextLevel();
     }, 3000);
-    this.bossSpawnScore = this.currentScore + 1000;
   }
 
   private startNextLevel(): void {
@@ -544,8 +508,6 @@ export class Game implements IGame {
 
     this.currentBossHealth =
       this.config.boss.initialHealth + (this.level - 1) * 10;
-
-    this.bossSpawnScore = this.scoreManager.getScore() + 1000;
 
     this.eventEmitter.emit('levelStarted', this.level);
     this.showMessage(`レベル ${this.level} 開始！`, 3000, 'important');

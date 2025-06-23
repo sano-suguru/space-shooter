@@ -84,7 +84,7 @@ export class AssaultCruiser extends Boss {
 
     this.updatePhase();
     this.updateVisualEffects(deltaTime);
-    this.updateAttackPattern(deltaTime);
+    this.updateAttackPattern();
   }
 
   /**
@@ -159,7 +159,7 @@ export class AssaultCruiser extends Boss {
   /**
    * 攻撃パターンを更新
    */
-  private updateAttackPattern(_deltaTime: number): void {
+  private updateAttackPattern(): void {
     if (this.isTransitioning) return;
 
     const currentTime = Date.now();

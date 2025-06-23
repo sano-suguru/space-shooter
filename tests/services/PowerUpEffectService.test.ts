@@ -94,15 +94,15 @@ describe('PowerUpEffectService', () => {
 
   describe('getEffectDuration', () => {
     it('should return configured duration', () => {
-      const duration = service.getEffectDuration('RAPID_FIRE');
+      const duration = service.getEffectDuration();
 
       expect(duration).toBe(testConfig.powerup.duration);
     });
 
     it('should return same duration for all power-up types', () => {
-      const rapidFireDuration = service.getEffectDuration('RAPID_FIRE');
-      const tripleShotDuration = service.getEffectDuration('TRIPLE_SHOT');
-      const shieldDuration = service.getEffectDuration('SHIELD');
+      const rapidFireDuration = service.getEffectDuration();
+      const tripleShotDuration = service.getEffectDuration();
+      const shieldDuration = service.getEffectDuration();
 
       expect(rapidFireDuration).toBe(tripleShotDuration);
       expect(tripleShotDuration).toBe(shieldDuration);
@@ -123,7 +123,7 @@ describe('PowerUpEffectService', () => {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockPlayer.setFireRate).toHaveBeenCalledWith(150); // 300 / 2
 
-      const duration = service.getEffectDuration('RAPID_FIRE');
+      const duration = service.getEffectDuration();
       expect(duration).toBe(5000);
     });
   });
@@ -141,7 +141,7 @@ describe('PowerUpEffectService', () => {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockPlayer.setFireRate).toHaveBeenCalledWith(100); // 200 / 2
 
-      const duration = prodService.getEffectDuration('RAPID_FIRE');
+      const duration = prodService.getEffectDuration();
       expect(duration).toBe(10000);
     });
 
@@ -169,7 +169,7 @@ describe('PowerUpEffectService', () => {
       validTypes.forEach(type => {
         expect(() => service.applyEffect(mockPlayer, type)).not.toThrow();
         expect(() => service.removeEffect(mockPlayer, type)).not.toThrow();
-        expect(() => service.getEffectDuration(type)).not.toThrow();
+        expect(() => service.getEffectDuration()).not.toThrow();
       });
     });
 

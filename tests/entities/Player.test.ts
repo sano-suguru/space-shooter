@@ -44,6 +44,16 @@ class MockGameEngine implements IGame {
   public showMessage = jest.fn();
   public getDifficultyFactor = jest.fn().mockReturnValue(1);
   public getCurrentBossHealth = jest.fn().mockReturnValue(100);
+  public toggleEnhancedVisuals = jest.fn();
+  public isEnhancedVisualsEnabled = jest.fn().mockReturnValue(true);
+  public toggleBackgroundOptimization = jest.fn();
+  public switchWeapon = jest.fn();
+  public getActiveWeaponSlot = jest.fn().mockReturnValue(0);
+  public getEquippedWeapons = jest.fn().mockReturnValue([]);
+  public setBoss = jest.fn();
+  public pauseGameLoop = jest.fn();
+  public resumeGameLoop = jest.fn();
+  public getAllPerformanceStats = jest.fn().mockReturnValue({});
 }
 
 describe('Player', () => {
@@ -596,7 +606,7 @@ describe('Player', () => {
   describe('後方互換性', () => {
     test('setKeyState メソッドは例外を投げない', () => {
       expect(() => {
-        player.setKeyState('ArrowLeft', true);
+        player.setKeyState();
       }).not.toThrow();
     });
   });

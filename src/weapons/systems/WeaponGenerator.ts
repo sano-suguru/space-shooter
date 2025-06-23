@@ -28,6 +28,35 @@ export interface WeaponGenerationConfig {
 }
 
 /**
+ * エンチャント効果の型定義
+ */
+interface EnchantmentEffects {
+  piercingCount: number;
+  criticalChance: number;
+  explosionRadius: number;
+  homingDuration: number;
+  chainCount: number;
+  freezeDuration: number;
+  lifeStealRate: number;
+  splitCount: number;
+  ricochetCount: number;
+  damageMultiplier: number;
+  fireRateMultiplier: number;
+  bulletCountBonus: number;
+}
+
+/**
+ * 基本統計の型定義
+ */
+interface BaseStats {
+  finalDamage: number;
+  finalFireRate: number;
+  finalBulletSpeed: number;
+  finalBulletCount: number;
+  finalSpreadAngle: number | undefined;
+}
+
+/**
  * 武器生成システムクラス
  */
 export class WeaponGenerator {
@@ -107,86 +136,143 @@ export class WeaponGenerator {
     enchantments: Enchantment[],
     totalMultiplier: number
   ): EnhancedWeaponStats {
-    // 基本性能から開始
-    let finalDamage = baseWeapon.damage;
-    let finalFireRate = baseWeapon.fireRate;
-    let finalBulletSpeed = baseWeapon.bulletSpeed;
-    let finalBulletCount = baseWeapon.bulletCount;
-    let finalSpreadAngle = baseWeapon.spreadAngle;
+    const baseStats = this.initializeBaseStats(baseWeapon);
+    const enchantmentEffects = this.calculateEnchantmentEffects(enchantments);
 
-    // エンチャント効果
-    let piercingCount = 0;
-    let criticalChance = 0;
-    let explosionRadius = 0;
-    let homingDuration = 0;
-    let chainCount = 0;
-    let freezeDuration = 0;
-    let lifeStealRate = 0;
-    let splitCount = 0;
-    let ricochetCount = 0;
+    return this.buildEnhancedStats(
+      baseStats,
+      enchantmentEffects,
+      totalMultiplier,
+      enchantments.length
+    );
+  }
 
-    // 各エンチャントを適用
+  private initializeBaseStats(baseWeapon: WeaponConfig): BaseStats {
+    return {
+      finalDamage: baseWeapon.damage,
+      finalFireRate: baseWeapon.fireRate,
+      finalBulletSpeed: baseWeapon.bulletSpeed,
+      finalBulletCount: baseWeapon.bulletCount,
+      finalSpreadAngle: baseWeapon.spreadAngle,
+    };
+  }
+
+  private calculateEnchantmentEffects(
+    enchantments: Enchantment[]
+  ): EnchantmentEffects {
+    const effects = {
+      piercingCount: 0,
+      criticalChance: 0,
+      explosionRadius: 0,
+      homingDuration: 0,
+      chainCount: 0,
+      freezeDuration: 0,
+      lifeStealRate: 0,
+      splitCount: 0,
+      ricochetCount: 0,
+      damageMultiplier: 1,
+      fireRateMultiplier: 1,
+      bulletCountBonus: 0,
+    };
+
     for (const enchantment of enchantments) {
-      switch (enchantment.type) {
-        case EnchantmentType.DAMAGE_BOOST:
-          finalDamage *= 1 + enchantment.value / 100;
-          break;
-        case EnchantmentType.FIRE_RATE_BOOST:
-          finalFireRate *= 1 - enchantment.value / 100;
-          break;
-        case EnchantmentType.BULLET_COUNT:
-          finalBulletCount += enchantment.value;
-          break;
-        case EnchantmentType.PIERCING:
-          piercingCount = Math.max(piercingCount, enchantment.value);
-          break;
-        case EnchantmentType.CRITICAL_HIT:
-          criticalChance = Math.max(criticalChance, enchantment.value);
-          break;
-        case EnchantmentType.EXPLOSIVE_ROUNDS:
-          explosionRadius = Math.max(explosionRadius, enchantment.value);
-          break;
-        case EnchantmentType.HOMING_BULLETS:
-          homingDuration = Math.max(homingDuration, enchantment.value);
-          break;
-        case EnchantmentType.CHAIN_LIGHTNING:
-          chainCount = Math.max(chainCount, enchantment.value);
-          break;
-        case EnchantmentType.FREEZE_EFFECT:
-          freezeDuration = Math.max(freezeDuration, enchantment.value);
-          break;
-        case EnchantmentType.LIFE_STEAL:
-          lifeStealRate += enchantment.value;
-          break;
-        case EnchantmentType.MULTI_SPLIT:
-          splitCount = Math.max(splitCount, enchantment.value);
-          break;
-        case EnchantmentType.RICOCHET:
-          ricochetCount = Math.max(ricochetCount, enchantment.value);
-          break;
-      }
+      this.applyEnchantmentEffect(enchantment, effects);
     }
 
-    // 組み合わせ効果の倍率を適用
-    finalDamage *= totalMultiplier;
+    return effects;
+  }
+
+  private applyEnchantmentEffect(
+    enchantment: Enchantment,
+    effects: EnchantmentEffects
+  ): void {
+    switch (enchantment.type) {
+      case EnchantmentType.DAMAGE_BOOST:
+        effects.damageMultiplier *= 1 + enchantment.value / 100;
+        break;
+      case EnchantmentType.FIRE_RATE_BOOST:
+        effects.fireRateMultiplier *= 1 - enchantment.value / 100;
+        break;
+      case EnchantmentType.BULLET_COUNT:
+        effects.bulletCountBonus += enchantment.value;
+        break;
+      case EnchantmentType.PIERCING:
+        effects.piercingCount = Math.max(
+          effects.piercingCount,
+          enchantment.value
+        );
+        break;
+      case EnchantmentType.CRITICAL_HIT:
+        effects.criticalChance = Math.max(
+          effects.criticalChance,
+          enchantment.value
+        );
+        break;
+      case EnchantmentType.EXPLOSIVE_ROUNDS:
+        effects.explosionRadius = Math.max(
+          effects.explosionRadius,
+          enchantment.value
+        );
+        break;
+      case EnchantmentType.HOMING_BULLETS:
+        effects.homingDuration = Math.max(
+          effects.homingDuration,
+          enchantment.value
+        );
+        break;
+      case EnchantmentType.CHAIN_LIGHTNING:
+        effects.chainCount = Math.max(effects.chainCount, enchantment.value);
+        break;
+      case EnchantmentType.FREEZE_EFFECT:
+        effects.freezeDuration = Math.max(
+          effects.freezeDuration,
+          enchantment.value
+        );
+        break;
+      case EnchantmentType.LIFE_STEAL:
+        effects.lifeStealRate += enchantment.value;
+        break;
+      case EnchantmentType.MULTI_SPLIT:
+        effects.splitCount = Math.max(effects.splitCount, enchantment.value);
+        break;
+      case EnchantmentType.RICOCHET:
+        effects.ricochetCount = Math.max(
+          effects.ricochetCount,
+          enchantment.value
+        );
+        break;
+    }
+  }
+
+  private buildEnhancedStats(
+    baseStats: BaseStats,
+    effects: EnchantmentEffects,
+    totalMultiplier: number,
+    enchantmentCount: number
+  ): EnhancedWeaponStats {
+    const finalDamage =
+      baseStats.finalDamage * effects.damageMultiplier * totalMultiplier;
+    const finalFireRate = baseStats.finalFireRate * effects.fireRateMultiplier;
+    const finalBulletCount =
+      baseStats.finalBulletCount + effects.bulletCountBonus;
 
     return {
       finalDamage: Math.round(finalDamage * 100) / 100,
       finalFireRate: Math.round(finalFireRate),
-      finalBulletSpeed: finalBulletSpeed,
-      finalBulletCount: finalBulletCount,
-      finalSpreadAngle,
-      piercingCount,
-      criticalChance,
-      explosionRadius,
-      homingDuration,
-      chainCount,
-      freezeDuration,
-      lifeStealRate,
-      splitCount,
-      ricochetCount,
+      finalBulletSpeed: baseStats.finalBulletSpeed,
+      finalBulletCount,
+      finalSpreadAngle: baseStats.finalSpreadAngle,
+      piercingCount: effects.piercingCount,
+      criticalChance: effects.criticalChance,
+      explosionRadius: effects.explosionRadius,
+      homingDuration: effects.homingDuration,
+      chainCount: effects.chainCount,
+      freezeDuration: effects.freezeDuration,
+      lifeStealRate: effects.lifeStealRate,
+      splitCount: effects.splitCount,
+      ricochetCount: effects.ricochetCount,
       totalMultiplier,
-      comboCount: enchantments.length,
+      comboCount: enchantmentCount,
       hasLegendaryCombo: totalMultiplier >= 4.0,
     };
   }

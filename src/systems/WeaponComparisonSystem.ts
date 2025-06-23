@@ -70,16 +70,7 @@ export class WeaponComparisonSystem {
         currentRarity,
         newRarity
       ),
-      overallRating: this.calculateOverallRating(
-        currentWeapon,
-        newWeapon,
-        currentDamage,
-        newDamage,
-        currentFireRate,
-        newFireRate,
-        currentRarity,
-        newRarity
-      ),
+      overallRating: this.calculateOverallRating(currentWeapon, newWeapon),
     };
   }
 
@@ -134,13 +125,7 @@ export class WeaponComparisonSystem {
    */
   private calculateOverallRating(
     currentWeapon: EnchantedWeapon | null,
-    newWeapon: EnchantedWeapon,
-    _currentDamage: number,
-    _newDamage: number,
-    _currentFireRate: number,
-    _newFireRate: number,
-    _currentRarity: number,
-    _newRarity: number
+    newWeapon: EnchantedWeapon
   ): ComparisonValue {
     // 現在の武器がない場合は新しい武器が確実に良い
     if (!currentWeapon) {

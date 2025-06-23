@@ -12,7 +12,6 @@ export class WeaponComparisonUI {
   private comparisonSystem: WeaponComparisonSystem;
   private onChoiceCallback: ((equipNew: boolean) => void) | null = null;
   private gameInstance: IGame | null = null;
-  private gameStateManager: GameStateManager | null = null;
   private keyboardHandler: ((e: KeyboardEvent) => void) | null = null;
 
   constructor() {
@@ -29,9 +28,7 @@ export class WeaponComparisonUI {
   /**
    * GameStateManagerを設定
    */
-  public setGameStateManager(stateManager: GameStateManager): void {
-    this.gameStateManager = stateManager;
-  }
+  public setGameStateManager(_stateManager: GameStateManager): void {}
 
   /**
    * 武器比較UIを表示
@@ -259,7 +256,7 @@ export class WeaponComparisonUI {
     // 既存のリスナーがある場合は削除
     this.removeKeyboardListeners();
 
-    this.keyboardHandler = (e: KeyboardEvent) => {
+    this.keyboardHandler = (e: KeyboardEvent): void => {
       if (!this.container) return;
 
       switch (e.key.toLowerCase()) {
@@ -302,19 +299,14 @@ export class WeaponComparisonUI {
    * ゲームを一時停止
    */
   private pauseGame(): void {
-    console.log('🔄 武器比較UI: ゲーム一時停止');
+    console.log(
+      '🔄 武器比較UI: ゲーム一時停止（状態管理はWeaponComparisonManagerで実行）'
+    );
 
     if (this.gameInstance) {
-      // ゲームループを一時停止
+      // ゲームループを一時停止のみ実行
+      // 状態変更はWeaponComparisonManagerで一元管理
       this.gameInstance.pauseGameLoop();
-    }
-
-    if (this.gameStateManager && this.gameInstance) {
-      // ゲーム状態を武器選択状態に変更
-      this.gameStateManager.setState(
-        'WEAPON_SELECTION',
-        this.gameInstance as unknown as import('../core/Game').Game
-      );
     }
   }
 

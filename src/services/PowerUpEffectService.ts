@@ -61,7 +61,7 @@ export class PowerUpEffectService {
     }
   }
 
-  getEffectDuration(_type: PowerUpType): number {
+  getEffectDuration(): number {
     return this.config.powerup.duration;
   }
 

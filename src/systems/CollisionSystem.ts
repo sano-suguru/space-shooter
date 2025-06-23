@@ -20,6 +20,8 @@ export class CollisionSystem {
   private collisionOptimizer: CollisionOptimizer;
   private totalChecks = 0;
   private spatialHashChecks = 0;
+  // 武器発見状態管理（重複発火防止用）
+  private discoveredWeapons = new Set<DroppedWeapon>();
 
   constructor(
     private eventEmitter: EventEmitter<EventMap>,
@@ -196,15 +198,26 @@ export class CollisionSystem {
         const playerPos = player.getPosition();
 
         if (nearbyObj.checkPlayerDistance(playerPos.x, playerPos.y)) {
-          console.log(
-            `🔍 武器発見: ${nearbyObj.getEnchantedWeapon().displayName}`
-          );
+          // 重複発火防止：武器が既に発見済みかチェック
+          if (!this.discoveredWeapons.has(nearbyObj)) {
+            console.log(
+              `🔍 武器発見: ${nearbyObj.getEnchantedWeapon().displayName}`
+            );
 
-          // 武器比較システムを呼び出す（後で実装）
-          this.eventEmitter.emit('weaponFound', {
-            droppedWeapon: nearbyObj,
-            playerPosition: playerPos,
-          });
+            // 武器を発見済みとしてマーク
+            this.discoveredWeapons.add(nearbyObj);
+
+            // 武器比較システムを呼び出す
+            this.eventEmitter.emit('weaponFound', {
+              droppedWeapon: nearbyObj,
+              playerPosition: playerPos,
+            });
+          }
+        } else {
+          // プレイヤーが離れた場合は発見状態をリセット
+          if (this.discoveredWeapons.has(nearbyObj)) {
+            this.discoveredWeapons.delete(nearbyObj);
+          }
         }
       }
     }
@@ -366,5 +379,20 @@ export class CollisionSystem {
 
       this.checkAllCollisions(mockPlayer);
     }
+  }
+
+  /**
+   * 発見済み武器の状態をクリア（デバッグ用）
+   */
+  public clearDiscoveredWeapons(): void {
+    this.discoveredWeapons.clear();
+    console.log('🧹 CollisionSystem: 発見済み武器状態をクリア');
+  }
+
+  /**
+   * 発見済み武器の数を取得（デバッグ用）
+   */
+  public getDiscoveredWeaponsCount(): number {
+    return this.discoveredWeapons.size;
   }
 }

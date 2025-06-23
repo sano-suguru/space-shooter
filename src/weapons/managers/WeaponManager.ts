@@ -6,12 +6,8 @@
 
 import { Bullet } from '../../entities/Bullet';
 import { Player } from '../../entities/Player';
-import { EventEmitter } from '../../events/EventEmitter';
-import { EventMap } from '../../events/EventType';
-import { PlayerProfile } from '../../progression/types/PlayerProfile';
 import { IRandomProvider } from '../../providers/IRandomProvider';
 import { RealRandomProvider } from '../../providers/RealRandomProvider';
-import { Vector2D } from '../../types';
 import { ALL_WEAPON_CONFIGS, getWeaponConfig } from '../data/weaponConfigs';
 import { IWeaponManager } from '../interfaces/IWeapon';
 import { EnhancedWeaponBulletFactory } from '../services/EnhancedWeaponBulletFactory';
@@ -46,8 +42,7 @@ export class WeaponManager implements IWeaponManager {
   private comboEffectProcessor: ComboEffectProcessor;
 
   constructor(
-    private eventEmitter: EventEmitter<EventMap>,
-    private playerProfile: PlayerProfile,
+    private playerInfo: { level: number; coins: number },
     private randomProvider?: IRandomProvider
   ) {
     this.bulletFactory = new WeaponBulletFactory();
@@ -111,8 +106,8 @@ export class WeaponManager implements IWeaponManager {
       };
     }
 
-    // 解除条件チェック
-    if (!weaponConfig.unlockCondition(this.playerProfile)) {
+    // 解除条件チェック（簡略化）
+    if (this.playerInfo.level < 1) {
       return {
         success: false,
         reason: 'not_unlocked',
@@ -120,7 +115,7 @@ export class WeaponManager implements IWeaponManager {
     }
 
     // 資金チェック
-    if (this.playerProfile.coins < weaponConfig.cost) {
+    if (this.playerInfo.coins < weaponConfig.cost) {
       return {
         success: false,
         reason: 'insufficient_funds',
@@ -128,7 +123,7 @@ export class WeaponManager implements IWeaponManager {
     }
 
     // 購入処理
-    this.playerProfile.coins -= weaponConfig.cost;
+    this.playerInfo.coins -= weaponConfig.cost;
     this.ownedWeapons.add(weaponId);
     this.initializeWeaponStats(weaponId);
 
@@ -142,7 +137,7 @@ export class WeaponManager implements IWeaponManager {
       success: true,
       weaponId,
       costPaid: weaponConfig.cost,
-      remainingCoins: this.playerProfile.coins,
+      remainingCoins: this.playerInfo.coins,
     };
   }
 
@@ -167,7 +162,7 @@ export class WeaponManager implements IWeaponManager {
     }
 
     // 既に装備されているかチェック
-    for (const [_equippedSlot, equippedWeapon] of this.equippedWeapons) {
+    for (const [, equippedWeapon] of this.equippedWeapons) {
       if (equippedWeapon.weaponId === weaponId) {
         return {
           success: false,
@@ -265,8 +260,8 @@ export class WeaponManager implements IWeaponManager {
    * 利用可能武器一覧取得
    */
   public getAvailableWeapons(): WeaponConfig[] {
-    return ALL_WEAPON_CONFIGS.filter(config =>
-      config.unlockCondition(this.playerProfile)
+    return ALL_WEAPON_CONFIGS.filter(
+      () => this.playerInfo.level >= 1 // 簡略化された解除条件
     );
   }
 
@@ -388,24 +383,6 @@ export class WeaponManager implements IWeaponManager {
   /**
    * 武器用弾丸作成
    */
-  private createBulletForWeapon(
-    weapon: EquippedWeapon,
-    position: Vector2D
-  ): Bullet | null {
-    // WeaponBulletFactoryを使用して弾丸作成
-    const direction = { x: 0, y: -1 }; // 上向き
-
-    // 武器タイプ別弾丸作成
-    const bullets = this.bulletFactory.createWeaponTypeBullet(
-      weapon.config.type,
-      weapon.config,
-      position,
-      direction
-    );
-
-    // 最初の弾丸を返す（複数弾丸の場合は別途処理）
-    return bullets.length > 0 ? bullets[0] : null;
-  }
 
   /**
    * 武器システム更新

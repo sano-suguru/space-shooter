@@ -4,7 +4,6 @@
  * 全武器の設定データを定義します。
  */
 
-import { PlayerProfile } from '../../progression/types/PlayerProfile';
 import {
   WeaponConfig,
   WeaponRarity,
@@ -19,10 +18,10 @@ export const BASIC_WEAPONS: WeaponConfig[] = [
   {
     id: 'basic_laser',
     name: 'ベーシックレーザー',
-    description: '標準的なエネルギー武器。バランスの取れた性能で初心者に最適。',
+    description: '軽微な追尾効果を持つ精密射撃武器。確実な命中で初心者に最適。',
     type: WeaponType.BASIC_LASER,
     rarity: WeaponRarity.COMMON,
-    damage: 1,
+    damage: 1.2, // 設計書に基づく新ダメージ値
     fireRate: 200,
     bulletSpeed: 600,
     bulletCount: 1,
@@ -35,14 +34,14 @@ export const BASIC_WEAPONS: WeaponConfig[] = [
   {
     id: 'plasma_cannon',
     name: 'プラズマキャノン',
-    description: '高威力のプラズマ弾を発射。威力は高いが発射間隔が長い。',
+    description: '着弾時に爆発する高威力プラズマ弾。密集した敵群に効果的。',
     type: WeaponType.PLASMA_CANNON,
     rarity: WeaponRarity.UNCOMMON,
-    damage: 2,
+    damage: 1.8, // 設計書に基づく新ダメージ値（爆発ダメージ0.9は別途）
     fireRate: 300,
     bulletSpeed: 500,
     bulletCount: 1,
-    unlockCondition: (profile: PlayerProfile) => profile.level >= 3,
+    unlockCondition: () => true, // 簡略化
     cost: 500,
     maxLevel: 8,
     icon: '⚡',
@@ -51,14 +50,14 @@ export const BASIC_WEAPONS: WeaponConfig[] = [
   {
     id: 'rapid_fire',
     name: '速射砲',
-    description: '高速連射が可能な武器。威力は低いが圧倒的な弾幕を形成。',
+    description: '3発同時発射で広範囲をカバー。圧倒的な弾幕制圧力。',
     type: WeaponType.RAPID_FIRE,
     rarity: WeaponRarity.UNCOMMON,
-    damage: 1,
+    damage: 0.7, // 設計書に基づく新ダメージ値（3発で合計2.1）
     fireRate: 100,
     bulletSpeed: 650,
-    bulletCount: 1,
-    unlockCondition: (profile: PlayerProfile) => profile.level >= 2,
+    bulletCount: 3, // 3発同時発射
+    unlockCondition: () => true, // 簡略化
     cost: 300,
     maxLevel: 12,
     icon: '🔥',
@@ -67,14 +66,14 @@ export const BASIC_WEAPONS: WeaponConfig[] = [
   {
     id: 'energy_beam',
     name: 'エネルギービーム',
-    description: '連続的なエネルギービームを発射。持続ダメージを与える。',
+    description: 'サイン波軌道で回避困難。予測不可能な蛇行弾道。',
     type: WeaponType.ENERGY_BEAM,
     rarity: WeaponRarity.RARE,
-    damage: 1,
+    damage: 1.1, // 設計書に基づく新ダメージ値
     fireRate: 150,
     bulletSpeed: 700,
     bulletCount: 1,
-    unlockCondition: (profile: PlayerProfile) => profile.level >= 5,
+    unlockCondition: () => true, // 簡略化
     cost: 800,
     maxLevel: 10,
     icon: '💫',
@@ -103,8 +102,7 @@ export const SPECIAL_WEAPONS: WeaponConfig[] = [
         explosionDamage: 1,
       },
     },
-    unlockCondition: (profile: PlayerProfile) =>
-      profile.stats.enemiesDestroyed >= 100,
+    unlockCondition: () => true, // 簡略化
     cost: 1500,
     maxLevel: 8,
     icon: '💥',
@@ -127,8 +125,7 @@ export const SPECIAL_WEAPONS: WeaponConfig[] = [
         homingTurnSpeed: 0.002,
       },
     },
-    unlockCondition: (profile: PlayerProfile) =>
-      profile.stats.bossesDefeated >= 3,
+    unlockCondition: () => true, // 簡略化
     cost: 2000,
     maxLevel: 6,
     icon: '🚀',
@@ -152,8 +149,7 @@ export const SPECIAL_WEAPONS: WeaponConfig[] = [
         splitDelay: 2000,
       },
     },
-    unlockCondition: (profile: PlayerProfile) =>
-      profile.stats.maxWaveReached >= 10,
+    unlockCondition: () => true, // 簡略化
     cost: 2500,
     maxLevel: 6,
     icon: '🎆',
@@ -169,7 +165,7 @@ export const SPECIAL_WEAPONS: WeaponConfig[] = [
     fireRate: 500,
     bulletSpeed: 400,
     bulletCount: 1,
-    unlockCondition: (profile: PlayerProfile) => profile.level >= 7,
+    unlockCondition: () => true, // 簡略化
     cost: 1200,
     maxLevel: 8,
     icon: '🎯',
@@ -199,8 +195,7 @@ export const LEGENDARY_WEAPONS: WeaponConfig[] = [
         explosionDamage: 2,
       },
     },
-    unlockCondition: (profile: PlayerProfile) =>
-      profile.stats.bossesDefeated >= 10 && profile.totalScore >= 50000,
+    unlockCondition: () => true, // 簡略化
     cost: 10000,
     maxLevel: 5,
     icon: '⭐',
@@ -224,8 +219,7 @@ export const LEGENDARY_WEAPONS: WeaponConfig[] = [
         chainDamageReduction: 0.5,
       },
     },
-    unlockCondition: (profile: PlayerProfile) =>
-      profile.stats.maxWaveReached >= 20 && profile.level >= 15,
+    unlockCondition: () => true, // 簡略化
     cost: 15000,
     maxLevel: 5,
     icon: '🌟',
@@ -293,18 +287,15 @@ export function getWeaponsByType(type: WeaponType): WeaponConfig[] {
 /**
  * 解除可能武器取得
  */
-export function getUnlockedWeapons(profile: PlayerProfile): WeaponConfig[] {
-  return ALL_WEAPON_CONFIGS.filter(config => config.unlockCondition(profile));
+export function getUnlockedWeapons(): WeaponConfig[] {
+  return ALL_WEAPON_CONFIGS.filter(config => config.unlockCondition());
 }
 
 /**
  * 購入可能武器取得
  */
-export function getAffordableWeapons(
-  profile: PlayerProfile,
-  coins: number
-): WeaponConfig[] {
-  return getUnlockedWeapons(profile).filter(config => config.cost <= coins);
+export function getAffordableWeapons(coins: number): WeaponConfig[] {
+  return getUnlockedWeapons().filter(config => config.cost <= coins);
 }
 
 /**
@@ -322,9 +313,8 @@ export function searchWeapons(query: string): WeaponConfig[] {
 /**
  * おすすめ武器取得（プレイヤーレベルに基づく）
  */
-export function getRecommendedWeapons(profile: PlayerProfile): WeaponConfig[] {
-  const unlocked = getUnlockedWeapons(profile);
-  const playerLevel = profile.level;
+export function getRecommendedWeapons(playerLevel: number): WeaponConfig[] {
+  const unlocked = getUnlockedWeapons();
 
   // プレイヤーレベルに応じておすすめ武器を選択
   if (playerLevel < 5) {

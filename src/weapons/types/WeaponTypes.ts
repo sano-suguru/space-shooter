@@ -4,8 +4,6 @@
  * 武器選択システムで使用される基本的なタイプ定義を提供します。
  */
 
-import { PlayerProfile } from '../../progression/types/PlayerProfile';
-
 /**
  * 武器の基本タイプ列挙
  */
@@ -102,7 +100,7 @@ export interface WeaponConfig {
   specialEffect?: WeaponSpecialEffect;
 
   // 解除・購入条件
-  unlockCondition: (profile: PlayerProfile) => boolean;
+  unlockCondition: () => boolean;
   cost: number;
   maxLevel: number;
 

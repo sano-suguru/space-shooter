@@ -3,8 +3,6 @@ import { DroppedWeapon } from '../entities/DroppedWeapon';
 import { Enemy } from '../entities/Enemy';
 import { PowerUp } from '../entities/PowerUp';
 import { GameStateKey } from '../managers/GameStateManager';
-import type { Achievement } from '../progression/types/Achievement';
-import type { GameMode } from '../progression/types/GameMode';
 import type { DynamicEnemyConfig } from '../systems/types/EnemyGeneration';
 import { WaveConfig } from '../types';
 
@@ -41,24 +39,6 @@ export type EventMap = Readonly<{
   stateChanged: (newState: GameStateKey) => void;
   waveStarted: (waveConfig: WaveConfig) => void;
   waveCompleted: (waveNumber: number, bonusScore: number) => void;
-
-  // プログレッションシステムイベント
-  playerLevelUp: (newLevel: number, coinsEarned: number) => void;
-  experienceGained: (amount: number, totalExperience: number) => void;
-  coinsEarned: (amount: number, totalCoins: number) => void;
-  achievementUnlocked: (achievement: Achievement) => void;
-  achievementProgress: (
-    achievementId: string,
-    current: number,
-    required: number
-  ) => void;
-  upgradeApplied: (upgradeId: string, newLevel: number) => void;
-  profileUpdated: () => void;
-
-  // ゲームモードシステムイベント
-  gameModeChanged: (newMode: GameMode, previousMode: GameMode) => void;
-  gameModeUnlocked: (gameMode: GameMode) => void;
-  gameModeHighScore: (gameMode: GameMode, score: number) => void;
 
   // 敵生成システムイベント
   dynamicEnemyGenerated: (enemy: DynamicEnemyConfig) => void;
