@@ -134,7 +134,7 @@ describe('CollisionSystem', () => {
         testConfig
       );
       const enemyBullet = new Bullet();
-      enemyBullet.initialize(200, 300);
+      enemyBullet.initialize(200, 300, undefined, undefined, 'enemy'); // 敵弾丸として設定
 
       // プレイヤーを特定位置に配置
       (player as { x: number; y: number }).x = 200;
@@ -203,7 +203,7 @@ describe('CollisionSystem', () => {
         testConfig
       );
       const bossBullet = new Bullet();
-      bossBullet.initialize(200, 300);
+      bossBullet.initialize(200, 300, undefined, undefined, 'boss'); // ボス弾丸として設定
 
       (player as { x: number; y: number }).x = 200;
       (player as { x: number; y: number }).y = 300;

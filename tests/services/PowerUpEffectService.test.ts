@@ -12,6 +12,8 @@ const createMockPlayer = (): Player => {
     setFireRate: jest.fn(),
     setBulletType: jest.fn(),
     activateShield: jest.fn(),
+    isShieldActive: jest.fn(() => false),
+    deactivateShield: jest.fn(),
   } as unknown as Player;
 };
 
