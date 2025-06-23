@@ -263,17 +263,47 @@ export class WeaponBulletFactory implements IWeaponBulletFactory {
   }
 
   /**
-   * 速射砲用弾丸作成
+   * 速射砲用弾丸作成（3発同時発射）
    */
   private createRapidFireBullets(
     weaponConfig: WeaponConfig,
     position: Vector2D,
     direction: Vector2D
   ): Bullet[] {
-    const bullet = this.createBasicBullet(weaponConfig, position, direction);
-    // 速射砲は小さく速い弾丸に調整
-    bullet.setType(weaponConfig.bulletSpeed * 1.2, '#ffaa00');
-    return [bullet];
+    const bullets: Bullet[] = [];
+    const trajectoryConfig = this.trajectoryConfigs.get(WeaponType.RAPID_FIRE);
+
+    if (!trajectoryConfig) {
+      // フォールバック：通常の弾丸
+      const bullet = this.createBasicBullet(weaponConfig, position, direction);
+      bullet.setType(weaponConfig.bulletSpeed * 1.2, '#ffaa00');
+      return [bullet];
+    }
+
+    // 3発同時発射（中央、左、右）
+    for (let i = 0; i < 3; i++) {
+      const bullet = this.getBulletFromPool(weaponConfig.id) ?? new Bullet();
+
+      // 弾丸を初期化
+      bullet.initialize(
+        position.x,
+        position.y,
+        weaponConfig.bulletSpeed * 1.2,
+        '#ffaa00',
+        'player'
+      );
+
+      // 弾道パターンを設定（弾丸インデックス付き）
+      const trajectory = TrajectoryFactory.createTrajectory(
+        trajectoryConfig,
+        i
+      );
+      bullet.setTrajectory(trajectory);
+
+      bullets.push(bullet);
+    }
+
+    return bullets;
   }
 
   /**
