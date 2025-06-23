@@ -37,14 +37,14 @@ export class WeaponBulletFactory implements IWeaponBulletFactory {
    * 弾道設定を初期化
    */
   private initializeTrajectoryConfigs(): void {
-    // ベーシックレーザー：精密射撃
+    // ベーシックレーザー：精密射撃（強化版）
     this.trajectoryConfigs.set(WeaponType.BASIC_LASER, {
       type: TrajectoryType.PRECISION,
       parameters: {
         speed: 600,
-        straightPhaseDuration: 500,
-        trackingStrength: 0.002,
-        trackingRange: Math.PI / 6,
+        straightPhaseDuration: 200, // 0.2秒に短縮
+        trackingStrength: 0.5, // 大幅強化（速度の50%）
+        trackingRange: 400, // 範囲拡大
       },
     });
 

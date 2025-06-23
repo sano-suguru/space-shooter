@@ -30,7 +30,7 @@ export class PrecisionTrajectory extends BaseTrajectory {
 
     const elapsedTime = this.getElapsedTime();
     const straightDuration =
-      this.config.parameters.straightPhaseDuration ?? 500;
+      this.config.parameters.straightPhaseDuration ?? 200; // 0.2秒に短縮
 
     if (elapsedTime < straightDuration) {
       // 直線移動フェーズ
@@ -53,41 +53,61 @@ export class PrecisionTrajectory extends BaseTrajectory {
    */
   private updateTrackingMovement(bullet: Bullet, deltaTime: number): void {
     const position = bullet.getPosition();
-    const trackingStrength = this.config.parameters.trackingStrength ?? 0.002;
-    const trackingRange = this.config.parameters.trackingRange ?? Math.PI / 6;
+    const baseSpeed = this.config.parameters.speed * deltaTime;
 
-    // 最寄りの敵を探す（簡易実装）
+    // 最寄りの敵を探す（改良版）
     const nearestEnemy = this.findNearestEnemy(position);
 
     if (nearestEnemy) {
-      const angle = this.calculateAngle(position, nearestEnemy);
       const distance = this.calculateDistance(position, nearestEnemy);
+      const trackingRange = this.config.parameters.trackingRange ?? 400;
 
-      // 追尾範囲内かチェック
-      const currentDirection = -Math.PI / 2; // 上向き
-      const angleDiff = Math.abs(angle - currentDirection);
+      if (distance < trackingRange) {
+        // 敵への方向ベクトルを計算
+        const directionX = nearestEnemy.x - position.x;
+        const directionY = nearestEnemy.y - position.y;
+        const magnitude = Math.sqrt(
+          directionX * directionX + directionY * directionY
+        );
 
-      if (angleDiff <= trackingRange && distance < 150) {
-        // 軽微な追尾調整
-        const adjustmentX = Math.cos(angle) * trackingStrength * deltaTime;
-        const adjustmentY = Math.sin(angle) * trackingStrength * deltaTime;
+        if (magnitude > 0) {
+          // 追尾強度を大幅に強化（速度の50%まで）
+          const trackingStrength = baseSpeed * 0.5;
 
-        bullet.x = position.x + adjustmentX;
-        bullet.y =
-          position.y + adjustmentY - this.config.parameters.speed * deltaTime;
+          // 正規化された方向ベクトル
+          const normalizedX = directionX / magnitude;
+          const normalizedY = directionY / magnitude;
 
-        this.state.targetPosition = nearestEnemy;
-        return;
+          // 距離に応じた追尾強度調整
+          const distanceFactor = Math.max(0.4, 1 - distance / trackingRange);
+          const adjustedStrength = trackingStrength * distanceFactor;
+
+          // 追尾ベクトルを計算
+          const trackingX = normalizedX * adjustedStrength;
+          const trackingY = normalizedY * adjustedStrength;
+
+          // 基本上向き移動と追尾を合成
+          const finalX = position.x + trackingX;
+          const finalY = position.y - baseSpeed + trackingY;
+
+          bullet.x = finalX;
+          bullet.y = finalY;
+
+          this.state.targetPosition = nearestEnemy;
+          this.state.isTracking = true;
+          return;
+        }
       }
     }
 
     // 追尾対象がない場合は直線移動
     this.updateStraightMovement(bullet, deltaTime);
     this.state.targetPosition = undefined;
+    this.state.isTracking = false;
   }
 
   /**
-   * 最寄りの敵を探す（簡易実装）
+   * 最寄りの敵を探す（追尾効果デモ用）
    * 実際のゲームでは敵管理システムから取得
    */
   private findNearestEnemy(position: {
@@ -95,13 +115,30 @@ export class PrecisionTrajectory extends BaseTrajectory {
     y: number;
   }): { x: number; y: number } | null {
     // TODO: 実際の敵管理システムと連携
-    // 現在は仮の実装として、画面上部にランダムな敵位置を生成
-    if (Math.random() < 0.3) {
-      return {
-        x: position.x + (Math.random() - 0.5) * 200,
-        y: position.y - 100,
-      };
-    }
-    return null;
+    // デモ用：追尾効果が明確に見える敵位置を提供
+
+    // 追尾効果をテストするため、常に敵を生成
+    // 弾丸の斜め前方に固定的な敵を配置（追尾効果が最も見えやすい）
+    const enemyDistance = 120; // 固定距離
+    const horizontalOffset = position.x < 400 ? 80 : -80; // 画面中央を基準に左右に配置
+
+    return {
+      x: position.x + horizontalOffset,
+      y: position.y - enemyDistance,
+    };
+  }
+
+  /**
+   * 追尾状態を取得
+   */
+  public isTracking(): boolean {
+    return this.state.isTracking ?? false;
+  }
+
+  /**
+   * 現在のターゲット位置を取得
+   */
+  public getTargetPosition(): { x: number; y: number } | undefined {
+    return this.state.targetPosition;
   }
 }

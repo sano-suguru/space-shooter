@@ -113,4 +113,5 @@ export interface TrajectoryState {
   initialVelocity: Vector2D;
   targetPosition?: Vector2D;
   currentAmplitude?: number;
+  isTracking?: boolean; // 追尾状態フラグ
 }
