@@ -318,9 +318,9 @@ export class BulletVisualManager {
     bullet: Bullet,
     config: BulletVisualConfig
   ): void {
-    // 色を設定
+    // 色を設定（setTypeメソッドの正しいシグネチャを使用）
     const colorString = this.colorConfigToString(config.baseColor);
-    bullet.setType(bullet.getPosition().x, colorString); // 既存のsetTypeメソッドを使用
+    bullet.setType(bullet.getSpeed(), colorString); // 新しいgetSpeed()メソッドを使用
 
     // サイズは描画時に適用されるため、ここでは設定しない
   }

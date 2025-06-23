@@ -450,6 +450,13 @@ export class Bullet extends GameObject {
     return { x: this.x, y: this.y };
   }
 
+  /**
+   * 弾丸の速度を取得
+   */
+  public getSpeed(): number {
+    return this.speed;
+  }
+
   // エンチャント効果メソッド
   public setPiercing(count: number): void {
     this.piercing = count > 0;
