@@ -50,6 +50,8 @@ export class Bullet extends GameObject {
   private ricochet: boolean = false;
   private ricochetCount: number = 0;
   private criticalChance: number = 0;
+  private freezeEffect: boolean = false;
+  private freezeDuration: number = 0;
   private uniqueId: string = '';
 
   constructor(x: number = 0, y: number = 0, config?: GameConfig) {
@@ -127,6 +129,8 @@ export class Bullet extends GameObject {
     this.pulsePhase = 0;
     this.bulletType = 'plasma';
     this.owner = 'player';
+    this.freezeEffect = false;
+    this.freezeDuration = 0;
   }
 
   public update(deltaTime: number): void {
@@ -565,6 +569,22 @@ export class Bullet extends GameObject {
 
   public getCriticalChance(): number {
     return this.criticalChance;
+  }
+
+  public setFreezeEffect(freeze: boolean): void {
+    this.freezeEffect = freeze;
+  }
+
+  public setFreezeDuration(duration: number): void {
+    this.freezeDuration = duration;
+  }
+
+  public hasFreezeEffect(): boolean {
+    return this.freezeEffect;
+  }
+
+  public getFreezeDuration(): number {
+    return this.freezeDuration;
   }
 
   /**

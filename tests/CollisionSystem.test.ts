@@ -301,6 +301,9 @@ describe('CollisionSystem', () => {
       const bullet = new Bullet();
       bullet.initialize(100, 100);
 
+      // 貫通効果を設定しない場合、最初の敵にヒットして弾丸が無効化される
+      bullet.setPiercing(0); // 貫通なし
+
       gameObjectManager.addEnemy(enemy1);
       gameObjectManager.addEnemy(enemy2);
       gameObjectManager.addBullet(bullet);
@@ -312,7 +315,31 @@ describe('CollisionSystem', () => {
 
       collisionSystem.checkCollisions();
 
-      // 両方の敵がヒットする
+      // 貫通効果がない場合、1つの敵のみヒット
+      expect(hitCount).toBe(1);
+    });
+
+    test('貫通効果がある場合、複数の敵にヒットする', () => {
+      const enemy1 = new Enemy(100, 100, 'SMALL', mockGameEngine, testConfig);
+      const enemy2 = new Enemy(100, 100, 'SMALL', mockGameEngine, testConfig);
+      const bullet = new Bullet();
+      bullet.initialize(100, 100);
+
+      // 貫通効果を設定
+      bullet.setPiercing(2); // 2体まで貫通
+
+      gameObjectManager.addEnemy(enemy1);
+      gameObjectManager.addEnemy(enemy2);
+      gameObjectManager.addBullet(bullet);
+
+      let hitCount = 0;
+      eventEmitter.on('enemyDestroyed', () => {
+        hitCount++;
+      });
+
+      collisionSystem.checkCollisions();
+
+      // 貫通効果により両方の敵がヒット
       expect(hitCount).toBe(2);
     });
 

@@ -12,6 +12,9 @@ import { GameObjectManager } from '../managers/GameObjectManager';
 import { checkCollision } from '../utils/CollisionUtils';
 import { CollisionOptimizer } from '../utils/SpatialHash';
 
+import { ChainLightningProcessor } from './ChainLightningProcessor';
+import { EnchantmentEffectProcessor } from './EnchantmentEffectProcessor';
+
 /**
  * 衝突判定システム - SpatialHash最適化版
  * 全ての衝突判定処理を統合管理し、SpatialHashによるO(n)最適化を適用
@@ -22,6 +25,10 @@ export class CollisionSystem {
   private spatialHashChecks = 0;
   // 武器発見状態管理（重複発火防止用）
   private discoveredWeapons = new Set<DroppedWeapon>();
+  // エンチャント効果処理システム
+  private enchantmentProcessor?: EnchantmentEffectProcessor;
+  // 連鎖効果処理システム
+  private chainLightningProcessor?: ChainLightningProcessor;
 
   constructor(
     private eventEmitter: EventEmitter<EventMap>,
@@ -57,8 +64,8 @@ export class CollisionSystem {
   }
 
   /**
-   * 弾丸と敵の衝突判定（SpatialHash最適化版）
-   * O(n²) → O(n) に最適化
+   * 弾丸と敵の衝突判定（SpatialHash最適化版 + エンチャント効果対応）
+   * O(n²) → O(n) に最適化、貫通効果に対応
    */
   private checkBulletEnemyCollisions(): void {
     const bullets = this.gameObjectManager.getBullets();
@@ -76,16 +83,29 @@ export class CollisionSystem {
       this.spatialHashChecks += nearbyObjects.size;
       this.totalChecks += enemies.length; // 理論上の総当たり数
 
+      let hitCount = 0;
+      const maxPiercing = bullet.isPiercing() ? bullet.getPiercingCount() : 0;
+
       for (const nearbyObj of nearbyObjects) {
         // 型ガードを使用して敵オブジェクトかチェック
         if (this.isEnemy(nearbyObj) && enemies.includes(nearbyObj)) {
           if (this.checkCollision(bullet, nearbyObj)) {
-            bullet.deactivate();
-            if (nearbyObj.takeDamage()) {
-              this.eventEmitter.emit('enemyDestroyed', nearbyObj);
-              this.gameObjectManager.removeEnemy(nearbyObj);
+            hitCount++;
+
+            // エンチャント効果処理
+            this.processEnchantmentEffects(bullet, nearbyObj);
+
+            // 貫通判定：貫通効果がない場合は即座に弾丸を無効化
+            if (!bullet.isPiercing()) {
+              bullet.deactivate();
+              break;
             }
-            // 弾丸は一度の衝突で無効化されるが、同じ座標の敵もチェック
+
+            // 貫通効果がある場合は、貫通回数をチェック
+            if (hitCount >= maxPiercing) {
+              bullet.deactivate();
+              break;
+            }
           }
         }
       }
@@ -394,5 +414,56 @@ export class CollisionSystem {
    */
   public getDiscoveredWeaponsCount(): number {
     return this.discoveredWeapons.size;
+  }
+
+  /**
+   * エンチャント効果を処理する
+   * @param bullet 弾丸
+   * @param enemy 敵
+   */
+  private processEnchantmentEffects(bullet: Bullet, enemy: Enemy): void {
+    this.enchantmentProcessor ??= new EnchantmentEffectProcessor(
+      this.gameObjectManager,
+      this.eventEmitter
+    );
+
+    this.enchantmentProcessor.processEffects(bullet, enemy);
+  }
+
+  /**
+   * 連鎖効果の視覚効果を描画
+   */
+  public renderChainLightningEffects(ctx: CanvasRenderingContext2D): void {
+    if (this.chainLightningProcessor) {
+      this.chainLightningProcessor.renderVisualEffects(ctx);
+    }
+  }
+
+  /**
+   * 連鎖効果処理システムを取得（遅延初期化）
+   */
+  private getChainLightningProcessor(): ChainLightningProcessor {
+    this.chainLightningProcessor ??= new ChainLightningProcessor(
+      this.gameObjectManager,
+      this.eventEmitter
+    );
+    return this.chainLightningProcessor;
+  }
+
+  /**
+   * 連鎖効果のデバッグモードを設定
+   */
+  public setChainLightningDebugMode(enabled: boolean): void {
+    this.getChainLightningProcessor().setDebugMode(enabled);
+  }
+
+  /**
+   * 連鎖効果のパフォーマンス統計を取得
+   */
+  public getChainLightningStats(): {
+    activeEffects: number;
+    spatialHashCells: number;
+  } {
+    return this.getChainLightningProcessor().getPerformanceStats();
   }
 }

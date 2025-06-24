@@ -12,6 +12,12 @@ export class Enemy extends GameObject {
   private animationPhase: number = 0;
   private config: GameConfig;
 
+  // エンチャント効果用の状態管理
+  private frozen: boolean = false;
+  private freezeEndTime: number = 0;
+  private originalSpeed: number = 0;
+  private criticalEffectTime: number = 0;
+
   constructor(
     x: number = 0,
     y: number = 0,
@@ -34,6 +40,7 @@ export class Enemy extends GameObject {
     this.health = enemyTypeConfig.health;
     const speedMultiplier = game ? 1 + game.getDifficultyFactor() : 1;
     this.speed = enemyTypeConfig.speed * speedMultiplier;
+    this.originalSpeed = this.speed;
     // GameConstants.tsにmovementPatternがないため、enemyTypeから推定
     this.movementPattern = this.getMovementPatternFromType(enemyType);
   }
@@ -41,18 +48,26 @@ export class Enemy extends GameObject {
   public update(deltaTime: number): void {
     this.animationPhase += deltaTime * 2;
 
-    switch (this.movementPattern) {
-      case 'straight':
-        this.y += this.speed * deltaTime;
-        break;
-      case 'zigzag':
-        this.y += this.speed * deltaTime;
-        this.x += Math.sin(this.y * 0.01) * 50 * deltaTime;
-        break;
-      case 'sine':
-        this.y += this.speed * deltaTime;
-        this.x += Math.sin(this.animationPhase) * 30 * deltaTime;
-        break;
+    // 凍結状態チェック
+    if (this.frozen && Date.now() > this.freezeEndTime) {
+      this.unfreeze();
+    }
+
+    // 凍結中は移動しない
+    if (!this.frozen) {
+      switch (this.movementPattern) {
+        case 'straight':
+          this.y += this.speed * deltaTime;
+          break;
+        case 'zigzag':
+          this.y += this.speed * deltaTime;
+          this.x += Math.sin(this.y * 0.01) * 50 * deltaTime;
+          break;
+        case 'sine':
+          this.y += this.speed * deltaTime;
+          this.x += Math.sin(this.animationPhase) * 30 * deltaTime;
+          break;
+      }
     }
   }
 
@@ -82,6 +97,9 @@ export class Enemy extends GameObject {
     }
 
     ctx.restore();
+
+    // エンチャント効果の描画
+    this.drawEnchantmentEffects(ctx);
   }
 
   private drawBasicEnemy(ctx: CanvasRenderingContext2D, color: string): void {
@@ -218,8 +236,13 @@ export class Enemy extends GameObject {
     drawFunction();
   }
 
-  public takeDamage(): boolean {
-    this.health--;
+  public takeDamage(damage: number = 1, isCritical: boolean = false): boolean {
+    this.health -= damage;
+
+    if (isCritical) {
+      this.showCriticalEffect();
+    }
+
     return this.health <= 0;
   }
 
@@ -249,6 +272,85 @@ export class Enemy extends GameObject {
         return 'straight'; // 大型敵は直進
       default:
         return 'straight';
+    }
+  }
+
+  /**
+   * 凍結効果を適用する
+   * @param duration 凍結時間（秒）
+   */
+  public freeze(duration: number): void {
+    this.frozen = true;
+    this.freezeEndTime = Date.now() + duration * 1000;
+    this.speed = 0;
+  }
+
+  /**
+   * 凍結状態を解除する
+   */
+  private unfreeze(): void {
+    this.frozen = false;
+    this.speed = this.originalSpeed;
+  }
+
+  /**
+   * 凍結状態かどうかを取得
+   */
+  public isFrozen(): boolean {
+    return this.frozen;
+  }
+
+  /**
+   * クリティカル効果を表示する
+   */
+  private showCriticalEffect(): void {
+    this.criticalEffectTime = Date.now();
+  }
+
+  /**
+   * エンチャント効果の描画
+   */
+  private drawEnchantmentEffects(ctx: CanvasRenderingContext2D): void {
+    // クリティカル効果の描画
+    if (
+      this.criticalEffectTime > 0 &&
+      Date.now() - this.criticalEffectTime < 500
+    ) {
+      ctx.save();
+      ctx.shadowColor = '#FFD700';
+      ctx.shadowBlur = 20;
+      ctx.strokeStyle = '#FFD700';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(this.x - 5, this.y - 5, this.width + 10, this.height + 10);
+      ctx.restore();
+    }
+
+    // 凍結効果の描画
+    if (this.frozen) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(173, 216, 230, 0.6)';
+      ctx.fillRect(this.x, this.y, this.width, this.height);
+
+      // 氷の結晶エフェクト
+      ctx.strokeStyle = '#87CEEB';
+      ctx.lineWidth = 2;
+      const centerX = this.x + this.width / 2;
+      const centerY = this.y + this.height / 2;
+      const size = Math.min(this.width, this.height) / 4;
+
+      // 雪の結晶パターン
+      for (let i = 0; i < 6; i++) {
+        const angle = (i / 6) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(
+          centerX + Math.cos(angle) * size,
+          centerY + Math.sin(angle) * size
+        );
+        ctx.stroke();
+      }
+
+      ctx.restore();
     }
   }
 }

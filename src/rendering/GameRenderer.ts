@@ -1,5 +1,6 @@
 import { Player } from '../entities/Player';
 import { GameObjectManager } from '../managers/GameObjectManager';
+import { CollisionSystem } from '../systems/CollisionSystem';
 import { WeaponManager } from '../weapons/managers/WeaponManager';
 
 import { BackgroundRenderer } from './BackgroundRenderer';
@@ -24,10 +25,12 @@ export class GameRenderer {
     player: Player,
     gameObjectManager: GameObjectManager,
     deltaTime: number = 16.67,
-    weaponManager?: WeaponManager
+    weaponManager?: WeaponManager,
+    collisionSystem?: CollisionSystem
   ): void {
     this.drawBackground(gameObjectManager, deltaTime);
     this.drawGameObjects(player, gameObjectManager, weaponManager);
+    this.drawChainLightningEffects(collisionSystem);
   }
 
   /**
@@ -127,6 +130,15 @@ export class GameRenderer {
       gameObjectManager
         .getBossBullets()
         .forEach(bullet => bullet.draw(this.ctx));
+    }
+  }
+
+  /**
+   * 連鎖効果の視覚効果を描画
+   */
+  private drawChainLightningEffects(collisionSystem?: CollisionSystem): void {
+    if (collisionSystem) {
+      collisionSystem.renderChainLightningEffects(this.ctx);
     }
   }
 
