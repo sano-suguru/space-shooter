@@ -102,7 +102,7 @@ export class CollisionSystem {
             }
 
             // 貫通効果がある場合は、貫通回数をチェック
-            if (hitCount >= maxPiercing) {
+            if (hitCount >= maxPiercing + 1) {
               bullet.deactivate();
               break;
             }

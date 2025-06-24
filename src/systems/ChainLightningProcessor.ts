@@ -319,42 +319,29 @@ export class ChainLightningProcessor {
     priorityMode: string,
     maxTargets: number = 1
   ): Enemy[] {
-    // SpatialHashを使用して範囲内の敵を効率的に取得
-    const nearbyEnemies = this.spatialHash.getInRegion({
-      x: position.x - maxRange,
-      y: position.y - maxRange,
-      width: maxRange * 2,
-      height: maxRange * 2,
-    });
-
-    // 実際の距離でフィルタリング
+    // パフォーマンス最適化: 直接距離計算でフィルタリング
     const candidateTargets: ChainTarget[] = [];
 
-    for (const enemy of nearbyEnemies) {
-      if (enemies.includes(enemy as Enemy)) {
-        const enemyPos = (enemy as Enemy).getPosition();
-        const distance = this.calculateDistance(position, enemyPos);
+    for (const enemy of enemies) {
+      const enemyPos = enemy.getPosition();
+      const distance = this.calculateDistance(position, enemyPos);
 
-        if (distance <= maxRange) {
-          const healthRatio = this.getEnemyHealthRatio(enemy as Enemy);
-          const threatScore = this.calculateThreatScore(
-            enemy as Enemy,
-            distance
-          );
+      if (distance <= maxRange) {
+        const healthRatio = this.getEnemyHealthRatio(enemy);
+        const threatScore = this.calculateThreatScore(enemy, distance);
 
-          candidateTargets.push({
-            enemy: enemy as Enemy,
+        candidateTargets.push({
+          enemy,
+          distance,
+          healthRatio,
+          threatScore,
+          priority: this.calculatePriority(
             distance,
             healthRatio,
             threatScore,
-            priority: this.calculatePriority(
-              distance,
-              healthRatio,
-              threatScore,
-              priorityMode
-            ),
-          });
-        }
+            priorityMode
+          ),
+        });
       }
     }
 

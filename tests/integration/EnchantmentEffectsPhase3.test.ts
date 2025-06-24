@@ -77,10 +77,9 @@ describe('エンチャント効果統合テスト - Phase 3', () => {
 
   afterEach(() => {
     // テスト後のクリーンアップ
-    gameObjectManager.getBullets().forEach(bullet => bullet.deactivate());
-    gameObjectManager
-      .getEnemies()
-      .forEach(enemy => gameObjectManager.removeEnemy(enemy));
+    gameObjectManager.clearAllBullets();
+    gameObjectManager.clearAllEnemies();
+    gameObjectManager.removeOffscreenObjects();
     chainProcessor.clearVisualEffects();
   });
 

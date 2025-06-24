@@ -51,6 +51,22 @@ export class EnchantmentEffectProcessor {
       hitEnemy.freeze(bullet.getFreezeDuration());
     }
 
+    // 連鎖効果処理（敵が撃破された場合のみ）
+    if (shouldDestroy && bullet.hasChainLightning()) {
+      const chainConfig: ChainLightningConfig = {
+        chainCount: bullet.getChainCount(),
+        chainRange: 100, // デフォルト範囲
+        baseDamage: damageResult.damage * 0.8, // 連鎖ダメージは80%
+        criticalChance: bullet.getCriticalChance(),
+        damageReduction: 0.8, // 連鎖毎に20%減衰
+      };
+
+      this.chainProcessor.processChainLightning(
+        hitEnemy.getPosition(),
+        chainConfig
+      );
+    }
+
     // 爆発効果処理（敵が破壊された場合）
     if (shouldDestroy && bullet.isExplosive()) {
       const enemyPosition = hitEnemy.getPosition();
@@ -65,22 +81,6 @@ export class EnchantmentEffectProcessor {
     if (shouldDestroy) {
       this.eventEmitter.emit('enemyDestroyed', hitEnemy);
       this.gameObjectManager.removeEnemy(hitEnemy);
-
-      // 連鎖効果処理
-      if (bullet.hasChainLightning()) {
-        const chainConfig: ChainLightningConfig = {
-          chainCount: bullet.getChainCount(),
-          chainRange: 100, // デフォルト範囲
-          baseDamage: damageResult.damage * 0.8, // 連鎖ダメージは80%
-          criticalChance: bullet.getCriticalChance(),
-          damageReduction: 0.8, // 連鎖毎に20%減衰
-        };
-
-        this.chainProcessor.processChainLightning(
-          hitEnemy.getPosition(),
-          chainConfig
-        );
-      }
     }
   }
 

@@ -46,10 +46,9 @@ describe('CollisionSystem - エンチャント効果テスト', () => {
 
   afterEach(() => {
     // テスト後のクリーンアップ
-    gameObjectManager.getBullets().forEach(bullet => bullet.deactivate());
-    gameObjectManager
-      .getEnemies()
-      .forEach(enemy => gameObjectManager.removeEnemy(enemy));
+    gameObjectManager.clearAllBullets();
+    gameObjectManager.clearAllEnemies();
+    gameObjectManager.removeOffscreenObjects();
   });
 
   describe('貫通効果の衝突判定', () => {

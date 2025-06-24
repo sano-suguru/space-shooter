@@ -45,10 +45,9 @@ describe('エンチャント効果パフォーマンステスト', () => {
 
   afterEach(() => {
     // パフォーマンステスト後のクリーンアップ
-    gameObjectManager.getBullets().forEach(bullet => bullet.deactivate());
-    gameObjectManager
-      .getEnemies()
-      .forEach(enemy => gameObjectManager.removeEnemy(enemy));
+    gameObjectManager.clearAllBullets();
+    gameObjectManager.clearAllEnemies();
+    gameObjectManager.removeOffscreenObjects();
   });
 
   describe('60FPS維持テスト', () => {
@@ -403,6 +402,9 @@ describe('エンチャント効果パフォーマンステスト', () => {
         // オブジェクトをクリーンアップ
         bullets.forEach(bullet => bullet.deactivate());
         enemies.forEach(enemy => gameObjectManager.removeEnemy(enemy));
+
+        // 無効化された弾丸を確実に削除
+        gameObjectManager.removeInactiveBullets();
 
         // 連鎖効果の視覚効果もクリア
         if (collisionSystem.getChainLightningStats) {

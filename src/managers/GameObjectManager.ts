@@ -618,4 +618,41 @@ export class GameObjectManager {
 
     return objects;
   }
+
+  /**
+   * 無効化された弾丸を削除してプールに返却
+   */
+  public removeInactiveBullets(): void {
+    const bulletPool = this.poolManager.getPool<Bullet>('bullet');
+    this.bullets = this.bullets.filter(bullet => {
+      if (!bullet.isActive()) {
+        if (bulletPool) {
+          bulletPool.release(bullet);
+        }
+        return false;
+      }
+      return true;
+    });
+  }
+
+  /**
+   * 全ての弾丸を強制的にクリーンアップ（テスト用）
+   */
+  public clearAllBullets(): void {
+    const bulletPool = this.poolManager.getPool<Bullet>('bullet');
+    this.bullets.forEach(bullet => {
+      bullet.deactivate();
+      if (bulletPool) {
+        bulletPool.release(bullet);
+      }
+    });
+    this.bullets = [];
+  }
+
+  /**
+   * 全ての敵を強制的にクリーンアップ（テスト用）
+   */
+  public clearAllEnemies(): void {
+    this.enemies = [];
+  }
 }
