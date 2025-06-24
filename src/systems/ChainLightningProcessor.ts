@@ -390,7 +390,7 @@ export class ChainLightningProcessor {
     score += (100 - distance) / 100;
 
     // 敵のタイプによる脅威度
-    const enemyType = enemy.getEnemyType?.();
+    const enemyType = enemy.getEnemyType();
     switch (enemyType) {
       case 'LARGE':
         score += 0.8;

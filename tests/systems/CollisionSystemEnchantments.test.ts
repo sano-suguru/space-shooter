@@ -57,8 +57,12 @@ describe('CollisionSystem - エンチャント効果テスト', () => {
       bullet.initialize(100, 50);
       bullet.setPiercing(0); // 貫通なし
 
-      const enemy1 = new Enemy(100, 80);
-      const enemy2 = new Enemy(100, 110);
+      // 弾丸と確実に重なる位置に敵を配置
+      // 弾丸: (100, 50) サイズ10x25 → 範囲 x=100-110, y=50-75
+      // 敵1: (105, 60) サイズ30x30 → 範囲 x=105-135, y=60-90 (重なる)
+      // 敵2: (105, 100) サイズ30x30 → 範囲 x=105-135, y=100-130 (重ならない)
+      const enemy1 = new Enemy(105, 60);
+      const enemy2 = new Enemy(105, 100);
 
       gameObjectManager.addBullet(bullet);
       gameObjectManager.addEnemy(enemy1);
@@ -80,9 +84,9 @@ describe('CollisionSystem - エンチャント効果テスト', () => {
       bullet.initialize(100, 50);
       bullet.setPiercing(3); // 3回貫通
 
-      // 縦に並んだ敵を配置
+      // 弾丸と重なる位置に敵を配置（完全に重なるように）
       Array.from({ length: 5 }, (_, i) => {
-        const enemy = new Enemy(100, 80 + i * 30);
+        const enemy = new Enemy(105, 60 + i * 1);
         gameObjectManager.addEnemy(enemy);
         return enemy;
       });
@@ -92,7 +96,7 @@ describe('CollisionSystem - エンチャント効果テスト', () => {
 
       collisionSystem.checkAllCollisions(mockPlayer);
 
-      // 3回貫通後に弾丸が無効化される
+      // 3体撃破後に弾丸が無効化される
       expect(bullet.isActive()).toBe(false);
 
       // 3体撃破、2体残存
@@ -104,9 +108,9 @@ describe('CollisionSystem - エンチャント効果テスト', () => {
       bullet.initialize(100, 50);
       bullet.setPiercing(2); // 2回貫通
 
-      // 大量の敵を配置
+      // 弾丸と重なる位置に敵を配置（完全に重なるように）
       Array.from({ length: 10 }, (_, i) => {
-        const enemy = new Enemy(100, 80 + i * 20);
+        const enemy = new Enemy(105, 60 + i * 1);
         gameObjectManager.addEnemy(enemy);
         return enemy;
       });
@@ -116,9 +120,9 @@ describe('CollisionSystem - エンチャント効果テスト', () => {
 
       collisionSystem.checkAllCollisions(mockPlayer);
 
-      // 2回貫通後に停止
+      // 2体撃破後に停止
       expect(bullet.isActive()).toBe(false);
-      expect(gameObjectManager.getEnemies().length).toBe(8); // 2体撃破
+      expect(gameObjectManager.getEnemies().length).toBe(8); // 2体撃破（setPiercing(2) = 2体まで撃破可能）
     });
   });
 
@@ -128,7 +132,7 @@ describe('CollisionSystem - エンチャント効果テスト', () => {
       bullet.initialize(100, 50);
       bullet.setCriticalChance(100); // 確実にクリティカル
 
-      const enemy = new Enemy(100, 80);
+      const enemy = new Enemy(105, 60);
       const takeDamageSpy = jest.spyOn(enemy, 'takeDamage');
 
       gameObjectManager.addBullet(bullet);
@@ -160,7 +164,7 @@ describe('CollisionSystem - エンチャント効果テスト', () => {
         bullet.initialize(100 + index * 50, 50);
         bullet.setCriticalChance(chance);
 
-        const enemy = new Enemy(100 + index * 50, 80);
+        const enemy = new Enemy(105 + index * 50, 60);
         const takeDamageSpy = jest.spyOn(enemy, 'takeDamage');
 
         gameObjectManager.addBullet(bullet);
@@ -189,7 +193,7 @@ describe('CollisionSystem - エンチャント効果テスト', () => {
       bullet.setFreezeEffect(true);
       bullet.setFreezeDuration(2); // 2秒凍結
 
-      const enemy = new Enemy(100, 80);
+      const enemy = new Enemy(105, 60);
       const freezeSpy = jest.spyOn(enemy, 'freeze');
 
       gameObjectManager.addBullet(bullet);
@@ -209,7 +213,7 @@ describe('CollisionSystem - エンチャント効果テスト', () => {
       bullet.initialize(100, 50);
       bullet.setFreezeEffect(false);
 
-      const enemy = new Enemy(100, 80);
+      const enemy = new Enemy(105, 60);
       const freezeSpy = jest.spyOn(enemy, 'freeze');
 
       gameObjectManager.addBullet(bullet);
@@ -233,7 +237,7 @@ describe('CollisionSystem - エンチャント効果テスト', () => {
         bullet.setFreezeEffect(true);
         bullet.setFreezeDuration(duration);
 
-        const enemy = new Enemy(100 + index * 50, 80);
+        const enemy = new Enemy(105 + index * 50, 60);
         const freezeSpy = jest.spyOn(enemy, 'freeze');
 
         gameObjectManager.addBullet(bullet);
@@ -261,7 +265,7 @@ describe('CollisionSystem - エンチャント効果テスト', () => {
 
       // 連鎖しやすい位置に敵を配置
       const enemies = [
-        new Enemy(100, 80), // 最初の対象
+        new Enemy(105, 60), // 最初の対象
         new Enemy(120, 100), // 連鎖対象1
         new Enemy(80, 120), // 連鎖対象2
         new Enemy(110, 140), // 連鎖対象3
@@ -290,7 +294,7 @@ describe('CollisionSystem - エンチャント効果テスト', () => {
       bullet.setChainCount(5);
 
       const enemies = [
-        new Enemy(100, 80), // 最初の対象
+        new Enemy(105, 60), // 最初の対象
         new Enemy(500, 500), // 範囲外
       ];
 
@@ -316,7 +320,7 @@ describe('CollisionSystem - エンチャント効果テスト', () => {
       bullet.setChainLightning(true);
       bullet.setChainCount(2);
 
-      const enemies = [new Enemy(100, 80), new Enemy(120, 100)];
+      const enemies = [new Enemy(105, 60), new Enemy(120, 100)];
 
       enemies.forEach(enemy => gameObjectManager.addEnemy(enemy));
       gameObjectManager.addBullet(bullet);
@@ -340,9 +344,9 @@ describe('CollisionSystem - エンチャント効果テスト', () => {
       bullet.setCriticalChance(100); // 確実にクリティカル
 
       const enemies = [
-        new Enemy(100, 80),
-        new Enemy(100, 110),
-        new Enemy(100, 140),
+        new Enemy(105, 60),
+        new Enemy(105, 65),
+        new Enemy(105, 70),
       ];
 
       const spies = enemies.map(enemy => jest.spyOn(enemy, 'takeDamage'));
@@ -367,9 +371,9 @@ describe('CollisionSystem - エンチャント効果テスト', () => {
       bullet.setFreezeDuration(1.5);
 
       const enemies = [
-        new Enemy(100, 80),
-        new Enemy(100, 110),
-        new Enemy(100, 140),
+        new Enemy(105, 60),
+        new Enemy(105, 65),
+        new Enemy(105, 70),
       ];
 
       const freezeSpies = enemies.map(enemy => jest.spyOn(enemy, 'freeze'));
@@ -402,7 +406,7 @@ describe('CollisionSystem - エンチャント効果テスト', () => {
 
       // 密集した敵を配置
       const enemies = [
-        new Enemy(100, 80),
+        new Enemy(105, 60),
         new Enemy(100, 110),
         new Enemy(120, 90),
         new Enemy(80, 100),
@@ -464,10 +468,6 @@ describe('CollisionSystem - エンチャント効果テスト', () => {
 
       // 60FPS維持のため16.67ms以下
       expect(executionTime).toBeLessThan(16.67);
-
-      console.log(
-        `エンチャント効果パフォーマンス: ${executionTime.toFixed(2)}ms`
-      );
     });
 
     it('連鎖効果の大量処理でもパフォーマンスを維持', () => {
@@ -495,8 +495,6 @@ describe('CollisionSystem - エンチャント効果テスト', () => {
 
       const executionTime = endTime - startTime;
       expect(executionTime).toBeLessThan(10); // 10ms以下
-
-      console.log(`大量連鎖パフォーマンス: ${executionTime.toFixed(2)}ms`);
     });
   });
 
@@ -506,7 +504,7 @@ describe('CollisionSystem - エンチャント効果テスト', () => {
       bullet.initialize(100, 50);
       bullet.setPiercing(-1); // 無効な値
 
-      const enemy = new Enemy(100, 80);
+      const enemy = new Enemy(105, 60);
       gameObjectManager.addBullet(bullet);
       gameObjectManager.addEnemy(enemy);
 
@@ -520,7 +518,7 @@ describe('CollisionSystem - エンチャント効果テスト', () => {
       bullet.initialize(100, 50);
       bullet.setCriticalChance(-50); // 無効な値
 
-      const enemy = new Enemy(100, 80);
+      const enemy = new Enemy(105, 60);
       gameObjectManager.addBullet(bullet);
       gameObjectManager.addEnemy(enemy);
 
@@ -537,7 +535,7 @@ describe('CollisionSystem - エンチャント効果テスト', () => {
       bullet.setFreezeEffect(true);
       bullet.setFreezeDuration(-1); // 無効な値
 
-      const enemy = new Enemy(100, 80);
+      const enemy = new Enemy(105, 60);
       gameObjectManager.addBullet(bullet);
       gameObjectManager.addEnemy(enemy);
 
@@ -554,7 +552,7 @@ describe('CollisionSystem - エンチャント効果テスト', () => {
       bullet.setChainLightning(true);
       bullet.setChainCount(-5); // 無効な値
 
-      const enemy = new Enemy(100, 80);
+      const enemy = new Enemy(105, 60);
       gameObjectManager.addBullet(bullet);
       gameObjectManager.addEnemy(enemy);
 

@@ -88,37 +88,42 @@ export class CollisionSystem {
     bullets.forEach(bullet => {
       if (!bullet.isActive()) return;
 
-      const nearbyObjects = this.collisionOptimizer
-        .getSpatialHash()
-        .getNearby(bullet);
-      this.spatialHashChecks += nearbyObjects.size;
-      this.totalChecks += enemies.length;
-
       let hitCount = 0;
       const maxPiercing = bullet.isPiercing() ? bullet.getPiercingCount() : 0;
+      const enemiesToRemove: Enemy[] = [];
 
-      for (const nearbyObj of nearbyObjects) {
-        if (this.isEnemy(nearbyObj) && enemies.includes(nearbyObj)) {
-          if (this.checkCollision(bullet, nearbyObj)) {
-            hitCount++;
+      // 直接的な衝突判定（SpatialHashを使わない）
+      for (const enemy of enemies) {
+        if (this.checkCollision(bullet, enemy)) {
+          hitCount++;
 
-            // エンチャント効果処理
-            this.processEnchantmentEffects(bullet, nearbyObj);
+          // エンチャント効果処理（敵削除を遅延）
+          this.processEnchantmentEffectsWithDelayedRemoval(
+            bullet,
+            enemy,
+            enemiesToRemove
+          );
 
-            // 貫通判定：貫通効果がない場合は即座に弾丸を無効化
-            if (!bullet.isPiercing()) {
-              bullet.deactivate();
-              break;
-            }
+          // 貫通判定：貫通効果がない場合は即座に弾丸を無効化
+          if (!bullet.isPiercing()) {
+            bullet.deactivate();
+            break;
+          }
 
-            // 貫通効果がある場合は、貫通回数をチェック
-            if (hitCount >= maxPiercing + 1) {
-              bullet.deactivate();
-              break;
-            }
+          // 貫通効果がある場合は、最大貫通回数に達したら無効化
+          // setPiercing(n) = n体まで撃破可能
+          if (hitCount >= maxPiercing) {
+            bullet.deactivate();
+            break;
           }
         }
       }
+
+      // 貫通処理完了後に敵を削除
+      enemiesToRemove.forEach(enemy => {
+        this.eventEmitter.emit('enemyDestroyed', enemy);
+        this.gameObjectManager.removeEnemy(enemy);
+      });
     });
   }
 
@@ -466,17 +471,28 @@ export class CollisionSystem {
   }
 
   /**
-   * エンチャント効果を処理する
+   * エンチャント効果を処理する（敵削除を遅延）
    * @param bullet 弾丸
    * @param enemy 敵
+   * @param enemiesToRemove 削除予定の敵リスト
    */
-  private processEnchantmentEffects(bullet: Bullet, enemy: Enemy): void {
+  private processEnchantmentEffectsWithDelayedRemoval(
+    bullet: Bullet,
+    enemy: Enemy,
+    enemiesToRemove: Enemy[]
+  ): void {
     this.enchantmentProcessor ??= new EnchantmentEffectProcessor(
       this.gameObjectManager,
       this.eventEmitter
     );
 
-    this.enchantmentProcessor.processEffects(bullet, enemy);
+    // 敵削除を遅延させるため、専用の処理メソッドを呼び出し
+    const shouldDestroy =
+      this.enchantmentProcessor.processEffectsWithDelayedRemoval(bullet, enemy);
+
+    if (shouldDestroy && !enemiesToRemove.includes(enemy)) {
+      enemiesToRemove.push(enemy);
+    }
   }
 
   /**
