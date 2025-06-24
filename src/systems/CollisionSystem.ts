@@ -68,12 +68,23 @@ export class CollisionSystem {
    * O(n²) → O(n) に最適化、貫通効果に対応
    */
   private checkBulletEnemyCollisions(): void {
-    const bullets = this.gameObjectManager.getBullets();
     const enemies = this.gameObjectManager.getEnemies();
+    if (enemies.length === 0) return;
 
-    if (bullets.length === 0 || enemies.length === 0) return;
+    // プレイヤーの弾丸を処理（エンチャント効果あり）
+    this.processPlayerBulletCollisions(enemies);
 
-    // SpatialHashを使用した最適化衝突判定
+    // ボス弾丸を処理（エンチャント効果なし）
+    this.processBossBulletCollisions(enemies);
+  }
+
+  /**
+   * プレイヤーの弾丸と敵の衝突判定
+   */
+  private processPlayerBulletCollisions(enemies: Enemy[]): void {
+    const bullets = this.gameObjectManager.getBullets();
+    if (bullets.length === 0) return;
+
     bullets.forEach(bullet => {
       if (!bullet.isActive()) return;
 
@@ -81,13 +92,12 @@ export class CollisionSystem {
         .getSpatialHash()
         .getNearby(bullet);
       this.spatialHashChecks += nearbyObjects.size;
-      this.totalChecks += enemies.length; // 理論上の総当たり数
+      this.totalChecks += enemies.length;
 
       let hitCount = 0;
       const maxPiercing = bullet.isPiercing() ? bullet.getPiercingCount() : 0;
 
       for (const nearbyObj of nearbyObjects) {
-        // 型ガードを使用して敵オブジェクトかチェック
         if (this.isEnemy(nearbyObj) && enemies.includes(nearbyObj)) {
           if (this.checkCollision(bullet, nearbyObj)) {
             hitCount++;
@@ -106,6 +116,45 @@ export class CollisionSystem {
               bullet.deactivate();
               break;
             }
+          }
+        }
+      }
+    });
+  }
+
+  /**
+   * ボス弾丸と敵の衝突判定（エンチャント効果なし）
+   */
+  private processBossBulletCollisions(enemies: Enemy[]): void {
+    // ボス弾丸の処理
+    const bossBullets = this.gameObjectManager.getBossBullets();
+    const homingBullets = this.gameObjectManager.getHomingBullets();
+    const explosiveBullets = this.gameObjectManager.getExplosiveBullets();
+    const reflectingBullets = this.gameObjectManager.getReflectingBullets();
+    const splitBullets = this.gameObjectManager.getSplitBullets();
+
+    // 各弾丸タイプを個別に処理
+    [
+      ...bossBullets,
+      ...homingBullets,
+      ...explosiveBullets,
+      ...reflectingBullets,
+      ...splitBullets,
+    ].forEach(bullet => {
+      if (!bullet.isActive()) return;
+
+      const nearbyObjects = this.collisionOptimizer
+        .getSpatialHash()
+        .getNearby(bullet);
+      this.spatialHashChecks += nearbyObjects.size;
+      this.totalChecks += enemies.length;
+
+      for (const nearbyObj of nearbyObjects) {
+        if (this.isEnemy(nearbyObj) && enemies.includes(nearbyObj)) {
+          if (this.checkCollision(bullet, nearbyObj)) {
+            // ボス弾丸は貫通しないので即座に無効化
+            bullet.deactivate();
+            break;
           }
         }
       }
