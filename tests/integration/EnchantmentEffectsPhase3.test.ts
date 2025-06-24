@@ -4,7 +4,6 @@
  * 全エンチャント効果の統合処理、包括的テスト、パフォーマンステスト、統合デモを実行
  */
 
-import { createTestConfig } from '../../src/config/GameConfigFactory';
 import { Bullet } from '../../src/entities/Bullet';
 import { Enemy } from '../../src/entities/Enemy';
 import { EventEmitter } from '../../src/events/EventEmitter';
@@ -14,7 +13,6 @@ import { GameObjectManager } from '../../src/managers/GameObjectManager';
 import { MockRandomProvider } from '../../src/providers/MockRandomProvider';
 import { ChainLightningProcessor } from '../../src/systems/ChainLightningProcessor';
 import { CollisionSystem } from '../../src/systems/CollisionSystem';
-import { EnchantmentEffectProcessor } from '../../src/systems/EnchantmentEffectProcessor';
 import { PowerUpType } from '../../src/types';
 import { DamageCalculator } from '../../src/utils/DamageCalculator';
 
@@ -22,10 +20,8 @@ describe('エンチャント効果統合テスト - Phase 3', () => {
   let gameObjectManager: GameObjectManager;
   let eventEmitter: EventEmitter<EventMap>;
   let collisionSystem: CollisionSystem;
-  let _enchantmentProcessor: EnchantmentEffectProcessor;
   let chainProcessor: ChainLightningProcessor;
   let mockRandomProvider: MockRandomProvider;
-  let _testConfig: ReturnType<typeof createTestConfig>;
 
   const createMockPlayer = (): IPlayer => ({
     x: 400,
@@ -67,14 +63,9 @@ describe('エンチャント効果統合テスト - Phase 3', () => {
   });
 
   beforeEach(() => {
-    _testConfig = createTestConfig();
     eventEmitter = new EventEmitter();
     gameObjectManager = new GameObjectManager(eventEmitter);
     collisionSystem = new CollisionSystem(eventEmitter, gameObjectManager);
-    _enchantmentProcessor = new EnchantmentEffectProcessor(
-      gameObjectManager,
-      eventEmitter
-    );
     chainProcessor = new ChainLightningProcessor(
       gameObjectManager,
       eventEmitter

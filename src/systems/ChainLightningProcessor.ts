@@ -573,37 +573,4 @@ export class ChainLightningProcessor {
       spatialHashCells: this.spatialHash.getDebugInfo().cellCount,
     };
   }
-
-  /**
-   * 範囲内の全ての敵を取得する（レガシー互換性）
-   */
-  private getEnemiesInRange(
-    position: Vector2D,
-    enemies: Enemy[],
-    range: number
-  ): Enemy[] {
-    return enemies.filter(enemy => {
-      const enemyPos = enemy.getPosition();
-      const distance = this.calculateDistance(position, enemyPos);
-      return distance <= range;
-    });
-  }
-
-  /**
-   * 最も近い敵を探す（レガシー互換性）
-   */
-  private findNearestEnemy(
-    position: Vector2D,
-    enemies: Enemy[],
-    maxRange: number = Infinity
-  ): Enemy | null {
-    const targets = this.findOptimalTargets(
-      position,
-      enemies,
-      maxRange,
-      'nearest',
-      1
-    );
-    return targets.length > 0 ? targets[0] : null;
-  }
 }
