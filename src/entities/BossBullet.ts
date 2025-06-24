@@ -70,13 +70,13 @@ export class BossBullet extends GameObject {
 
   public draw(ctx: CanvasRenderingContext2D): void {
     ctx.save();
-    
+
     // 軌跡を描画
     this.drawTrail(ctx);
-    
+
     // 弾丸本体を描画
     this.drawEnergyBullet(ctx);
-    
+
     ctx.restore();
   }
 
@@ -85,22 +85,22 @@ export class BossBullet extends GameObject {
    */
   private drawTrail(ctx: CanvasRenderingContext2D): void {
     if (this.trail.length < 2) return;
-    
+
     ctx.strokeStyle = '#ff00ff';
     ctx.lineWidth = 4;
     ctx.lineCap = 'round';
-    
+
     for (let i = 1; i < this.trail.length; i++) {
       const current = this.trail[i];
       const previous = this.trail[i - 1];
-      
+
       ctx.globalAlpha = current.alpha * 0.6;
       ctx.beginPath();
       ctx.moveTo(previous.x, previous.y);
       ctx.lineTo(current.x, current.y);
       ctx.stroke();
     }
-    
+
     ctx.globalAlpha = 1.0;
   }
 
@@ -111,56 +111,64 @@ export class BossBullet extends GameObject {
     const centerX = this.x + this.width / 2;
     const centerY = this.y + this.height / 2;
     const radius = Math.max(this.width, this.height) / 2;
-    
+
     // 外側のエネルギーオーラ
     const auraGradient = ctx.createRadialGradient(
-      centerX, centerY, 0,
-      centerX, centerY, radius * 4
+      centerX,
+      centerY,
+      0,
+      centerX,
+      centerY,
+      radius * 4
     );
     auraGradient.addColorStop(0, '#ff00ff');
     auraGradient.addColorStop(0.3, 'rgba(255, 0, 255, 0.6)');
     auraGradient.addColorStop(1, 'transparent');
-    
+
     ctx.fillStyle = auraGradient;
     ctx.globalAlpha = this.glowIntensity * 0.7;
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius * 4, 0, Math.PI * 2);
     ctx.fill();
-    
+
     // 中間層のグロー
     const midGradient = ctx.createRadialGradient(
-      centerX, centerY, 0,
-      centerX, centerY, radius * 2
+      centerX,
+      centerY,
+      0,
+      centerX,
+      centerY,
+      radius * 2
     );
     midGradient.addColorStop(0, '#ffffff');
     midGradient.addColorStop(0.5, '#ff00ff');
     midGradient.addColorStop(1, 'transparent');
-    
+
     ctx.fillStyle = midGradient;
     ctx.globalAlpha = this.glowIntensity;
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius * 2, 0, Math.PI * 2);
     ctx.fill();
-    
+
     // 中心核
     ctx.fillStyle = '#ffffff';
     ctx.globalAlpha = 1.0;
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
     ctx.fill();
-    
+
     // エネルギーの輝き（十字形）
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 2;
     ctx.globalAlpha = this.glowIntensity;
-    
+
     const sparkLength = radius * 2;
     // 縦の輝き
     ctx.beginPath();
     ctx.moveTo(centerX, centerY - sparkLength);
     ctx.lineTo(centerX, centerY + sparkLength);
     ctx.stroke();
-    
+
     // 横の輝き
     ctx.beginPath();
     ctx.moveTo(centerX - sparkLength, centerY);

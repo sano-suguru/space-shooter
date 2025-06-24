@@ -62,11 +62,7 @@ export class BossAttackEffects {
   private screenShake: ScreenShake | null = null;
   private particles: BossAttackParticle[] = [];
   private chargingEffects: ChargingEffect[] = [];
-  private config: GameConfig;
-
-  constructor(config: GameConfig) {
-    this.config = config;
-  }
+  constructor(private config: GameConfig) {}
 
   /**
    * 攻撃予告を追加
@@ -101,7 +97,7 @@ export class BossAttackEffects {
     x: number,
     y: number,
     maxRadius: number = 50,
-    duration: number = 2000,
+    duration: number = this.config.boss.fireRate * 2,
     color: string = '#00ffff'
   ): void {
     const effect: ChargingEffect = {
@@ -144,7 +140,7 @@ export class BossAttackEffects {
    * 画面揺れを追加
    */
   public addScreenShake(
-    intensity: number = 5,
+    intensity: number = Math.min(10, this.config.canvas.width * 0.0125),
     duration: number = 300,
     frequency: number = 0.1
   ): void {
@@ -345,7 +341,9 @@ export class BossAttackEffects {
     warning: AttackWarning
   ): void {
     // 背景の半透明エリア
-    ctx.fillStyle = warning.color.replace(')', ', 0.15)').replace('rgb', 'rgba');
+    ctx.fillStyle = warning.color
+      .replace(')', ', 0.15)')
+      .replace('rgb', 'rgba');
     ctx.fillRect(warning.x, warning.y, warning.width, warning.height);
 
     // 外側の太い警告線
@@ -353,7 +351,12 @@ export class BossAttackEffects {
     ctx.lineWidth = 8;
     ctx.setLineDash([15, 8]);
     ctx.beginPath();
-    ctx.rect(warning.x - 2, warning.y - 2, warning.width + 4, warning.height + 4);
+    ctx.rect(
+      warning.x - 2,
+      warning.y - 2,
+      warning.width + 4,
+      warning.height + 4
+    );
     ctx.stroke();
 
     // 中間の光る線
@@ -386,19 +389,22 @@ export class BossAttackEffects {
   /**
    * 危険マークを描画
    */
-  private drawDangerMarks(ctx: CanvasRenderingContext2D, warning: AttackWarning): void {
+  private drawDangerMarks(
+    ctx: CanvasRenderingContext2D,
+    warning: AttackWarning
+  ): void {
     const markCount = Math.floor(warning.width / 60); // 60ピクセルごとに1つ
     const markSize = 20;
-    
+
     for (let i = 0; i < markCount; i++) {
       const x = warning.x + (i + 0.5) * (warning.width / markCount);
       const y = warning.y - markSize - 5;
-      
+
       // 三角形の危険マーク
       ctx.fillStyle = '#ff0000';
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 2;
-      
+
       ctx.beginPath();
       ctx.moveTo(x, y);
       ctx.lineTo(x - markSize / 2, y + markSize);
@@ -406,7 +412,7 @@ export class BossAttackEffects {
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
-      
+
       // 感嘆符
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 12px Arial';

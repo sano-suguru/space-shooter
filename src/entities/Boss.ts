@@ -267,8 +267,14 @@ export class Boss extends GameObject {
     const radius = (this.width / 2) * (1 + flashIntensity);
 
     const flashGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radius * 2);
-    flashGradient.addColorStop(0, `rgba(255, 255, 255, ${flashIntensity * 0.8})`);
-    flashGradient.addColorStop(0.5, `rgba(0, 255, 255, ${flashIntensity * 0.4})`);
+    flashGradient.addColorStop(
+      0,
+      `rgba(255, 255, 255, ${flashIntensity * 0.8})`
+    );
+    flashGradient.addColorStop(
+      0.5,
+      `rgba(0, 255, 255, ${flashIntensity * 0.4})`
+    );
     flashGradient.addColorStop(1, 'transparent');
 
     ctx.fillStyle = flashGradient;
