@@ -198,6 +198,13 @@ export class BossBullet extends GameObject {
   public getId(): string {
     if (!this.uniqueId) {
       this.uniqueId = `boss_bullet_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+
+      // デバッグログ: ID生成
+      console.log('🆔 BossBullet ID生成:', {
+        newId: this.uniqueId,
+        position: { x: this.x, y: this.y },
+        className: this.constructor.name,
+      });
     }
     return this.uniqueId;
   }
@@ -206,7 +213,16 @@ export class BossBullet extends GameObject {
    * IDをリセット（サブクラス用）
    */
   protected resetId(): void {
+    const oldId = this.uniqueId;
     this.uniqueId = '';
+
+    // デバッグログ: IDリセット
+    console.log('🔄 BossBullet IDリセット:', {
+      oldId: oldId || '(空)',
+      newId: '(空)',
+      position: { x: this.x, y: this.y },
+      className: this.constructor.name,
+    });
   }
 
   /**
@@ -230,5 +246,149 @@ export class BossBullet extends GameObject {
     // BossBulletでは画面外に移動させることで非アクティブ化
     this.x = -1000;
     this.y = -1000;
+  }
+
+  // ========================================
+  // エンチャント効果関連メソッド（デフォルト実装）
+  // ========================================
+
+  /**
+   * 貫通効果があるかどうかを確認
+   * @returns 貫通効果の有無（BossBulletはデフォルトでfalse）
+   */
+  public isPiercing(): boolean {
+    return false;
+  }
+
+  /**
+   * 貫通回数を取得
+   * @returns 貫通回数（BossBulletはデフォルトで0）
+   */
+  public getPiercingCount(): number {
+    return 0;
+  }
+
+  /**
+   * 爆発効果があるかどうかを確認
+   * @returns 爆発効果の有無（BossBulletはデフォルトでfalse）
+   */
+  public isExplosive(): boolean {
+    return false;
+  }
+
+  /**
+   * 爆発半径を取得
+   * @returns 爆発半径（BossBulletはデフォルトで0）
+   */
+  public getExplosionRadius(): number {
+    return 0;
+  }
+
+  /**
+   * ホーミング効果があるかどうかを確認
+   * @returns ホーミング効果の有無（BossBulletはデフォルトでfalse）
+   */
+  public isHoming(): boolean {
+    return false;
+  }
+
+  /**
+   * ホーミング持続時間を取得
+   * @returns ホーミング持続時間（BossBulletはデフォルトで0）
+   */
+  public getHomingDuration(): number {
+    return 0;
+  }
+
+  /**
+   * チェインライトニング効果があるかどうかを確認
+   * @returns チェインライトニング効果の有無（BossBulletはデフォルトでfalse）
+   */
+  public hasChainLightning(): boolean {
+    return false;
+  }
+
+  /**
+   * チェイン回数を取得
+   * @returns チェイン回数（BossBulletはデフォルトで0）
+   */
+  public getChainCount(): number {
+    return 0;
+  }
+
+  /**
+   * 分裂効果があるかどうかを確認
+   * @returns 分裂効果の有無（BossBulletはデフォルトでfalse）
+   */
+  public canSplit(): boolean {
+    return false;
+  }
+
+  /**
+   * 分裂数を取得
+   * @returns 分裂数（BossBulletはデフォルトで0）
+   */
+  public getSplitCount(): number {
+    return 0;
+  }
+
+  /**
+   * リコシェット効果があるかどうかを確認
+   * @returns リコシェット効果の有無（BossBulletはデフォルトでfalse）
+   */
+  public canRicochet(): boolean {
+    return false;
+  }
+
+  /**
+   * リコシェット回数を取得
+   * @returns リコシェット回数（BossBulletはデフォルトで0）
+   */
+  public getRicochetCount(): number {
+    return 0;
+  }
+
+  /**
+   * クリティカル確率を取得
+   * @returns クリティカル確率（BossBulletはデフォルトで0）
+   */
+  public getCriticalChance(): number {
+    return 0;
+  }
+
+  /**
+   * 凍結効果があるかどうかを確認
+   * @returns 凍結効果の有無（BossBulletはデフォルトでfalse）
+   */
+  public hasFreezeEffect(): boolean {
+    return false;
+  }
+
+  /**
+   * 凍結持続時間を取得
+   * @returns 凍結持続時間（BossBulletはデフォルトで0）
+   */
+  public getFreezeDuration(): number {
+    return 0;
+  }
+
+  /**
+   * 弾丸の所有者を取得
+   * @returns 弾丸の所有者（BossBulletは常に'boss'）
+   */
+  public getOwner(): 'player' | 'enemy' | 'boss' {
+    return 'boss';
+  }
+
+  /**
+   * 弾丸をリセット（オブジェクトプール用）
+   */
+  public reset(): void {
+    this.x = -1000;
+    this.y = -1000;
+    this.trail = [];
+    this.animationTime = 0;
+    this.glowIntensity = 1.0;
+    this.resetId();
   }
 }

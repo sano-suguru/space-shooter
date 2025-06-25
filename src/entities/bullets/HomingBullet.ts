@@ -28,6 +28,16 @@ export class HomingBullet extends BossBullet {
     this.turnSpeed = turnSpeed;
     this.originalSpeedX = speedX;
     this.originalSpeedY = speedY;
+
+    // デバッグログ: HomingBullet初期化
+    console.log('🎯 HomingBullet初期化:', {
+      position: { x, y },
+      speed: { speedX, speedY },
+      target: this.target ? '設定済み' : 'undefined',
+      uniqueId: this.getId(),
+      homingDuration,
+      turnSpeed,
+    });
   }
 
   /**
@@ -35,6 +45,13 @@ export class HomingBullet extends BossBullet {
    */
   public setTarget(target: Player): void {
     this.target = target;
+
+    // デバッグログ: ターゲット設定
+    console.log('🎯 HomingBullet ターゲット設定:', {
+      bulletId: this.getId(),
+      targetSet: target ? 'Player設定済み' : 'undefined',
+      position: { x: this.x, y: this.y },
+    });
   }
 
   /**
@@ -201,6 +218,16 @@ export class HomingBullet extends BossBullet {
     if (turnSpeed !== undefined) {
       this.turnSpeed = turnSpeed;
     }
+
+    // デバッグログ: HomingBullet初期化（オブジェクトプール用）
+    console.log('🔄 HomingBullet 再初期化:', {
+      bulletId: this.getId(),
+      position: { x, y },
+      speed: { speedX, speedY },
+      target: target ? 'Player設定済み' : 'undefined',
+      homingDuration: this.homingDuration,
+      turnSpeed: this.turnSpeed,
+    });
   }
 
   /**

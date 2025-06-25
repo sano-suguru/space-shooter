@@ -21,6 +21,7 @@ import { SpaceDust } from '../entities/SpaceDust';
 import { Star } from '../entities/Star';
 import { EventEmitter } from '../events/EventEmitter';
 import { EventMap } from '../events/EventType';
+import { IBullet } from '../interfaces/IBullet';
 import { IPlayer } from '../interfaces/IPlayer';
 import { ObjectPool, PoolManager } from '../utils/ObjectPool';
 import {
@@ -430,6 +431,15 @@ export class GameObjectManager {
   }
 
   public addHomingBullet(bullet: HomingBullet): void {
+    // デバッグログ: HomingBullet追加
+    console.log('➕ GameObjectManager: HomingBullet追加:', {
+      bulletId: bullet.getId(),
+      target: bullet.getTarget() ? 'Player設定済み' : 'undefined',
+      position: { x: bullet.getX(), y: bullet.getY() },
+      currentCount: this.homingBullets.length,
+      newCount: this.homingBullets.length + 1,
+    });
+
     this.homingBullets.push(bullet);
   }
 
@@ -617,6 +627,31 @@ export class GameObjectManager {
     }
 
     return objects;
+  }
+
+  /**
+   * 統一された弾丸取得メソッド（IBulletインターフェース使用）
+   */
+  public getAllBullets(): IBullet[] {
+    return [
+      ...this.bullets,
+      ...this.bossBullets,
+      ...this.homingBullets,
+      ...this.explosiveBullets,
+      ...this.reflectingBullets,
+      ...this.splitBullets,
+    ];
+  }
+
+  /**
+   * 統一された弾丸更新処理
+   */
+  public updateAllBullets(deltaTime: number): void {
+    this.getAllBullets().forEach(bullet => {
+      if (bullet.isActive()) {
+        bullet.update(deltaTime);
+      }
+    });
   }
 
   /**

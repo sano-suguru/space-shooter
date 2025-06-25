@@ -7,6 +7,7 @@ import { Player } from '../entities/Player';
 import { PowerUp } from '../entities/PowerUp';
 import { EventEmitter } from '../events/EventEmitter';
 import { EventMap } from '../events/EventType';
+import { IBullet } from '../interfaces/IBullet';
 import { IPlayer } from '../interfaces/IPlayer';
 import { GameObjectManager } from '../managers/GameObjectManager';
 import { checkCollision } from '../utils/CollisionUtils';
@@ -64,62 +65,60 @@ export class CollisionSystem {
   }
 
   /**
-   * 弾丸と敵の衝突判定（SpatialHash最適化版 + エンチャント効果対応）
-   * O(n²) → O(n) に最適化、貫通効果に対応
+   * 弾丸と敵の衝突判定（統一インターフェース対応版）
+   * IBulletインターフェースを使用した統一処理
    */
   private checkBulletEnemyCollisions(): void {
     const enemies = this.gameObjectManager.getEnemies();
     if (enemies.length === 0) return;
 
-    // プレイヤーの弾丸を処理（エンチャント効果あり）
-    this.processPlayerBulletCollisions(enemies);
-
-    // ボス弾丸を処理（エンチャント効果なし）
-    this.processBossBulletCollisions(enemies);
+    // 統一された弾丸処理
+    const allBullets = this.gameObjectManager.getAllBullets();
+    this.processUnifiedBulletCollisions(allBullets, enemies);
   }
 
   /**
-   * プレイヤーの弾丸と敵の衝突判定
+   * 統一された弾丸処理メソッド（IBulletインターフェース使用）
    */
-  private processPlayerBulletCollisions(enemies: Enemy[]): void {
-    const bullets = this.gameObjectManager.getBullets();
-    if (bullets.length === 0) return;
-
+  private processUnifiedBulletCollisions(
+    bullets: IBullet[],
+    enemies: Enemy[]
+  ): void {
     bullets.forEach(bullet => {
-      if (!bullet.isActive()) return;
+      if (!this.validateBullet(bullet) || !bullet.isActive()) return;
 
       let hitCount = 0;
       const maxPiercing = bullet.isPiercing() ? bullet.getPiercingCount() : 0;
       const enemiesToRemove: Enemy[] = [];
 
-      // 直接的な衝突判定（SpatialHashを使わない）
+      // 統一された衝突判定処理
       for (const enemy of enemies) {
-        if (this.checkCollision(bullet, enemy)) {
+        if (this.checkCollision(bullet as unknown as GameObject, enemy)) {
           hitCount++;
 
-          // エンチャント効果処理（敵削除を遅延）
-          this.processEnchantmentEffectsWithDelayedRemoval(
-            bullet,
-            enemy,
-            enemiesToRemove
-          );
-
-          // 貫通判定：貫通効果がない場合は即座に弾丸を無効化
-          if (!bullet.isPiercing()) {
-            bullet.deactivate();
-            break;
+          // エンチャント効果処理（プレイヤー弾丸のみ）
+          if (bullet.getOwner() === 'player') {
+            this.processEnchantmentEffectsWithDelayedRemoval(
+              bullet as Bullet,
+              enemy,
+              enemiesToRemove
+            );
+          } else {
+            // 敵・ボス弾丸は直接削除
+            if (!enemiesToRemove.includes(enemy)) {
+              enemiesToRemove.push(enemy);
+            }
           }
 
-          // 貫通効果がある場合は、最大貫通回数に達したら無効化
-          // setPiercing(n) = n体まで撃破可能
-          if (hitCount >= maxPiercing) {
+          // 貫通判定
+          if (!bullet.isPiercing() || hitCount >= maxPiercing) {
             bullet.deactivate();
             break;
           }
         }
       }
 
-      // 貫通処理完了後に敵を削除
+      // 敵削除処理
       enemiesToRemove.forEach(enemy => {
         this.eventEmitter.emit('enemyDestroyed', enemy);
         this.gameObjectManager.removeEnemy(enemy);
@@ -128,42 +127,21 @@ export class CollisionSystem {
   }
 
   /**
-   * ボス弾丸と敵の衝突判定（エンチャント効果なし）
+   * 弾丸の妥当性を検証
    */
-  private processBossBulletCollisions(enemies: Enemy[]): void {
-    // ボス弾丸の処理
-    const bossBullets = this.gameObjectManager.getBossBullets();
-    const homingBullets = this.gameObjectManager.getHomingBullets();
-    const explosiveBullets = this.gameObjectManager.getExplosiveBullets();
-    const reflectingBullets = this.gameObjectManager.getReflectingBullets();
-    const splitBullets = this.gameObjectManager.getSplitBullets();
-
-    // 各弾丸タイプを個別に処理
-    [
-      ...bossBullets,
-      ...homingBullets,
-      ...explosiveBullets,
-      ...reflectingBullets,
-      ...splitBullets,
-    ].forEach(bullet => {
-      if (!bullet.isActive()) return;
-
-      const nearbyObjects = this.collisionOptimizer
-        .getSpatialHash()
-        .getNearby(bullet);
-      this.spatialHashChecks += nearbyObjects.size;
-      this.totalChecks += enemies.length;
-
-      for (const nearbyObj of nearbyObjects) {
-        if (this.isEnemy(nearbyObj) && enemies.includes(nearbyObj)) {
-          if (this.checkCollision(bullet, nearbyObj)) {
-            // ボス弾丸は貫通しないので即座に無効化
-            bullet.deactivate();
-            break;
-          }
-        }
-      }
-    });
+  private validateBullet(bullet: IBullet): boolean {
+    try {
+      return (
+        bullet &&
+        typeof bullet.isActive === 'function' &&
+        typeof bullet.isPiercing === 'function' &&
+        typeof bullet.getOwner === 'function' &&
+        typeof bullet.deactivate === 'function'
+      );
+    } catch (error) {
+      console.error('Invalid bullet object:', error);
+      return false;
+    }
   }
 
   /**
